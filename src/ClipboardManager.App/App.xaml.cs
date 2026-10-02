@@ -27,6 +27,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private QuickPasteWindow? _palette;
     private DispatcherTimer? _cleanupTimer;
+    private PasteStackController? _pasteStack;
 
     // Most recent sensitive capture: when it expires we also wipe it from the OS clipboard if it is still there.
     private string? _pendingSecretHash;
@@ -109,6 +110,14 @@ public partial class App : Application
                 _tray.ShowBalloon("Start with Windows", "Could not change the setting: " + ex.Message, warning: true);
             }
         };
+        _pasteStack = new PasteStackController(_svc, writer);
+        _pasteStack.StatusChanged += status => _tray.SetPasteStackStatus(status);
+        _pasteStack.Notify += (message, warning) => _tray.ShowBalloon("Paste stack", message, warning);
+        _palette.PasteStackRequested += items => _pasteStack.Start(items);
+        _tray.StopPasteStackRequested += () => _pasteStack.Stop("Paste stack stopped.");
+        // Raised on the UI thread for copies made in other apps (our own writes are skipped by the monitor).
+        _monitor.ContentCaptured += (_, _) => _pasteStack.OnExternalClipboardChange();
+
         _tray.OpenDataFolderRequested += () => OpenShell(_dataFolder);
         _tray.OpenSettingsRequested += () => OpenShell(_settingsPath);
         _tray.ExitRequested += () => Shutdown();
@@ -213,6 +222,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _cleanupTimer?.Stop();
+        _pasteStack?.Dispose();
         _hotkeys?.Dispose();
         _monitor?.Dispose();
         _tray?.Dispose();
