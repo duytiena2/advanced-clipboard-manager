@@ -17,6 +17,8 @@ public sealed class AppSettings
     /// <summary>Last position of the Quick Paste window (null = centered).</summary>
     public double? QuickPasteLeft { get; set; }
     public double? QuickPasteTop { get; set; }
+    /// <summary>Quick Paste stays open (doesn't hide when it loses focus).</summary>
+    public bool QuickPasteKeepOpen { get; set; }
 
     // Privacy
     public bool DetectSensitive { get; set; } = true;

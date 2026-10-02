@@ -13,10 +13,15 @@ internal sealed class WindowsPasteSimulator : IPasteSimulator
     private IntPtr _target;
 
     /// <summary>Call right before showing the palette.</summary>
-    public void RememberForegroundWindow()
+    /// <param name="onlyIfPasteTarget">
+    /// true = keep the previous target when the current foreground window is not a valid one (our own palette, the taskbar…).
+    /// Used by "keep open" mode, which polls this to follow the app the user is working in.
+    /// </param>
+    public void RememberForegroundWindow(bool onlyIfPasteTarget = false)
     {
         var hwnd = NativeMethods.GetForegroundWindow();
-        _target = IsPasteTarget(hwnd) ? hwnd : IntPtr.Zero;
+        if (IsPasteTarget(hwnd)) _target = hwnd;
+        else if (!onlyIfPasteTarget) _target = IntPtr.Zero;
     }
 
     /// <summary>

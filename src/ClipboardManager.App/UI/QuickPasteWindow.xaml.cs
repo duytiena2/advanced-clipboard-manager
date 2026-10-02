@@ -23,6 +23,9 @@ public partial class QuickPasteWindow : Window
     private readonly ObservableCollection<ItemViewModel> _items = new();
     private readonly DispatcherTimer _debounce;
     private readonly DispatcherTimer _tick;
+    private readonly DispatcherTimer _trackForeground;
+
+    private bool KeepOpen => KeepOpenButton.IsChecked == true;
     private bool _hiding;
 
     internal QuickPasteWindow(ClipboardService svc, IClipboardWriter writer, WindowsPasteSimulator paste)
@@ -46,7 +49,11 @@ public partial class QuickPasteWindow : Window
             }
             if (ItemsList.SelectedItem is ItemViewModel sel) MetaExpires.Text = sel.MetaExpires;
         };
-        IsVisibleChanged += (_, _) => { if (IsVisible) _tick.Start(); else _tick.Stop(); };
+        IsVisibleChanged += (_, _) =>
+        {
+            if (IsVisible) _tick.Start(); else _tick.Stop();
+            if (IsVisible && KeepOpen) _trackForeground.Start(); else _trackForeground.Stop();
+        };
 
         SearchBox.TextChanged += (_, _) =>
         {
@@ -57,7 +64,14 @@ public partial class QuickPasteWindow : Window
         ItemsList.SelectionChanged += (_, _) => UpdatePreview();
         ItemsList.MouseDoubleClick += (_, _) => PasteSelected();
         PreviewKeyDown += OnPreviewKeyDown;
-        Deactivated += (_, _) => HidePalette();
+        Deactivated += (_, _) => { if (!KeepOpen) HidePalette(); };
+
+        // "Keep open" mode: the palette stays on screen (e.g. docked at one side) and pastes into the app you used last.
+        KeepOpenButton.IsChecked = _svc.Settings.QuickPasteKeepOpen;
+        KeepOpenButton.Checked += (_, _) => SetKeepOpen(true);
+        KeepOpenButton.Unchecked += (_, _) => SetKeepOpen(false);
+        _trackForeground = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _trackForeground.Tick += (_, _) => _paste.RememberForegroundWindow(onlyIfPasteTarget: true);
 
         // Borderless window: drag it by the search bar or the footer (the text box itself keeps normal mouse behavior).
         Header.MouseLeftButtonDown += OnDragAreaMouseDown;
@@ -88,6 +102,21 @@ public partial class QuickPasteWindow : Window
         Keyboard.Focus(SearchBox);
     }
 
+    private void SetKeepOpen(bool on)
+    {
+        _svc.Settings.QuickPasteKeepOpen = on;
+        SaveSettings();
+        if (on && IsVisible) _trackForeground.Start(); else _trackForeground.Stop();
+        StatusText.Text = on ? "Kept open — Enter pastes into the app you used last" : $"{_svc.Count()} items";
+    }
+
+    private void SaveSettings()
+    {
+        try { _svc.Settings.Save(Path.Combine(_svc.DataFolder, "settings.json")); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
     public void HidePalette()
     {
         if (_hiding || !IsVisible) return;
@@ -111,9 +140,7 @@ public partial class QuickPasteWindow : Window
         // Remember where the user put it (also across restarts).
         _svc.Settings.QuickPasteLeft = Left;
         _svc.Settings.QuickPasteTop = Top;
-        try { _svc.Settings.Save(Path.Combine(_svc.DataFolder, "settings.json")); }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        SaveSettings();
         SearchBox.Focus();
     }
 
@@ -233,6 +260,10 @@ public partial class QuickPasteWindow : Window
                 TogglePinSelected();
                 e.Handled = true;
                 break;
+            case Key.T when mods == ModifierKeys.Control:
+                KeepOpenButton.IsChecked = !KeepOpen;
+                e.Handled = true;
+                break;
             case Key.R when mods == ModifierKeys.Control:
                 if (ItemsList.SelectedItem is ItemViewModel r) { r.Revealed = !r.Revealed; UpdatePreview(); }
                 e.Handled = true;
@@ -294,14 +325,21 @@ public partial class QuickPasteWindow : Window
     private void PasteSelected()
     {
         if (!WriteToClipboard()) return;
-        HidePalette();
+        if (KeepOpen) ClearMarks(); else HidePalette();
         // Opened from the tray: there is no app to paste into, the item is just on the clipboard now.
         if (_paste.HasTarget) _paste.PasteIntoPreviousWindow();
     }
 
     private void CopySelected()
     {
-        if (WriteToClipboard()) HidePalette();
+        if (!WriteToClipboard()) return;
+        if (KeepOpen) ClearMarks(); else HidePalette();
+    }
+
+    private void ClearMarks()
+    {
+        foreach (var vm in _items) vm.IsMarked = false;
+        UpdateMarkedStatus();
     }
 
     private void TogglePinSelected()
