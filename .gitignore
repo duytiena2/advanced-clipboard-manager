@@ -1,0 +1,11 @@
+bin/
+obj/
+publish/
+lib/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+TestResults/
+*.log
