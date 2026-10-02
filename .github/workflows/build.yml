@@ -27,10 +27,29 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Build, test and publish
+      - name: Install Inno Setup
         shell: pwsh
-        run: ./build.ps1 -Publish
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+      - name: Build, test, publish and package
+        shell: pwsh
+        # Store identity comes from repository variables (Settings > Secrets and variables > Actions > Variables),
+        # copied from Partner Center > Product identity. Without them the MSIX uses local-test defaults.
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}
+          MSIX_DISPLAY_NAME: ${{ vars.MSIX_DISPLAY_NAME }}
+        run: ./build.ps1 -Publish -Installer -Msix
       - uses: actions/upload-artifact@v4
         with:
-          name: ClipboardManager-win-x64
-          path: publish/
+          name: ClipboardManager-portable-win-x64
+          path: publish/ClipboardManager.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClipboardManager-Setup
+          path: dist/*.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClipboardManager-msix
+          path: dist/*.msix

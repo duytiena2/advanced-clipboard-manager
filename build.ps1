@@ -6,14 +6,24 @@
   .\build.ps1                 # restore + build + run core tests
   .\build.ps1 -Run            # build and start the app (look for the tray icon)
   .\build.ps1 -Publish        # self-contained single-file exe in .\publish\
+  .\build.ps1 -Installer      # Setup.exe in .\dist\ (Inno Setup; installed with winget if missing)
+  .\build.ps1 -Msix           # Store package (.msix) in .\dist\
 #>
 param(
     [switch]$Run,
     [switch]$Publish,
+    [switch]$Installer,
+    [switch]$Msix,
     [switch]$SkipTests,
     [ValidateSet('Debug', 'Release')] [string]$Configuration = 'Release',
     # Official SQLite DLL (includes FTS5). Override if this version is no longer hosted.
-    [string]$SqliteUrl = 'https://www.sqlite.org/2025/sqlite-dll-win-x64-3500400.zip'
+    [string]$SqliteUrl = 'https://www.sqlite.org/2025/sqlite-dll-win-x64-3500400.zip',
+    # MSIX identity. For the Store, use the values from Partner Center > Product identity
+    # (CI reads them from the MSIX_* repository variables). The defaults only suit local testing.
+    [string]$MsixIdentityName = $(if ($env:MSIX_IDENTITY_NAME) { $env:MSIX_IDENTITY_NAME } else { 'SouthTelecom.AdvancedClipboardManager' }),
+    [string]$MsixPublisher = $(if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=SouthTelecom' }),
+    [string]$MsixPublisherDisplayName = $(if ($env:MSIX_PUBLISHER_DISPLAY_NAME) { $env:MSIX_PUBLISHER_DISPLAY_NAME } else { 'SouthTelecom' }),
+    [string]$MsixDisplayName = $(if ($env:MSIX_DISPLAY_NAME) { $env:MSIX_DISPLAY_NAME } else { 'Advanced Clipboard Manager' })
 )
 
 $ErrorActionPreference = 'Stop'
@@ -98,6 +108,97 @@ if ($Publish) {
         -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
     if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
     Write-Host "`nDone: $(Join-Path $PSScriptRoot 'publish\ClipboardManager.exe')" -ForegroundColor Green
+}
+
+if ($Installer -or $Msix) {
+    [xml]$proj = Get-Content src/ClipboardManager.App/ClipboardManager.App.csproj
+    $version = ($proj.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
+    $appDir = Join-Path $PSScriptRoot 'publish\app'
+    $dist = Join-Path $PSScriptRoot 'dist'
+    New-Item -ItemType Directory -Force -Path $dist | Out-Null
+
+    # Folder (not single-file) build: Setup.exe and MSIX both ship it as-is.
+    Step 'Publishing app folder for packaging'
+    if (Test-Path $appDir) { Remove-Item $appDir -Recurse -Force }
+    & dotnet publish src/ClipboardManager.App -c Release -r win-x64 --self-contained true -p:DebugType=none -o $appDir
+    if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
+}
+
+if ($Installer) {
+    Step "Building Setup.exe (Inno Setup) v$version"
+    function Find-Iscc {
+        $candidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe'),
+            (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe')
+        )
+        $hit = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if ($hit) { return $hit }
+        $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+        if ($cmd) { return $cmd.Source }
+        return $null
+    }
+    $iscc = Find-Iscc
+    if (-not $iscc) {
+        $winget = Get-Command winget -ErrorAction SilentlyContinue
+        if (-not $winget) { throw "Inno Setup 6 not found. Install it from https://jrsoftware.org/isdl.php, then run .\build.ps1 -Installer again." }
+        Write-Host 'Inno Setup not found - installing with winget...' -ForegroundColor Yellow
+        & winget install --id JRSoftware.InnoSetup --exact --scope user --accept-source-agreements --accept-package-agreements
+        $iscc = Find-Iscc
+        if (-not $iscc) { throw "Inno Setup installation did not complete. Install it from https://jrsoftware.org/isdl.php." }
+    }
+    & $iscc /Qp "/DAppVersion=$version" "/DSourceDir=$appDir" "/DOutputDir=$dist" packaging\setup.iss
+    if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed." }
+    Write-Host "Done: $(Join-Path $dist "AdvancedClipboardManager-Setup-$version.exe")" -ForegroundColor Green
+}
+
+if ($Msix) {
+    $msixVersion = "$version.0"   # Store requires a 4-part version with revision 0
+    Step "Building MSIX package v$msixVersion"
+
+    # makeappx.exe: installed Windows SDK, otherwise the Microsoft.Windows.SDK.BuildTools NuGet package.
+    function Find-MakeAppx($root) {
+        Get-ChildItem $root -Recurse -Filter makeappx.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\\x64\\' } | Sort-Object FullName -Descending | Select-Object -First 1
+    }
+    $makeappx = Find-MakeAppx (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin')
+    if (-not $makeappx) {
+        $tools = Join-Path $PSScriptRoot '.tools\sdk-buildtools'
+        $makeappx = Find-MakeAppx $tools
+        if (-not $makeappx) {
+            Write-Host 'Windows SDK not found - downloading Microsoft.Windows.SDK.BuildTools from nuget.org...'
+            $feed = 'https://api.nuget.org/v3-flatcontainer/microsoft.windows.sdk.buildtools'
+            $ver = (Invoke-RestMethod "$feed/index.json").versions | Where-Object { $_ -notmatch '-' } | Select-Object -Last 1
+            $nupkg = Join-Path $env:TEMP "sdk-buildtools.$ver.zip"
+            Invoke-WebRequest "$feed/$ver/microsoft.windows.sdk.buildtools.$ver.nupkg" -OutFile $nupkg -UseBasicParsing
+            Expand-Archive $nupkg -DestinationPath $tools -Force
+            Remove-Item $nupkg -ErrorAction SilentlyContinue
+            $makeappx = Find-MakeAppx $tools
+            if (-not $makeappx) { throw "makeappx.exe not found in Microsoft.Windows.SDK.BuildTools $ver." }
+        }
+    }
+
+    $layout = Join-Path $PSScriptRoot 'publish\msix'
+    if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
+    Copy-Item $appDir $layout -Recurse
+    Copy-Item packaging\Assets (Join-Path $layout 'Assets') -Recurse
+    Remove-Item (Join-Path $layout 'Assets\app.ico')
+
+    $esc = { param($s) [System.Security.SecurityElement]::Escape($s) }
+    (Get-Content packaging\AppxManifest.xml -Raw) `
+        -replace '\$IdentityName\$', (& $esc $MsixIdentityName) `
+        -replace '\$Publisher\$', (& $esc $MsixPublisher) `
+        -replace '\$PublisherDisplayName\$', (& $esc $MsixPublisherDisplayName) `
+        -replace '\$DisplayName\$', (& $esc $MsixDisplayName) `
+        -replace '\$Version\$', $msixVersion |
+        Set-Content (Join-Path $layout 'AppxManifest.xml') -Encoding utf8
+
+    $msixFile = Join-Path $dist "AdvancedClipboardManager_${msixVersion}_x64.msix"
+    & $makeappx.FullName pack /d $layout /p $msixFile /o | Where-Object { $_ -notmatch 'as a payload file|^\s*$' }
+    if ($LASTEXITCODE -ne 0) { throw "makeappx failed." }
+    Write-Host "Done: $msixFile" -ForegroundColor Green
+    Write-Host 'Upload it in Partner Center (the Store signs it). To try it locally first (Developer Mode on):'
+    Write-Host "  Add-AppxPackage -Register `"$(Join-Path $layout 'AppxManifest.xml')`""
 }
 
 if ($Run) {
