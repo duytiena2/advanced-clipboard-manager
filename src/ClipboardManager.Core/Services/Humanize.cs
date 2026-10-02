@@ -24,6 +24,21 @@ public static class Humanize
         return $"expires in {(int)Math.Ceiling(d.TotalDays)} days";
     }
 
+    /// <summary>A retention setting in words: 0 → "never expires", 90 → "1.5 hours", 10080 → "7 days".</summary>
+    public static string Minutes(int minutes)
+    {
+        if (minutes <= 0) return "never expires";
+        if (minutes < 60) return minutes == 1 ? "1 minute" : $"{minutes} minutes";
+        if (minutes < 60 * 24) return Plural(minutes / 60.0, "hour");
+        return Plural(minutes / (60.0 * 24), "day");
+    }
+
+    private static string Plural(double n, string unit)
+    {
+        var s = n.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+        return s == "1" ? $"1 {unit}" : $"{s} {unit}s";
+    }
+
     public static string Bytes(long n) => n switch
     {
         < 1024 => $"{n} B",

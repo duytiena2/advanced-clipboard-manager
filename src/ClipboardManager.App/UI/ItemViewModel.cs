@@ -98,7 +98,7 @@ public sealed class ItemViewModel : INotifyPropertyChanged
     public string MetaType => Item.Kind == ContentKind.Sensitive ? "Sensitive · " + Item.Subtype
         : Item.HasRichText ? Item.DisplayType + " · formatted"
         : Item.OcrText is { Length: > 0 } ? Item.DisplayType + " · contains text" : Item.DisplayType;
-    public string MetaSource => $"{Item.SourceApplication ?? "Unknown"} → {Item.Workspace}";
+    public string MetaSource => $"{(Item.Kind == ContentKind.Snippet ? "Snippet" : Item.SourceApplication ?? "Unknown")} → {Item.Workspace}";
     public string MetaCopied
     {
         get
