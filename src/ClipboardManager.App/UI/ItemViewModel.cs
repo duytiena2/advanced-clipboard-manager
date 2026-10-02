@@ -14,17 +14,17 @@ public sealed class ItemViewModel : INotifyPropertyChanged
     private static readonly FontFamily Mono = new("Cascadia Mono, Consolas, Courier New");
     private static readonly FontFamily Sans = new("Segoe UI Variable Text, Segoe UI");
 
-    private readonly string _dataFolder;
+    private readonly ClipboardService _svc;
     private bool _isMarked;
     private bool _revealed;
     private BitmapImage? _image;
 
     public ClipboardItem Item { get; }
 
-    public ItemViewModel(ClipboardItem item, string dataFolder)
+    public ItemViewModel(ClipboardItem item, ClipboardService svc)
     {
         Item = item;
-        _dataFolder = dataFolder;
+        _svc = svc;
     }
 
     public string Title => string.IsNullOrEmpty(Item.Title) ? "(empty)" : Item.Title;
@@ -75,13 +75,17 @@ public sealed class ItemViewModel : INotifyPropertyChanged
         {
             if (!IsImage || Item.BinaryPath is null) return null;
             if (_image is not null) return _image;
-            var path = Path.Combine(_dataFolder, Item.BinaryPath);
-            if (!File.Exists(path)) return null;
+            byte[]? png;
+            try { png = _svc.ReadBinary(Item); } // decrypts when the history is encrypted
+            catch (IOException) { return null; }
+            catch (InvalidOperationException) { return null; }
+            if (png is null) return null;
+            using var ms = new MemoryStream(png);
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.DecodePixelWidth = 640; // thumbnail-sized decode keeps memory low
-            bmp.UriSource = new Uri(path);
+            bmp.StreamSource = ms;
             bmp.EndInit();
             bmp.Freeze();
             return _image = bmp;

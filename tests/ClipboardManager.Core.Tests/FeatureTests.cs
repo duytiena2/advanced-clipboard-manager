@@ -1,7 +1,36 @@
+using System.Security.Cryptography;
 using ClipboardManager.Core.Models;
+using ClipboardManager.Core.Platform;
 using ClipboardManager.Core.Services;
 
 namespace ClipboardManager.Core.Tests;
+
+/// <summary>Stand-in for DPAPI: AES with a per-"user" key; a wrong key fails like DPAPI does for another account.</summary>
+internal sealed class FakeProtector : IDataProtector
+{
+    private readonly byte[] _key;
+    public FakeProtector(byte key = 7) => _key = Enumerable.Repeat(key, 32).ToArray();
+
+    public byte[] Protect(byte[] plain)
+    {
+        using var aes = Aes.Create();
+        aes.Key = _key;
+        var iv = RandomNumberGenerator.GetBytes(16);
+        var cipher = aes.EncryptCbc(plain, iv);
+        var mac = HMACSHA256.HashData(_key, cipher);
+        return iv.Concat(cipher).Concat(mac).ToArray();
+    }
+
+    public byte[] Unprotect(byte[] data)
+    {
+        if (data.Length < 48) throw new CryptographicException("too short");
+        var cipher = data[16..^32];
+        if (!HMACSHA256.HashData(_key, cipher).AsSpan().SequenceEqual(data.AsSpan(data.Length - 32))) throw new CryptographicException("bad key");
+        using var aes = Aes.Create();
+        aes.Key = _key;
+        return aes.DecryptCbc(cipher, data[..16]);
+    }
+}
 
 /// <summary>Phase 2/3 features: rich text, transforms, workspaces by app, encryption, snippets, paste stack, OCR.</summary>
 public sealed class FeatureTests : IDisposable
@@ -9,9 +38,10 @@ public sealed class FeatureTests : IDisposable
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "acm-feat-" + Guid.NewGuid().ToString("N"));
     private readonly List<ClipboardService> _services = new();
 
-    private ClipboardService NewService(AppSettings? settings = null, FakeClock? clock = null, bool fts = true, string? folder = null)
+    private ClipboardService NewService(AppSettings? settings = null, FakeClock? clock = null, bool fts = true, string? folder = null,
+        IDataProtector? protector = null)
     {
-        var svc = new ClipboardService(folder ?? Path.Combine(_dir, _services.Count.ToString()), settings ?? new AppSettings(), clock ?? new FakeClock(), fts);
+        var svc = new ClipboardService(folder ?? Path.Combine(_dir, _services.Count.ToString()), settings ?? new AppSettings(), clock ?? new FakeClock(), fts, protector);
         _services.Add(svc);
         return svc;
     }
@@ -185,6 +215,105 @@ public sealed class FeatureTests : IDisposable
         var loaded = AppSettings.Load(path);
         Assert.Equal(1, loaded.WorkspaceRules.Count);
         Assert.Equal("Dev", loaded.WorkspaceRules[0].Workspace);
+    }
+
+    // ---- #7 Database encryption ----
+
+    private static byte[] ReadDbFiles(string folder) =>
+        Directory.GetFiles(folder, "clipboard.db*").SelectMany(f =>
+        {
+            using var s = new FileStream(f, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var ms = new MemoryStream();
+            s.CopyTo(ms);
+            return ms.ToArray();
+        }).ToArray();
+
+    private static bool Contains(byte[] haystack, string needle) =>
+        haystack.AsSpan().IndexOf(System.Text.Encoding.UTF8.GetBytes(needle)) >= 0;
+
+    [Test]
+    public void Encrypted_database_has_no_plaintext_on_disk_and_still_searches()
+    {
+        var folder = Path.Combine(_dir, "enc");
+        var settings = new AppSettings { EncryptDatabase = true };
+        var protector = new FakeProtector();
+        var svc = NewService(settings, folder: folder, protector: protector);
+        Assert.True(svc.IsEncrypted);
+        svc.Capture(new CapturedContent { Text = "zebracorn secret plan", Html = "<b>zebracorn html</b>" });
+        var (_, img) = svc.Capture(CapturedContent.FromImage(new byte[] { 0x89, 0x50, 0x4E, 0x47, 42, 42, 42 }, 2, 2));
+
+        Assert.Equal(1, svc.Search("zebracorn").Count);
+        Assert.Equal("zebracorn secret plan", svc.Search("zebra")[0].TextContent);
+        Assert.Equal("<b>zebracorn html</b>", svc.GetRichText(svc.Search("zebra")[0])!.Html);
+        Assert.Equal(7, svc.ReadBinary(img!)!.Length);
+        Assert.True(img!.BinaryPath!.EndsWith(".dpapi"));
+        var imageFile = File.ReadAllBytes(svc.FullBinaryPath(img)!);
+        Assert.False(imageFile.AsSpan().IndexOf(new byte[] { 42, 42, 42 }) >= 0, "image file is encrypted");
+
+        svc.Dispose();
+        _services.Remove(svc);
+        Assert.False(Contains(ReadDbFiles(folder), "zebracorn"), "no plaintext in clipboard.db / -wal");
+
+        // Reopen: the in-memory index is rebuilt, duplicates are still detected through the keyed hash.
+        var again = NewService(settings, folder: folder, protector: protector);
+        Assert.Equal(1, again.Search("zebracorn").Count);
+        Assert.Equal(CaptureOutcome.Duplicate, again.Capture(CapturedContent.FromText("zebracorn secret plan")).Outcome);
+        Assert.Equal(2, again.Count());
+    }
+
+    [Test]
+    public void Encryption_can_be_turned_on_and_off_in_place()
+    {
+        var folder = Path.Combine(_dir, "toggle");
+        var protector = new FakeProtector();
+        var settings = new AppSettings();
+        var svc = NewService(settings, folder: folder, protector: protector);
+        var (_, plain) = svc.Capture(CapturedContent.FromText("quokka notes"));
+        var (_, img) = svc.Capture(CapturedContent.FromImage(new byte[] { 1, 2, 3, 4 }, 1, 1));
+        var plainHash = plain!.ContentHash;
+        Assert.Equal(ClipboardService.Hash(System.Text.Encoding.UTF8.GetBytes("quokka notes")), plainHash);
+
+        svc.SetEncryption(true);
+        Assert.True(settings.EncryptDatabase);
+        Assert.Equal(1, svc.Search("quokka").Count);
+        Assert.True(svc.Search("quokka")[0].ContentHash != plainHash, "hash is keyed once encrypted");
+        Assert.Equal(1, Directory.GetFiles(svc.ImagesFolder).Length);
+        var encImage = svc.Search("type:image")[0];
+        Assert.Equal(4, svc.ReadBinary(encImage)!.Length);
+        Assert.False(Contains(ReadDbFiles(folder), "quokka"), "plaintext gone after VACUUM");
+
+        svc.SetEncryption(false);
+        Assert.False(svc.IsEncrypted);
+        Assert.Equal(plainHash, svc.Search("quokka")[0].ContentHash);
+        var back = svc.Search("type:image")[0];
+        Assert.False(back.BinaryPath!.EndsWith(".dpapi"));
+        Assert.Equal(1, Directory.GetFiles(svc.ImagesFolder).Length);
+        Assert.Equal(CaptureOutcome.Duplicate, svc.Capture(CapturedContent.FromImage(new byte[] { 1, 2, 3, 4 }, 1, 1)).Outcome);
+    }
+
+    [Test]
+    public void Encrypted_database_needs_the_right_protector()
+    {
+        var folder = Path.Combine(_dir, "other-user");
+        var svc = NewService(new AppSettings { EncryptDatabase = true }, folder: folder, protector: new FakeProtector(key: 1));
+        svc.Capture(CapturedContent.FromText("private"));
+        svc.Dispose();
+        _services.Remove(svc);
+
+        Throws<InvalidOperationException>(() => new ClipboardService(folder, new AppSettings { EncryptDatabase = true }, new FakeClock(), protector: null));
+        Throws<InvalidOperationException>(() => new ClipboardService(folder, new AppSettings { EncryptDatabase = true }, new FakeClock(), protector: new FakeProtector(key: 2)));
+    }
+
+    [Test]
+    public void Encrypted_search_without_fts5_filters_after_decrypting()
+    {
+        var svc = NewService(new AppSettings { EncryptDatabase = true }, fts: false, protector: new FakeProtector());
+        svc.Capture(CapturedContent.FromText("Xin chào thế giới"));
+        svc.Capture(CapturedContent.FromText("docker compose up"));
+        svc.Capture(CapturedContent.FromText("sk_live_51HxAbCdEfGhIjKlMnOpQrStUv"));
+        Assert.Equal(1, svc.Search("chao").Count);
+        Assert.Equal(1, svc.Search("COMPOSE docker").Count);
+        Assert.Equal(0, svc.Search("AbCdEf").Count, "secrets not searchable by content");
     }
 
     private static void Throws<TEx>(Action a) where TEx : Exception

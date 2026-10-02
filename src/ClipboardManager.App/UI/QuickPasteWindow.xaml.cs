@@ -180,7 +180,7 @@ public partial class QuickPasteWindow : Window
         _items.Clear();
         foreach (var item in results)
         {
-            _items.Add(new ItemViewModel(item, _svc.DataFolder)
+            _items.Add(new ItemViewModel(item, _svc)
             {
                 IsMarked = markedIds.Contains(item.Id),
                 Shortcut = _items.Count < 9 ? (_items.Count + 1).ToString() : "",

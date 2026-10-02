@@ -41,7 +41,8 @@ public sealed class ClipboardService : IDisposable
     public event EventHandler<ClipboardItem>? ItemCaptured;
     public event EventHandler? HistoryChanged;
 
-    public ClipboardService(string dataFolder, AppSettings settings, IClock? clock = null, bool enableFullText = true)
+    /// <param name="protector">OS user-bound encryption (DPAPI on Windows). Required when <see cref="AppSettings.EncryptDatabase"/> is on.</param>
+    public ClipboardService(string dataFolder, AppSettings settings, IClock? clock = null, bool enableFullText = true, IDataProtector? protector = null)
     {
         _dataFolder = dataFolder;
         Directory.CreateDirectory(dataFolder);
@@ -49,7 +50,79 @@ public sealed class ClipboardService : IDisposable
         Settings = settings;
         Expiration = new ExpirationPolicy(settings);
         _clock = clock ?? new SystemClock();
-        _repo = new ClipboardRepository(Path.Combine(dataFolder, "clipboard.db"), enableFullText);
+        _repo = new ClipboardRepository(Path.Combine(dataFolder, "clipboard.db"), enableFullText, protector);
+        if (settings.EncryptDatabase != _repo.IsEncrypted && (protector is not null || !settings.EncryptDatabase))
+            SetEncryption(settings.EncryptDatabase);
+    }
+
+    public bool IsEncrypted => _repo.IsEncrypted;
+
+    private const string EncryptedImageSuffix = ".dpapi";
+
+    /// <summary>
+    /// Encrypts (or decrypts) the whole history in place: database fields, the search index (moved to memory) and image files.
+    /// Can take a few seconds on a large history.
+    /// </summary>
+    public void SetEncryption(bool on)
+    {
+        if (on == _repo.IsEncrypted) return;
+        var written = new List<string>();
+        var replaced = new List<string>();
+        try
+        {
+            _repo.SetEncrypted(on, item =>
+            {
+                if (item.Kind != ContentKind.Image || item.BinaryPath is null) return (HashOf(item, null), item.BinaryPath);
+                var png = ReadBinary(item); // old format
+                if (png is null) return (HashOf(item, null) + ":missing", item.BinaryPath);
+                var hash = HashOf(item, png);  // new scheme: the repository already switched modes
+                var path = StoreImage(hash, png);
+                written.Add(path);
+                if (!path.Equals(item.BinaryPath, StringComparison.OrdinalIgnoreCase)) replaced.Add(item.BinaryPath);
+                return (hash, path);
+            });
+        }
+        catch
+        {
+            written.ForEach(DeleteBinary);
+            throw;
+        }
+        replaced.ForEach(DeleteBinary);
+        Settings.EncryptDatabase = on;
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Content hash for de-duplication (keyed HMAC when the database is encrypted).</summary>
+    public string HashText(string text) => _repo.Hash(Encoding.UTF8.GetBytes(text));
+
+    private string HashOf(ClipboardItem item, byte[]? imagePng) => item.Kind switch
+    {
+        ContentKind.Image when imagePng is not null => _repo.Hash(imagePng),
+        ContentKind.Files => _repo.Hash(Encoding.UTF8.GetBytes("files:" + item.TextContent)),
+        _ => _repo.Hash(Encoding.UTF8.GetBytes(item.TextContent ?? "")),
+    };
+
+    /// <returns>The relative path of the stored file (encrypted when the database is).</returns>
+    private string StoreImage(string hash, byte[] png)
+    {
+        var fileName = hash[..16] + ".png" + (_repo.IsEncrypted ? EncryptedImageSuffix : "");
+        var fullPath = Path.Combine(ImagesFolder, fileName);
+        if (!File.Exists(fullPath))
+        {
+            var tmp = fullPath + ".tmp";
+            File.WriteAllBytes(tmp, _repo.IsEncrypted ? _repo.ProtectBytes(png) : png);
+            File.Move(tmp, fullPath, overwrite: true);
+        }
+        return Path.Combine("images", fileName);
+    }
+
+    /// <summary>The item's binary payload (an image), decrypted. Null when the file is missing.</summary>
+    public byte[]? ReadBinary(ClipboardItem item)
+    {
+        var path = FullBinaryPath(item);
+        if (path is null || !File.Exists(path)) return null;
+        var bytes = File.ReadAllBytes(path);
+        return path.EndsWith(EncryptedImageSuffix, StringComparison.OrdinalIgnoreCase) ? _repo.UnprotectBytes(bytes) : bytes;
     }
 
     public static string DefaultDataFolder() =>
@@ -96,16 +169,13 @@ public sealed class ClipboardService : IDisposable
             var joined = string.Join(Environment.NewLine, content.Files!);
             item.TextContent = joined;
             item.Title = content.Files!.Count == 1 ? Path.GetFileName(content.Files[0]) : $"{content.Files.Count} files — {Path.GetFileName(content.Files[0])}, …";
-            item.ContentHash = Hash(Encoding.UTF8.GetBytes("files:" + joined));
+            item.ContentHash = HashOf(item, null);
             item.SizeBytes = Encoding.UTF8.GetByteCount(joined);
         }
         else if (hasImage)
         {
-            item.ContentHash = Hash(content.ImagePng!);
-            var fileName = item.ContentHash[..16] + ".png";
-            var fullPath = Path.Combine(ImagesFolder, fileName);
-            if (!File.Exists(fullPath)) File.WriteAllBytes(fullPath, content.ImagePng!);
-            item.BinaryPath = Path.Combine("images", fileName);
+            item.ContentHash = HashOf(item, content.ImagePng);
+            item.BinaryPath = StoreImage(item.ContentHash, content.ImagePng!);
             item.SizeBytes = content.ImagePng!.Length;
             item.Title = $"Image {content.ImageWidth} × {content.ImageHeight}";
             item.MetadataJson = JsonSerializer.Serialize(new { width = content.ImageWidth, height = content.ImageHeight, mime = "image/png" });
@@ -114,7 +184,7 @@ public sealed class ClipboardService : IDisposable
         {
             var text = content.Text!;
             item.TextContent = text;
-            item.ContentHash = Hash(Encoding.UTF8.GetBytes(text));
+            item.ContentHash = HashOf(item, null);
             item.SizeBytes = Encoding.UTF8.GetByteCount(text);
             item.Title = item.IsSensitive ? ContentClassifier.Mask(text) : ContentClassifier.MakeTitle(text);
             if (item.Kind == ContentKind.Url && ContentClassifier.TryGetHost(text.Trim()) is { } host)
@@ -181,9 +251,8 @@ public sealed class ClipboardService : IDisposable
         switch (item.Kind)
         {
             case ContentKind.Image:
-                var path = FullBinaryPath(item);
-                if (path is null || !File.Exists(path)) return null;
-                return new ClipboardPayload { ImagePng = File.ReadAllBytes(path), IsSensitive = item.IsSensitive };
+                var png = ReadBinary(item);
+                return png is null ? null : new ClipboardPayload { ImagePng = png, IsSensitive = item.IsSensitive };
             case ContentKind.Files when item.TextContent is not null:
                 var files = item.TextContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
                 return new ClipboardPayload { Files = files, IsSensitive = item.IsSensitive };
