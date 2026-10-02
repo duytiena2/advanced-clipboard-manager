@@ -45,7 +45,7 @@ public partial class App : Application
             return;
         }
 
-        _dataFolder = ClipboardService.DefaultDataFolder();
+        _dataFolder = PackageInfo.DataFolder;
         _settingsPath = Path.Combine(_dataFolder, "settings.json");
         Directory.CreateDirectory(_dataFolder);
 
@@ -90,10 +90,24 @@ public partial class App : Application
                 MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
             if (answer == MessageBoxResult.OK) _svc.ClearHistory();
         };
-        _tray.StartupToggled += enabled =>
+        _tray.StartupToggled += async enabled =>
         {
-            try { StartupRegistration.SetEnabled(enabled); }
-            catch (Exception ex) { Log(ex); _tray.ShowBalloon("Start with Windows", "Could not change the setting: " + ex.Message, warning: true); }
+            try
+            {
+                bool actual = await StartupRegistration.SetEnabledAsync(enabled);
+                if (actual != enabled)
+                {
+                    _tray.SetStartupChecked(actual);
+                    _tray.ShowBalloon("Start with Windows",
+                        "Windows blocked this. Turn the app on in Settings > Apps > Startup.", warning: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(ex);
+                _tray.SetStartupChecked(SafeIsStartupEnabled());
+                _tray.ShowBalloon("Start with Windows", "Could not change the setting: " + ex.Message, warning: true);
+            }
         };
         _tray.OpenDataFolderRequested += () => OpenShell(_dataFolder);
         _tray.OpenSettingsRequested += () => OpenShell(_settingsPath);
@@ -106,7 +120,7 @@ public partial class App : Application
                 $"{settings.QuickPasteHotkey} is already used by another app. Change \"QuickPasteHotkey\" in settings.json, " +
                 "or click the tray icon to open Quick Paste.", warning: true);
         }
-        else if (!e.Args.Contains("--background"))
+        else if (!StartupRegistration.LaunchedAtStartup(e.Args))
         {
             _tray.ShowBalloon("Clipboard Manager is running", $"Press {settings.QuickPasteHotkey} to open Quick Paste.");
         }
@@ -186,7 +200,7 @@ public partial class App : Application
         if (ex is null) return;
         try
         {
-            var folder = ClipboardService.DefaultDataFolder();
+            var folder = PackageInfo.DataFolder;
             Directory.CreateDirectory(folder);
             lock (LogGate)
             {

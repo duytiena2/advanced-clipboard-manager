@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MSIX manifest template. build.ps1 -Msix fills the $...$ tokens; for the Store, use the
+     Package identity values shown in Partner Center (Product identity page). -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap desktop rescap">
+
+  <Identity Name="$IdentityName$" Publisher="$Publisher$" Version="$Version$" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>$DisplayName$</DisplayName>
+    <PublisherDisplayName>$PublisherDisplayName$</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="ClipboardManager.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="$DisplayName$"
+        Description="Local-first clipboard history with instant search (Ctrl+Shift+V)."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- "Start with Windows" for the packaged app (the HKCU Run key is virtualized inside MSIX).
+             TaskId must match StartupRegistration.PackagedTaskId. Off until the user enables it from the tray. -->
+        <desktop:Extension Category="windows.startupTask" Executable="ClipboardManager.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="ClipboardManagerStartup" Enabled="false" DisplayName="$DisplayName$" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Global hotkey, clipboard listener and SendInput need a full-trust desktop process. -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
