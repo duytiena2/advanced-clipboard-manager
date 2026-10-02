@@ -37,6 +37,9 @@ public partial class QuickPasteWindow : Window
         InitializeComponent();
 
         ItemsList.ItemsSource = _items;
+        // Keep-open mode follows the app the user works in, so Enter pastes there.
+        _trackForeground = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _trackForeground.Tick += (_, _) => _paste.RememberForegroundWindow(onlyIfPasteTarget: true);
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(70) };
         _debounce.Tick += (_, _) => { _debounce.Stop(); Reload(); };
 
@@ -75,8 +78,6 @@ public partial class QuickPasteWindow : Window
         KeepOpenButton.IsChecked = _svc.Settings.QuickPasteKeepOpen;
         KeepOpenButton.Checked += (_, _) => SetKeepOpen(true);
         KeepOpenButton.Unchecked += (_, _) => SetKeepOpen(false);
-        _trackForeground = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        _trackForeground.Tick += (_, _) => _paste.RememberForegroundWindow(onlyIfPasteTarget: true);
 
         // Borderless window: drag it by the search bar or the footer (the text box itself keeps normal mouse behavior).
         Header.MouseLeftButtonDown += OnDragAreaMouseDown;
@@ -94,11 +95,13 @@ public partial class QuickPasteWindow : Window
         else ShowPalette();
     }
 
-    public void ShowPalette()
+    /// <param name="keepTarget">Reopening after our own dialog: keep pasting into the app that was active before.</param>
+    public void ShowPalette(bool keepTarget = false, string search = "")
     {
-        _paste.RememberForegroundWindow();
+        if (!keepTarget) _paste.RememberForegroundWindow();
         PositionOnScreen();
-        SearchBox.Text = "";
+        SearchBox.Text = search;
+        SearchBox.CaretIndex = search.Length;
         Reload();
         _hiding = false;
         Show();
@@ -276,6 +279,14 @@ public partial class QuickPasteWindow : Window
                 TogglePinSelected();
                 e.Handled = true;
                 break;
+            case Key.N when mods == ModifierKeys.Control:
+                EditSnippet(createNew: true);
+                e.Handled = true;
+                break;
+            case Key.E when mods == ModifierKeys.Control:
+                EditSnippet(createNew: false);
+                e.Handled = true;
+                break;
             case Key.W when mods == ModifierKeys.Control:
                 CycleWorkspaceFilter();
                 e.Handled = true;
@@ -343,7 +354,7 @@ public partial class QuickPasteWindow : Window
             }
             var vm = target ?? (marked.Count == 1 ? marked[0] : ItemsList.SelectedItem as ItemViewModel);
             if (vm is null) return false;
-            var payload = _svc.LoadPayload(vm.Item, plainText || transform is not null);
+            var payload = _svc.LoadPayload(vm.Item, plainText || transform is not null, SnippetContext());
             if (payload is not null && transform is not null)
                 payload = new ClipboardPayload { Text = transform.Apply(payload.Text ?? ""), IsSensitive = payload.IsSensitive };
             if (payload is null)
@@ -384,6 +395,44 @@ public partial class QuickPasteWindow : Window
     {
         if (!WriteToClipboard()) return;
         if (KeepOpen) ClearMarks(); else HidePalette();
+    }
+
+    /// <summary>Snippet variables: {clipboard} is what is on the Windows clipboard right now (falls back to the newest history text).</summary>
+    private TemplateContext SnippetContext() => new()
+    {
+        Clipboard = () =>
+        {
+            try
+            {
+                if (System.Windows.Clipboard.ContainsText()) return System.Windows.Clipboard.GetText();
+            }
+            catch (COMException) { /* clipboard busy */ }
+            return _svc.LatestHistoryText();
+        },
+    };
+
+    /// <summary>Ctrl+N: new snippet from the selected item (or empty). Ctrl+E: edit the selected snippet.</summary>
+    private void EditSnippet(bool createNew)
+    {
+        var vm = ItemsList.SelectedItem as ItemViewModel;
+        bool editing = !createNew && vm?.Item.Kind == ContentKind.Snippet;
+        if (!createNew && !editing)
+        {
+            StatusText.Text = "Select a snippet to edit (Ctrl+N saves the selection as a new snippet)";
+            return;
+        }
+        if (createNew && vm is not null && (vm.IsImage || vm.Item.IsSensitive))
+        {
+            StatusText.Text = vm.IsImage ? "Images can't be snippets" : "Secrets can't be saved as snippets";
+            return;
+        }
+
+        var (name, body) = vm is null ? ("", "") : ClipboardService.SnippetDraftFrom(vm.Item);
+        var dialog = new SnippetDialog(_svc, name, body, editing ? vm!.Item : null);
+        bool wasVisible = IsVisible;
+        HidePalette();
+        bool saved = dialog.ShowDialog() == true;
+        if (saved || wasVisible) ShowPalette(keepTarget: true, search: saved ? "type:snippet " : "");
     }
 
     private static readonly System.Text.RegularExpressions.Regex WorkspaceFilterRx =

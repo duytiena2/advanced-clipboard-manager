@@ -316,6 +316,83 @@ public sealed class FeatureTests : IDisposable
         Assert.Equal(0, svc.Search("AbCdEf").Count, "secrets not searchable by content");
     }
 
+    // ---- #9 Snippets & templates ----
+
+    [Test]
+    public void Template_variables_expand()
+    {
+        var ctx = new TemplateContext
+        {
+            Now = new DateTime(2026, 10, 3, 14, 5, 9),
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("vi-VN"),
+            Clipboard = () => "ORDER-42",
+        };
+        Assert.Equal("Ngày 03/10/2026 lúc 14:05", TemplateEngine.Expand("Ngày {date} lúc {time}", ctx));
+        Assert.Equal("2026-10-03 14:05:09", TemplateEngine.Expand("{date:yyyy-MM-dd} {time:HH:mm:ss}", ctx));
+        Assert.Equal("Re: ORDER-42 / ORDER-42", TemplateEngine.Expand("Re: {clipboard} / {CLIPBOARD}", ctx));
+        Assert.Equal("{name} {} {{x}} {date:", TemplateEngine.Expand("{name} {} {{{{x}}}} {date:", ctx));
+        Assert.Equal("{literal}", TemplateEngine.Expand("{{literal}}", ctx));
+        Assert.Equal(36, TemplateEngine.Expand("{uuid}", ctx).Length);
+    }
+
+    [Test]
+    public void Snippets_are_saved_searched_and_expanded()
+    {
+        var clock = new FakeClock();
+        var svc = NewService(clock: clock);
+        svc.Capture(CapturedContent.FromText("ticket ABC-1"));
+        var sig = svc.SaveSnippet("Email signature", "Best regards,\nTiến");
+        var tpl = svc.SaveSnippet("Reply", "Hi, about {clipboard}: done on {date:yyyy-MM-dd}.");
+        Assert.Equal("template", tpl.Subtype);
+        Assert.Equal("Snippet", sig.DisplayType);
+
+        Assert.Equal(2, svc.Search("type:snippet").Count);
+        Assert.Equal(1, svc.Search("signature").Count);
+        Assert.Equal("Hi, about ticket ABC-1: done on 2026-10-02.", svc.LoadPayload(tpl)!.Text);
+        Assert.True(svc.Snippets().Select(s => s.Title).SequenceEqual(new[] { "Email signature", "Reply" }));
+
+        // Copying the snippet's text is a separate history item, not a bump of the snippet.
+        Assert.Equal(CaptureOutcome.Stored, svc.Capture(CapturedContent.FromText("Best regards,\nTiến")).Outcome);
+
+        var edited = svc.SaveSnippet("Email signature", "Thanks,\nTiến", existing: sig);
+        Assert.Equal(sig.Id, edited.Id);
+        Assert.Equal("Thanks,\nTiến", svc.Get(sig.Id)!.TextContent);
+        Assert.Equal(1, svc.Search("thanks").Count);
+        Assert.Equal(0, svc.Search("regards type:snippet").Count, "old text removed from the index");
+        Throws<ArgumentException>(() => svc.SaveSnippet("Reply", "Hi, about {clipboard}: done on {date:yyyy-MM-dd}."));
+        Throws<ArgumentException>(() => svc.SaveSnippet("  ", "x"));
+    }
+
+    [Test]
+    public void Snippets_survive_clear_expiry_and_max_items()
+    {
+        var clock = new FakeClock();
+        var svc = NewService(new AppSettings { MaxItems = 2 }, clock);
+        var snip = svc.SaveSnippet("Addr", "123 Lê Lợi, Q1");
+        Assert.Null(snip.ExpiresAt);
+        for (int i = 0; i < 5; i++) { clock.Advance(TimeSpan.FromSeconds(1)); svc.Capture(CapturedContent.FromText("item " + i)); }
+        Assert.Equal(3, svc.Count(), "2 history items + the snippet");
+        clock.Advance(TimeSpan.FromDays(30));
+        svc.CleanupExpired();
+        svc.ClearHistory();
+        Assert.Equal(1, svc.Count());
+        Assert.Equal("Addr", svc.Search(null)[0].Title);
+    }
+
+    [Test]
+    public void Using_a_snippet_moves_it_up()
+    {
+        var clock = new FakeClock();
+        var svc = NewService(clock: clock);
+        var snip = svc.SaveSnippet("Old", "old snippet");
+        clock.Advance(TimeSpan.FromMinutes(1));
+        svc.Capture(CapturedContent.FromText("newer copy"));
+        Assert.Equal("newer copy", svc.Search(null)[0].TextContent);
+        clock.Advance(TimeSpan.FromMinutes(1));
+        svc.MarkUsed(snip);
+        Assert.Equal("Old", svc.Search(null)[0].Title);
+    }
+
     private static void Throws<TEx>(Action a) where TEx : Exception
     {
         try { a(); }
