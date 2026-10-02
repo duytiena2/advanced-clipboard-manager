@@ -153,6 +153,40 @@ public sealed class FeatureTests : IDisposable
         Assert.Equal("UPDATE t" + nl + "SET a = 1," + nl + "    b = 'x'" + nl + "WHERE id = 2", SqlFormatter.Format("update t set a = 1, b = 'x' where id = 2"));
     }
 
+    // ---- #10 Workspace by app ----
+
+    [Test]
+    public void Workspace_rules_route_copies_by_source_app()
+    {
+        var settings = new AppSettings
+        {
+            DefaultWorkspace = "Inbox",
+            WorkspaceRules = new() { new("Code", "Dev"), new("OUTLOOK.EXE", "Mail"), new("", "Ignored"), new("devenv", " ") },
+        };
+        var svc = NewService(settings);
+        Assert.Equal("Dev", svc.Capture(CapturedContent.FromText("git status", "code")).Item!.Workspace);
+        Assert.Equal("Mail", svc.Capture(CapturedContent.FromText("Dear team", "OUTLOOK")).Item!.Workspace);
+        Assert.Equal("Inbox", svc.Capture(CapturedContent.FromText("from notepad", "notepad")).Item!.Workspace);
+        Assert.Equal("Inbox", svc.Capture(CapturedContent.FromText("blank rule", "devenv")).Item!.Workspace);
+        Assert.Equal("Inbox", svc.Capture(CapturedContent.FromText("unknown source")).Item!.Workspace);
+        Assert.Equal("Inbox", svc.WorkspaceFor("CodeHelper"), "exact process name, not a substring");
+
+        Assert.Equal(1, svc.Search("workspace:dev").Count);
+        var names = svc.Workspaces().Select(w => w.Name).ToList();
+        Assert.True(names.SequenceEqual(new[] { "Dev", "Inbox", "Mail" }), string.Join(",", names));
+    }
+
+    [Test]
+    public void Workspace_rules_roundtrip_in_settings()
+    {
+        Directory.CreateDirectory(_dir);
+        var path = Path.Combine(_dir, "ws.json");
+        new AppSettings { WorkspaceRules = new() { new("Code", "Dev") } }.Save(path);
+        var loaded = AppSettings.Load(path);
+        Assert.Equal(1, loaded.WorkspaceRules.Count);
+        Assert.Equal("Dev", loaded.WorkspaceRules[0].Workspace);
+    }
+
     private static void Throws<TEx>(Action a) where TEx : Exception
     {
         try { a(); }
