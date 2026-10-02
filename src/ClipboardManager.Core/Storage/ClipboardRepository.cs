@@ -18,7 +18,7 @@ namespace ClipboardManager.Core.Storage;
 /// </summary>
 public sealed class ClipboardRepository : IDisposable
 {
-    private const int SchemaVersion = 3;
+    private const int SchemaVersion = 4;
     private const string EncryptedPrefix = "enc1:";
     private readonly SqliteDb _db;
     private readonly IDataProtector? _protector;
@@ -35,7 +35,7 @@ public sealed class ClipboardRepository : IDisposable
     private const string Columns =
         "id, content_type, subtype, title, text_content, binary_path, content_hash, size_bytes, created_at, " +
         "last_copied_at, accessed_at, expires_at, is_pinned, is_sensitive, copy_count, workspace, source_application, " +
-        "detection_confidence, metadata_json, (html_content IS NOT NULL OR rtf_content IS NOT NULL)";
+        "detection_confidence, metadata_json, (html_content IS NOT NULL OR rtf_content IS NOT NULL), ocr_text";
 
     /// <param name="enableFullText">false forces the LIKE fallback (used by tests; also what happens when FTS5 is missing).</param>
     /// <param name="protector">Needed to open an encrypted database or to turn encryption on.</param>
@@ -73,6 +73,8 @@ public sealed class ClipboardRepository : IDisposable
         // v2: formatting captured alongside text.
         AddColumnIfMissing("html_content", "TEXT NULL");
         AddColumnIfMissing("rtf_content", "TEXT NULL");
+        // v4: text recognized in images.
+        AddColumnIfMissing("ocr_text", "TEXT NULL");
         _db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_items_hash_ws ON clipboard_items(content_hash, workspace);");
         _db.Execute("CREATE INDEX IF NOT EXISTS ix_items_last_copied ON clipboard_items(last_copied_at DESC);");
         _db.Execute("CREATE INDEX IF NOT EXISTS ix_items_expires ON clipboard_items(expires_at) WHERE expires_at IS NOT NULL;");
@@ -86,16 +88,18 @@ public sealed class ClipboardRepository : IDisposable
             if (_protector is null) throw new InvalidOperationException("The clipboard database is encrypted, but no data protector is available.");
             _hashKey = UnprotectBase64(GetSetting("hash_key") ?? throw new InvalidOperationException("Encrypted database has no hash key."));
         }
-        CreateSearchIndex();
+        // v4 indexes with FoldForSearch (đ → d) and image OCR text, so older on-disk indexes are rebuilt once.
+        int.TryParse(GetSetting("schema_version"), out var storedVersion);
+        CreateSearchIndex(rebuild: _encrypted || storedVersion < 4);
 
         SetSetting("schema_version", SchemaVersion.ToString());
     }
 
-    private void CreateSearchIndex()
+    private void CreateSearchIndex(bool rebuild)
     {
         if (!FullTextEnabled) return;
         _db.Execute($"CREATE VIRTUAL TABLE IF NOT EXISTS {Fts} USING fts5(title, content, tokenize = 'unicode61 remove_diacritics 2');");
-        if (_encrypted) RebuildSearchIndex();
+        if (rebuild) RebuildSearchIndex();
     }
 
     private void RebuildSearchIndex()
@@ -217,8 +221,8 @@ public sealed class ClipboardRepository : IDisposable
             {
                 var (hash, path) = rekey(item);
                 var r = rich[item.Id];
-                _db.Execute("UPDATE clipboard_items SET title = ?, text_content = ?, metadata_json = ?, html_content = ?, rtf_content = ?, content_hash = ?, binary_path = ? WHERE id = ?;",
-                    Protect(item.Title), Protect(item.TextContent), Protect(item.MetadataJson), Protect(r?.Html), Protect(r?.Rtf), hash, path, item.Id);
+                _db.Execute("UPDATE clipboard_items SET title = ?, text_content = ?, metadata_json = ?, html_content = ?, rtf_content = ?, ocr_text = ?, content_hash = ?, binary_path = ? WHERE id = ?;",
+                    Protect(item.Title), Protect(item.TextContent), Protect(item.MetadataJson), Protect(r?.Html), Protect(r?.Rtf), Protect(item.OcrText), hash, path, item.Id);
             }
             return 0;
         });
@@ -269,9 +273,9 @@ public sealed class ClipboardRepository : IDisposable
     private void IndexForSearch(ClipboardItem item)
     {
         if (!FullTextEnabled) return;
-        // Sensitive values are never put in the full-text index.
-        var content = item.IsSensitive ? "" : item.TextContent ?? "";
-        _db.Execute($"INSERT INTO {Fts}(rowid, title, content) VALUES (?, ?, ?);", item.Id, item.Title, content);
+        // Sensitive values are never put in the full-text index; images are found by the text recognized in them.
+        var content = item.IsSensitive ? "" : item.Kind == ContentKind.Image ? item.OcrText ?? "" : item.TextContent ?? "";
+        _db.Execute($"INSERT INTO {Fts}(rowid, title, content) VALUES (?, ?, ?);", item.Id, FoldForSearch(item.Title), FoldForSearch(content));
     }
 
     public ClipboardItem? Get(long id) =>
@@ -287,26 +291,14 @@ public sealed class ClipboardRepository : IDisposable
         var where = new List<string>();
         var args = new List<object?>();
         const string from = "clipboard_items i";
-        // Encrypted without FTS5: the columns can't be matched in SQL, so terms are matched after decrypting.
-        bool filterInMemory = query.Terms.Count > 0 && !FullTextEnabled && _encrypted;
+        // Without FTS5 the terms are matched in C# after loading (and decrypting) the rows, ignoring case and accents
+        // like FTS does. SQL LIKE can't: it is accent-sensitive and can't see encrypted columns.
+        bool filterInMemory = query.Terms.Count > 0 && !FullTextEnabled;
 
-        if (query.Terms.Count > 0 && !filterInMemory)
+        if (query.Terms.Count > 0 && FullTextEnabled)
         {
-            if (FullTextEnabled)
-            {
-                where.Add($"i.id IN (SELECT rowid FROM {Fts} WHERE clipboard_search MATCH ?)");
-                args.Add(BuildFtsExpression(query.Terms));
-            }
-            else
-            {
-                foreach (var term in query.Terms)
-                {
-                    where.Add("(i.title LIKE ? ESCAPE '\\' OR (i.is_sensitive = 0 AND i.text_content LIKE ? ESCAPE '\\'))");
-                    var like = "%" + EscapeLike(term) + "%";
-                    args.Add(like);
-                    args.Add(like);
-                }
-            }
+            where.Add($"i.id IN (SELECT rowid FROM {Fts} WHERE clipboard_search MATCH ?)");
+            args.Add(BuildFtsExpression(query.Terms));
         }
         if (query.Kind is not null) { where.Add("i.content_type = ?"); args.Add(query.Kind.Value.ToString()); }
         if (query.Subtype is not null) { where.Add("i.subtype = ?"); args.Add(query.Subtype); }
@@ -332,9 +324,15 @@ public sealed class ClipboardRepository : IDisposable
     {
         var compare = CultureInfo.InvariantCulture.CompareInfo;
         const CompareOptions opts = CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace;
-        return terms.All(t => compare.IndexOf(item.Title, t, opts) >= 0 ||
-                              (!item.IsSensitive && item.TextContent is not null && compare.IndexOf(item.TextContent, t, opts) >= 0));
+        bool In(string? s, string t) => s is not null && compare.IndexOf(FoldForSearch(s), FoldForSearch(t), opts) >= 0;
+        return terms.All(t => In(item.Title, t) || (!item.IsSensitive && (In(item.TextContent, t) || In(item.OcrText, t))));
     }
+
+    /// <summary>
+    /// Folds letters that accent removal doesn't cover: Vietnamese đ/Đ are separate letters, not d + a mark,
+    /// so "don" would never find "đơn" without this. Applied to indexed text and to search terms alike.
+    /// </summary>
+    internal static string FoldForSearch(string s) => s.Replace('đ', 'd').Replace('Đ', 'D');
 
     public List<ClipboardItem> Recent(int limit = 200) => Search(new SearchQuery(), limit);
 
@@ -398,6 +396,26 @@ public sealed class ClipboardRepository : IDisposable
         });
     }
 
+    /// <summary>Stores the text recognized in an image ("" = none) and makes the image searchable by it.</summary>
+    public void SetOcrText(ClipboardItem item, string text)
+    {
+        _db.InTransaction(() =>
+        {
+            if (_db.Execute("UPDATE clipboard_items SET ocr_text = ? WHERE id = ?;", Protect(text), item.Id) == 0) return 0; // deleted meanwhile
+            item.OcrText = text;
+            if (FullTextEnabled)
+            {
+                _db.Execute($"DELETE FROM {Fts} WHERE rowid = ?;", item.Id);
+                IndexForSearch(item);
+            }
+            return 0;
+        });
+    }
+
+    /// <summary>Images that have not been through OCR yet, newest first.</summary>
+    public List<ClipboardItem> ImagesWithoutOcr(int limit) =>
+        _db.Query($"SELECT {Columns} FROM clipboard_items WHERE content_type = 'Image' AND ocr_text IS NULL ORDER BY last_copied_at DESC LIMIT ?;", Map, limit);
+
     /// <summary>Moves an item to the top of the recency order (used snippets float up).</summary>
     public void Touch(long id, DateTimeOffset when) =>
         _db.Execute("UPDATE clipboard_items SET last_copied_at = ?, accessed_at = ? WHERE id = ?;", when, when, id);
@@ -429,9 +447,8 @@ public sealed class ClipboardRepository : IDisposable
 
     /// <summary>FTS5 expression: each term quoted (so user input can't inject operators) with prefix matching.</summary>
     internal static string BuildFtsExpression(IEnumerable<string> terms) =>
-        string.Join(" AND ", terms.Select(t => "\"" + t.Replace("\"", "\"\"") + "\"*"));
+        string.Join(" AND ", terms.Select(t => "\"" + FoldForSearch(t).Replace("\"", "\"\"") + "\"*"));
 
-    private static string EscapeLike(string s) => s.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
     private ClipboardItem Map(SqliteRow r) => new()
     {
@@ -455,6 +472,7 @@ public sealed class ClipboardRepository : IDisposable
         Confidence = r.GetDouble(17),
         MetadataJson = Unprotect(r.GetStringOrNull(18)),
         HasRichText = r.GetBool(19),
+        OcrText = Unprotect(r.GetStringOrNull(20)),
     };
 
     public void Dispose() => _db.Dispose();

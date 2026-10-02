@@ -140,6 +140,9 @@ public partial class App : Application
         _cleanupTimer.Tick += (_, _) => RunCleanup();
         _cleanupTimer.Start();
         RunCleanup();
+
+        // Images copied before OCR was available (or while it was off) get their text now.
+        StartOcr(_svc.ImagesWithoutOcr(200));
     }
 
     private void OnCaptured(CapturedContent content)
@@ -148,6 +151,7 @@ public partial class App : Application
         try
         {
             var (outcome, item) = _svc.Capture(content);
+            if (outcome == CaptureOutcome.Stored && item is { Kind: ContentKind.Image }) StartOcr(new[] { item });
             if (item is { IsSensitive: true } && (outcome is CaptureOutcome.Stored or CaptureOutcome.Duplicate))
             {
                 _pendingSecretHash = item.ContentHash;
@@ -159,6 +163,28 @@ public partial class App : Application
             Log(ex);
         }
     }
+
+    /// <summary>Recognizes text in images in the background (one batch at a time) so they become searchable.</summary>
+    private void StartOcr(System.Collections.Generic.IReadOnlyList<ClipboardItem> images)
+    {
+        if (_svc is null || !_svc.Settings.OcrEnabled || images.Count == 0) return;
+        var svc = _svc;
+        lock (_ocrGate) // called from capture threads and the UI thread
+        {
+            _ocr ??= new WindowsOcrEngine();
+            if (!_ocr.IsAvailable) return;
+            var engine = _ocr;
+            _ocrQueue = _ocrQueue.ContinueWith(async _ =>
+            {
+                try { await svc.RunOcrAsync(engine, images); }
+                catch (Exception ex) { Log(ex); }
+            }, TaskScheduler.Default).Unwrap();
+        }
+    }
+
+    private readonly object _ocrGate = new();
+    private WindowsOcrEngine? _ocr;
+    private Task _ocrQueue = Task.CompletedTask;
 
     private void RunCleanup()
     {

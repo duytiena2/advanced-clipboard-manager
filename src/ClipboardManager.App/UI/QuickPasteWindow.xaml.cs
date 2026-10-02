@@ -278,6 +278,7 @@ public partial class QuickPasteWindow : Window
         if (vm.IsImage)
         {
             PreviewImage.Source = vm.Image;
+            PreviewImage.ToolTip = vm.Item.OcrText is { Length: > 0 } ocr ? "Text in image (Ctrl+Shift+Enter pastes it):\n" + ocr : null;
             PreviewImage.Visibility = Visibility.Visible;
             PreviewText.Visibility = Visibility.Collapsed;
         }

@@ -43,6 +43,8 @@ public sealed class ClipboardItem
     public string? MetadataJson { get; set; }
     /// <summary>True when HTML or RTF formatting was captured with the text (loaded on demand).</summary>
     public bool HasRichText { get; set; }
+    /// <summary>Text recognized in an image. Null = not processed yet, "" = no text found.</summary>
+    public string? OcrText { get; set; }
 
     public string DisplayType => string.IsNullOrEmpty(Subtype) ? Kind.ToString() : Subtype.ToUpperInvariant() switch
     {
