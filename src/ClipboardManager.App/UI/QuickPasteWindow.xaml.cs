@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Shell;
 using System.Windows.Threading;
 using ClipboardManager.App.Platform;
 using ClipboardManager.Core.Models;
@@ -26,11 +27,27 @@ public partial class QuickPasteWindow : Window
     private readonly DispatcherTimer _debounce;
     private readonly DispatcherTimer _tick;
     private readonly DispatcherTimer _trackForeground;
+    private readonly DispatcherTimer _saveSizeDebounce;
+    private bool _resizingFromCode;
 
     // A docked sidebar is always kept open.
     private bool KeepOpen => KeepOpenButton.IsChecked == true || Docked;
     private bool Docked => SidebarEdge != DockEdge.None;
+    private bool IsPinnedFloating => !Docked && KeepOpenButton.IsChecked == true;
+    private bool IsCompact => Docked || IsPinnedFloating;
     private const double PaletteWidth = 760, PaletteHeight = 520, SidebarWidth = 400;
+    private const double PinnedWidth = 360, PinnedHeight = 440;
+    private const double MinPinnedWidth = 280, MinPinnedHeight = 220;
+    private const double MinPaletteWidth = 540, MinPaletteHeight = 360;
+
+    private double TargetWidth => IsPinnedFloating
+        ? (_svc.Settings.QuickPastePinnedWidth ?? PinnedWidth)
+        : (_svc.Settings.QuickPasteWidth ?? PaletteWidth);
+
+    private double TargetHeight => IsPinnedFloating
+        ? (_svc.Settings.QuickPastePinnedHeight ?? PinnedHeight)
+        : (_svc.Settings.QuickPasteHeight ?? PaletteHeight);
+
     private readonly AppBar _appBar;
     private bool _hiding;
     private long _markSequence;
@@ -77,10 +94,33 @@ public partial class QuickPasteWindow : Window
         {
             if (ItemsList.SelectedItem is not null) { ShowTransformMenu(); e.Handled = true; }
         };
+        PreviewContextMenu.Opened += (_, _) =>
+        {
+            bool hasSelection = PreviewText.SelectionLength > 0;
+            MenuPasteSelection.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
+            MenuCopySelection.Header = hasSelection ? "Copy selection" : "Copy";
+            MenuCopySelection.IsEnabled = hasSelection;
+        };
+        MenuPasteSelection.Click += (_, _) => PastePartialPreviewText();
+        MenuCopySelection.Click += (_, _) => CopyPartialPreviewText();
+        MenuCopyAll.Click += (_, _) => CopyAllPreviewText();
+        MenuSelectAll.Click += (_, _) => { PreviewText.Focus(); PreviewText.SelectAll(); };
         PreviewKeyDown += OnPreviewKeyDown;
         Deactivated += (_, _) => { if (!KeepOpen) HidePalette(); };
 
-        // "Keep open" mode: the palette stays on screen (e.g. docked at one side) and pastes into the app you used last.
+        WindowChrome.SetWindowChrome(this, new WindowChrome
+        {
+            CaptionHeight = 0,
+            ResizeBorderThickness = new Thickness(6),
+            GlassFrameThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(0),
+        });
+
+        _saveSizeDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _saveSizeDebounce.Tick += (_, _) => { _saveSizeDebounce.Stop(); SaveSettings(); };
+        SizeChanged += OnWindowSizeChanged;
+
+        // "Keep open" / pin mode: the palette stays on screen (compact when floating, docked at screen edge) and pastes into the app you used last.
         KeepOpenButton.IsChecked = _svc.Settings.QuickPasteKeepOpen;
         KeepOpenButton.Checked += (_, _) => SetKeepOpen(true);
         KeepOpenButton.Unchecked += (_, _) => SetKeepOpen(false);
@@ -92,7 +132,29 @@ public partial class QuickPasteWindow : Window
         // Sidebar: docked to a screen edge as an app bar (the shell keeps other windows out of that strip).
         _appBar = new AppBar(this, SidebarWidth);
         DockButton.Click += (_, _) => CycleDock();
-        ApplyLayout();
+
+        _resizingFromCode = true;
+        try
+        {
+            ApplyLayout();
+            if (IsPinnedFloating)
+            {
+                Width = TargetWidth;
+                Height = TargetHeight;
+                KeepOpenButton.ToolTip = "Unpin window (Ctrl+T)";
+            }
+            else if (!Docked)
+            {
+                Width = TargetWidth;
+                Height = TargetHeight;
+                KeepOpenButton.ToolTip = "Pin window / keep open (Ctrl+T)";
+            }
+        }
+        finally
+        {
+            _resizingFromCode = false;
+        }
+
         Closed += (_, _) => _appBar.Dispose();
 
         _svc.HistoryChanged += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
@@ -111,7 +173,21 @@ public partial class QuickPasteWindow : Window
     public void ShowPalette(bool keepTarget = false, string search = "")
     {
         if (!keepTarget) _paste.RememberForegroundWindow();
-        if (!Docked) PositionOnScreen();
+        if (!Docked)
+        {
+            _resizingFromCode = true;
+            try
+            {
+                ApplyLayout();
+                Width = TargetWidth;
+                Height = TargetHeight;
+                PositionOnScreen();
+            }
+            finally
+            {
+                _resizingFromCode = false;
+            }
+        }
         SearchBox.Text = search;
         SearchBox.CaretIndex = search.Length;
         Reload();
@@ -127,8 +203,27 @@ public partial class QuickPasteWindow : Window
     {
         _svc.Settings.QuickPasteKeepOpen = on;
         SaveSettings();
-        if (on && IsVisible) _trackForeground.Start(); else _trackForeground.Stop();
-        StatusText.Text = on ? "Kept open — Enter pastes into the app you used last" : $"{_svc.Count()} items";
+        if (on && IsVisible) _trackForeground.Start(); else if (!KeepOpen) _trackForeground.Stop();
+
+        if (!Docked)
+        {
+            _resizingFromCode = true;
+            try
+            {
+                ApplyLayout();
+                Width = on ? (_svc.Settings.QuickPastePinnedWidth ?? PinnedWidth) : (_svc.Settings.QuickPasteWidth ?? PaletteWidth);
+                Height = on ? (_svc.Settings.QuickPastePinnedHeight ?? PinnedHeight) : (_svc.Settings.QuickPasteHeight ?? PaletteHeight);
+                ClampToWorkArea();
+                if (!on) UpdatePreview();
+            }
+            finally
+            {
+                _resizingFromCode = false;
+            }
+        }
+
+        KeepOpenButton.ToolTip = on ? "Unpin window (Ctrl+T)" : "Pin window / keep open (Ctrl+T)";
+        StatusText.Text = on ? "Pinned — Enter pastes into the app you used last" : $"{_svc.Count()} items";
     }
 
     private void SaveSettings()
@@ -162,35 +257,93 @@ public partial class QuickPasteWindow : Window
         };
         _svc.Settings.SidebarEdge = next.ToString();
         SaveSettings();
-        ApplyLayout();
         if (next == DockEdge.None)
         {
             _appBar.Undock();
-            Width = PaletteWidth;
-            Height = PaletteHeight;
-            PositionOnScreen();
+            _resizingFromCode = true;
+            try
+            {
+                ApplyLayout();
+                Width = TargetWidth;
+                Height = TargetHeight;
+                PositionOnScreen();
+            }
+            finally
+            {
+                _resizingFromCode = false;
+            }
             if (!KeepOpen) _trackForeground.Stop();
         }
         else
         {
+            ApplyLayout();
             if (IsVisible) _appBar.Dock(next);
             if (IsVisible) _trackForeground.Start();
         }
-        StatusText.Text = next == DockEdge.None ? "Floating" : $"Docked {next.ToString().ToLowerInvariant()} — Enter pastes into the app you used last";
+        StatusText.Text = next == DockEdge.None
+            ? (KeepOpenButton.IsChecked == true ? "Pinned — Enter pastes into the app you used last" : "Floating")
+            : $"Docked {next.ToString().ToLowerInvariant()} — Enter pastes into the app you used last";
         SearchBox.Focus();
     }
 
-    /// <summary>Sidebar = list only (no preview, no key hints); floating = list + preview.</summary>
+    /// <summary>Sidebar or pinned = compact list only (no preview, no key hints); full floating = list + preview.</summary>
     private void ApplyLayout()
     {
         bool docked = Docked;
-        ListColumn.Width = docked ? new GridLength(1, GridUnitType.Star) : new GridLength(340);
-        SplitColumn.Width = new GridLength(docked ? 0 : 1);
-        PreviewColumn.Width = docked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        PreviewPane.Visibility = PreviewSplit.Visibility = FooterHints.Visibility = docked ? Visibility.Collapsed : Visibility.Visible;
+        bool compact = IsCompact;
+
+        ResizeMode = docked ? ResizeMode.NoResize : ResizeMode.CanResize;
+        if (docked)
+        {
+            MinWidth = SidebarWidth;
+            MaxWidth = SidebarWidth;
+            MinHeight = 0;
+            MaxHeight = double.PositiveInfinity;
+        }
+        else if (compact)
+        {
+            MinWidth = MinPinnedWidth;
+            MaxWidth = double.PositiveInfinity;
+            MinHeight = MinPinnedHeight;
+            MaxHeight = double.PositiveInfinity;
+        }
+        else
+        {
+            MinWidth = MinPaletteWidth;
+            MaxWidth = double.PositiveInfinity;
+            MinHeight = MinPaletteHeight;
+            MaxHeight = double.PositiveInfinity;
+        }
+
+        ListColumn.Width = compact ? new GridLength(1, GridUnitType.Star) : new GridLength(340);
+        SplitColumn.Width = new GridLength(compact ? 0 : 1);
+        PreviewColumn.Width = compact ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        PreviewPane.Visibility = PreviewSplit.Visibility = FooterHints.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+        if (ResizeGripIndicator is not null)
+            ResizeGripIndicator.Visibility = docked ? Visibility.Collapsed : Visibility.Visible;
         DockButton.Tag = docked ? "docked" : null;
-        Placeholder.Text = docked ? "Search clipboard…   F1: keys" : "Search clipboard…   type:sql  pinned:true  workspace:name   F1: keys";
+        Placeholder.Text = IsPinnedFloating ? "Search clipboard…" : docked ? "Search clipboard…   F1: keys" : "Search clipboard…   type:sql  pinned:true  workspace:name   F1: keys";
         Header.ToolTip = Footer.ToolTip = docked ? null : "Drag to move";
+    }
+
+    private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!IsLoaded || Docked || _resizingFromCode) return;
+
+        if (IsPinnedFloating)
+        {
+            _svc.Settings.QuickPastePinnedWidth = ActualWidth;
+            _svc.Settings.QuickPastePinnedHeight = ActualHeight;
+        }
+        else
+        {
+            _svc.Settings.QuickPasteWidth = ActualWidth;
+            _svc.Settings.QuickPasteHeight = ActualHeight;
+        }
+        _svc.Settings.QuickPasteLeft = Left;
+        _svc.Settings.QuickPasteTop = Top;
+        _saveSizeDebounce.Stop();
+        _saveSizeDebounce.Start();
     }
 
     private void OnDragAreaMouseDown(object sender, MouseButtonEventArgs e)
@@ -218,11 +371,21 @@ public partial class QuickPasteWindow : Window
         {
             Left = left;
             Top = top;
+            ClampToWorkArea();
             return;
         }
         var area = SystemParameters.WorkArea;
         Left = area.Left + (area.Width - Width) / 2;
         Top = area.Top + Math.Max(40, (area.Height - Height) * 0.3);
+    }
+
+    private void ClampToWorkArea()
+    {
+        var area = SystemParameters.WorkArea;
+        if (Left + Width > area.Right) Left = Math.Max(area.Left, area.Right - Width);
+        if (Top + Height > area.Bottom) Top = Math.Max(area.Top, area.Bottom - Height);
+        if (Left < area.Left) Left = area.Left;
+        if (Top < area.Top) Top = area.Top;
     }
 
     /// <summary>True when at least the top-left 100×40 px of the window would be visible on some monitor.</summary>
@@ -309,24 +472,31 @@ public partial class QuickPasteWindow : Window
                 HidePalette();
                 e.Handled = true;
                 break;
-            case Key.Down:
+            case Key.Down when !PreviewText.IsKeyboardFocused:
                 MoveSelection(+1);
                 e.Handled = true;
                 break;
-            case Key.Up:
+            case Key.Up when !PreviewText.IsKeyboardFocused:
                 MoveSelection(-1);
                 e.Handled = true;
                 break;
-            case Key.PageDown:
+            case Key.PageDown when !PreviewText.IsKeyboardFocused:
                 MoveSelection(+8);
                 e.Handled = true;
                 break;
-            case Key.PageUp:
+            case Key.PageUp when !PreviewText.IsKeyboardFocused:
                 MoveSelection(-8);
                 e.Handled = true;
                 break;
             case Key.Enter:
-                PasteSelected(plainText: mods == (ModifierKeys.Control | ModifierKeys.Shift));
+                if (PreviewText.IsKeyboardFocused && PreviewText.SelectionLength > 0)
+                {
+                    PastePartialPreviewText();
+                }
+                else
+                {
+                    PasteSelected(plainText: mods == (ModifierKeys.Control | ModifierKeys.Shift));
+                }
                 e.Handled = true;
                 break;
             case >= Key.D1 and <= Key.D9 or >= Key.NumPad1 and <= Key.NumPad9
@@ -369,7 +539,7 @@ public partial class QuickPasteWindow : Window
                 e.Handled = true;
                 break;
             case Key.T when mods == ModifierKeys.Control:
-                KeepOpenButton.IsChecked = !KeepOpen;
+                KeepOpenButton.IsChecked = !(KeepOpenButton.IsChecked == true);
                 e.Handled = true;
                 break;
             case Key.R when mods == ModifierKeys.Control:
@@ -386,11 +556,19 @@ public partial class QuickPasteWindow : Window
                 }
                 e.Handled = true;
                 break;
-            case Key.C when mods == ModifierKeys.Control && SearchBox.SelectionLength == 0:
-                CopySelected();
-                e.Handled = true;
+            case Key.C when mods == ModifierKeys.Control:
+                if (PreviewText.IsKeyboardFocused && PreviewText.SelectionLength > 0)
+                {
+                    CopyPartialPreviewText();
+                    e.Handled = true;
+                }
+                else if (SearchBox.SelectionLength == 0)
+                {
+                    CopySelected();
+                    e.Handled = true;
+                }
                 break;
-            case Key.Delete when mods == ModifierKeys.None && SearchBox.SelectionLength == 0 && SearchBox.CaretIndex == SearchBox.Text.Length:
+            case Key.Delete when mods == ModifierKeys.None && !PreviewText.IsKeyboardFocused && SearchBox.SelectionLength == 0 && SearchBox.CaretIndex == SearchBox.Text.Length:
                 // At the end of the search text Delete would do nothing in the text box, so it deletes the item.
                 DeleteSelected();
                 e.Handled = true;
@@ -476,30 +654,86 @@ public partial class QuickPasteWindow : Window
         if (KeepOpen) ClearMarks(); else HidePalette();
     }
 
+    private void CopyPartialPreviewText()
+    {
+        var text = PreviewText.SelectedText;
+        if (string.IsNullOrEmpty(text)) return;
+
+        bool sensitive = (ItemsList.SelectedItem as ItemViewModel)?.Item.IsSensitive ?? false;
+        try
+        {
+            _writer.Write(new ClipboardPayload { Text = text, IsSensitive = sensitive });
+            StatusText.Text = "Copied selection to clipboard";
+            if (!KeepOpen) HidePalette();
+        }
+        catch (COMException)
+        {
+            StatusText.Text = "Clipboard is busy — try again";
+        }
+    }
+
+    private void PastePartialPreviewText()
+    {
+        var text = PreviewText.SelectedText;
+        if (string.IsNullOrEmpty(text)) return;
+
+        bool sensitive = (ItemsList.SelectedItem as ItemViewModel)?.Item.IsSensitive ?? false;
+        try
+        {
+            _writer.Write(new ClipboardPayload { Text = text, IsSensitive = sensitive });
+            if (KeepOpen) ClearMarks(); else HidePalette();
+            if (_paste.HasTarget) _paste.PasteIntoPreviousWindow();
+        }
+        catch (COMException)
+        {
+            StatusText.Text = "Clipboard is busy — try again";
+        }
+    }
+
+    private void CopyAllPreviewText()
+    {
+        var text = PreviewText.Text;
+        if (string.IsNullOrEmpty(text)) return;
+
+        bool sensitive = (ItemsList.SelectedItem as ItemViewModel)?.Item.IsSensitive ?? false;
+        try
+        {
+            _writer.Write(new ClipboardPayload { Text = text, IsSensitive = sensitive });
+            StatusText.Text = "Copied text to clipboard";
+            if (!KeepOpen) HidePalette();
+        }
+        catch (COMException)
+        {
+            StatusText.Text = "Clipboard is busy — try again";
+        }
+    }
+
     private const string KeyHelp =
         "Enter               paste (merged if several are marked)\n" +
         "Ctrl+Shift+Enter    paste as plain text (an image: its text)\n" +
         "Ctrl+1 … 9          paste item 1 … 9 (Ctrl+Shift = plain)\n" +
         "Ctrl+K / right-click  transform: case, trim, JSON, SQL, Base64, URL\n" +
-        "Ctrl+C              copy without pasting\n" +
+        "Ctrl+C              copy without pasting (or copies selection in preview)\n" +
         "Ctrl+Space          mark item (in order)\n" +
         "Ctrl+S              paste stack: each Ctrl+V pastes the next marked item\n" +
-        "Ctrl+P              pin / unpin\n" +
+        "Ctrl+P              pin / unpin item\n" +
         "Ctrl+N / Ctrl+E     save as snippet / edit snippet\n" +
         "Ctrl+W              next workspace\n" +
-        "Ctrl+T              keep open\n" +
+        "Ctrl+T              pin window / keep open (compact size)\n" +
         "Ctrl+D              dock as sidebar: right → left → off\n" +
         "Ctrl+R              reveal a secret\n" +
         "Del                 delete item\n" +
         "Esc                 close\n\n" +
         "Search filters: type:sql  type:snippet  type:image  pinned:true  workspace:dev  after:2026-09-01";
 
-    /// <summary>F1: the keyboard reference, shown in the preview pane (or the status line when docked).</summary>
+    /// <summary>F1: the keyboard reference, shown in the preview pane (or the status line when docked or pinned).</summary>
     private void ShowKeyHelp()
     {
-        if (Docked)
+        if (IsCompact)
         {
-            StatusText.Text = "Keys: Ctrl+K transform · Ctrl+S paste stack · Ctrl+1…9 · Ctrl+D undock";
+            StatusText.Text = Docked
+                ? "Keys: Ctrl+K transform · Ctrl+S paste stack · Ctrl+1…9 · Ctrl+D undock"
+                : "Keys: Ctrl+K transform · Ctrl+S stack · Ctrl+1…9 · Ctrl+T unpin";
             return;
         }
         PreviewImage.Visibility = Visibility.Collapsed;

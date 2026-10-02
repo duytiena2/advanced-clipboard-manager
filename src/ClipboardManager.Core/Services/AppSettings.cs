@@ -36,6 +36,11 @@ public sealed class AppSettings
     /// <summary>Last position of the Quick Paste window (null = centered).</summary>
     public double? QuickPasteLeft { get; set; }
     public double? QuickPasteTop { get; set; }
+    /// <summary>Custom sizes for the Quick Paste window (null = defaults: 760×520 palette, 360×440 pinned).</summary>
+    public double? QuickPasteWidth { get; set; }
+    public double? QuickPasteHeight { get; set; }
+    public double? QuickPastePinnedWidth { get; set; }
+    public double? QuickPastePinnedHeight { get; set; }
     /// <summary>Quick Paste stays open (doesn't hide when it loses focus).</summary>
     public bool QuickPasteKeepOpen { get; set; }
     /// <summary>Quick Paste docked as a sidebar: "None", "Left" or "Right".</summary>

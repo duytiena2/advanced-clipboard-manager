@@ -37,14 +37,15 @@ A local-first, keyboard-first clipboard manager for Windows 10/11. It keeps your
 | `Ctrl+Shift+Enter` | Paste as plain text |
 | `Ctrl+1` … `Ctrl+9` | Paste item 1…9 (add `Shift` for plain text) |
 | `Ctrl+K` / right-click | Transform, then paste |
-| `Ctrl+C` | Copy to clipboard without pasting |
+| `Ctrl+C` | Copy to clipboard without pasting (or copy selection in preview) |
+| Click / drag in preview | Select partial text (`Ctrl+C` to copy, `Enter` to paste selection, right-click menu) |
 | `Ctrl+P` | Pin / unpin |
 | `Ctrl+Space` | Mark for multi-select (marking order is kept) |
 | `Ctrl+S` | Start a paste stack with the marked items |
 | `Ctrl+N` / `Ctrl+E` | Save as snippet / edit the selected snippet |
 | `Ctrl+W` | Next workspace |
 | `Ctrl+R` | Reveal sensitive content |
-| `Ctrl+T` | Keep open: the palette stays on screen and pastes into the app you used last |
+| `Ctrl+T` | Pin window / keep open: compact palette that stays on screen and pastes into the app you used last |
 | `Ctrl+D` | Dock as a sidebar: right → left → off |
 | `F1` | Show all keys |
 | `Del` | Delete item (when the cursor is at the end of the search text) |

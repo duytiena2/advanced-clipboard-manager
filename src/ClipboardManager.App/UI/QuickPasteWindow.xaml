@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Quick Paste"
         Width="760" Height="520"
-        WindowStyle="None" ResizeMode="NoResize"
+        MinWidth="280" MinHeight="220"
+        WindowStyle="None" ResizeMode="CanResize"
         Topmost="True" ShowInTaskbar="False" ShowActivated="True"
         WindowStartupLocation="Manual"
         Background="#FFFFFF" BorderBrush="#CDD1D8" BorderThickness="1"
@@ -157,7 +158,7 @@
                 <TextBlock DockPanel.Dock="Left" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                            FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,12,0" />
                 <ToggleButton x:Name="KeepOpenButton" DockPanel.Dock="Right" Width="32" Height="32" Margin="8,0,0,0"
-                              Focusable="False" Cursor="Hand" ToolTip="Keep open (Ctrl+T)"
+                              Focusable="False" Cursor="Hand" ToolTip="Pin window / keep open (Ctrl+T)"
                               AutomationProperties.Name="Keep Quick Paste open">
                     <ToggleButton.Template>
                         <ControlTemplate TargetType="ToggleButton">
@@ -254,7 +255,17 @@
 
                 <TextBox x:Name="PreviewText" Grid.Row="0" IsReadOnly="True" BorderThickness="0" Background="Transparent"
                          TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="14,14"
-                         FontFamily="Cascadia Mono, Consolas" FontSize="13" Focusable="False" />
+                         FontFamily="Cascadia Mono, Consolas" FontSize="13" IsReadOnlyCaretVisible="True">
+                    <TextBox.ContextMenu>
+                        <ContextMenu x:Name="PreviewContextMenu" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="12.5">
+                            <MenuItem x:Name="MenuPasteSelection" Header="Paste selection" InputGestureText="Enter" FontWeight="SemiBold" />
+                            <MenuItem x:Name="MenuCopySelection" Header="Copy" InputGestureText="Ctrl+C" />
+                            <MenuItem x:Name="MenuCopyAll" Header="Copy all" />
+                            <Separator />
+                            <MenuItem x:Name="MenuSelectAll" Header="Select all" InputGestureText="Ctrl+A" />
+                        </ContextMenu>
+                    </TextBox.ContextMenu>
+                </TextBox>
                 <Image x:Name="PreviewImage" Grid.Row="0" Stretch="Uniform" Margin="18" Visibility="Collapsed"
                        RenderOptions.BitmapScalingMode="HighQuality" />
                 <TextBlock x:Name="EmptyText" Grid.Row="0" Text="Nothing copied yet. Copy something and it will appear here."
@@ -289,6 +300,8 @@
         <!-- Footer -->
         <Border x:Name="Footer" Grid.Row="2" Background="#F8F9FA" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
             <DockPanel Margin="18,0,4,0">
+                <ResizeGrip x:Name="ResizeGripIndicator" DockPanel.Dock="Right" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                            Margin="0,0,1,1" IsTabStop="False" Opacity="0.4" ToolTip="Drag to resize" />
                 <TextBlock x:Name="StatusText" DockPanel.Dock="Left" Foreground="#4A505C" FontSize="12.5" VerticalAlignment="Center" />
                 <StackPanel x:Name="FooterHints" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="Paste" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
