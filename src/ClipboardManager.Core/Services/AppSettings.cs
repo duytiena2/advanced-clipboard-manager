@@ -44,6 +44,8 @@ public sealed class AppSettings
     public bool NeverStorePasswords { get; set; } = false;
     public bool NeverStorePrivateKeys { get; set; } = true;
     public bool BlurSensitive { get; set; } = true;
+    /// <summary>Encrypt the history with the Windows account (DPAPI): database fields and images; the search index stays in memory.</summary>
+    public bool EncryptDatabase { get; set; }
     public List<string> ExcludedApplications { get; set; } = new() { "1Password", "KeePass", "KeePassXC", "Bitwarden", "LastPass" };
 
     /// <summary>Retention per kind in minutes. Missing or ≤ 0 = never expires.</summary>
