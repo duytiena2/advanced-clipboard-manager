@@ -71,7 +71,7 @@ if (-not (Test-Path $dll)) {
     }
 }
 
-# 3. Tests (Core logic: classification, storage, FTS5 search, expiration, merge…)
+# 3. Tests (Core logic: classification, storage, FTS5 search, expiration, merge...)
 if (-not $SkipTests) {
     Step 'Running core tests'
     & dotnet run --project tests/ClipboardManager.Core.Tests -c $Configuration
