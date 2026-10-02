@@ -17,7 +17,7 @@ public interface IClipboardMonitor : IDisposable
 /// <summary>Writes an item back to the OS clipboard without it being re-captured as new.</summary>
 public interface IClipboardWriter
 {
-    void Write(ClipboardItem item, string dataFolder);
+    void Write(ClipboardPayload payload);
     void WriteText(string text);
 }
 

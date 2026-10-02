@@ -8,15 +8,16 @@ namespace ClipboardManager.Core.Storage;
 /// <summary>SQLite persistence for clipboard items, with FTS5 search (falls back to LIKE if FTS5 is missing).</summary>
 public sealed class ClipboardRepository : IDisposable
 {
-    private const int SchemaVersion = 1;
+    private const int SchemaVersion = 2;
     private readonly SqliteDb _db;
 
     public bool FullTextEnabled { get; }
 
+    // html_content / rtf_content can be large, so lists only load a flag; the formats are read by GetRichText.
     private const string Columns =
         "id, content_type, subtype, title, text_content, binary_path, content_hash, size_bytes, created_at, " +
         "last_copied_at, accessed_at, expires_at, is_pinned, is_sensitive, copy_count, workspace, source_application, " +
-        "detection_confidence, metadata_json";
+        "detection_confidence, metadata_json, (html_content IS NOT NULL OR rtf_content IS NOT NULL)";
 
     /// <param name="enableFullText">false forces the LIKE fallback (used by tests; also what happens when FTS5 is missing).</param>
     public ClipboardRepository(string databasePath, bool enableFullText = true)
@@ -49,6 +50,9 @@ public sealed class ClipboardRepository : IDisposable
             detection_confidence REAL NOT NULL DEFAULT 0,
             metadata_json TEXT NULL
         );");
+        // v2: formatting captured alongside text.
+        AddColumnIfMissing("html_content", "TEXT NULL");
+        AddColumnIfMissing("rtf_content", "TEXT NULL");
         _db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_items_hash_ws ON clipboard_items(content_hash, workspace);");
         _db.Execute("CREATE INDEX IF NOT EXISTS ix_items_last_copied ON clipboard_items(last_copied_at DESC);");
         _db.Execute("CREATE INDEX IF NOT EXISTS ix_items_expires ON clipboard_items(expires_at) WHERE expires_at IS NOT NULL;");
@@ -63,12 +67,22 @@ public sealed class ClipboardRepository : IDisposable
         _db.Execute("INSERT INTO settings(key, value) VALUES('schema_version', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value;", SchemaVersion.ToString());
     }
 
+    private void AddColumnIfMissing(string column, string definition)
+    {
+        var existing = _db.Query("PRAGMA table_info(clipboard_items);", r => r.GetString(1));
+        if (!existing.Contains(column, StringComparer.OrdinalIgnoreCase))
+            _db.Execute($"ALTER TABLE clipboard_items ADD COLUMN {column} {definition};");
+    }
+
     /// <summary>
     /// Inserts a new item, or — if the same content already exists in the workspace — bumps its copy count
     /// and recency instead of creating a duplicate. Returns the stored item and whether it was new.
     /// </summary>
-    public (ClipboardItem Item, bool IsNew) AddOrTouch(ClipboardItem item)
+    /// <param name="rich">Formatting copied with the text. On a re-copy it replaces the stored one (the latest copy wins).</param>
+    public (ClipboardItem Item, bool IsNew) AddOrTouch(ClipboardItem item, RichText? rich = null)
     {
+        var html = string.IsNullOrEmpty(rich?.Html) ? null : rich!.Html;
+        var rtf = string.IsNullOrEmpty(rich?.Rtf) ? null : rich!.Rtf;
         return _db.InTransaction(() =>
         {
             var existing = _db.Scalar($"SELECT {Columns} FROM clipboard_items WHERE content_hash = ? AND workspace = ?;",
@@ -77,22 +91,24 @@ public sealed class ClipboardRepository : IDisposable
             {
                 // Keep the existing (possibly user-adjusted) expiry if pinned; otherwise extend to the new one.
                 var newExpiry = existing.IsPinned ? existing.ExpiresAt : item.ExpiresAt;
-                _db.Execute("UPDATE clipboard_items SET copy_count = copy_count + 1, last_copied_at = ?, expires_at = ?, source_application = COALESCE(?, source_application) WHERE id = ?;",
-                    item.LastCopiedAt, (object?)newExpiry, item.SourceApplication, existing.Id);
+                _db.Execute("UPDATE clipboard_items SET copy_count = copy_count + 1, last_copied_at = ?, expires_at = ?, source_application = COALESCE(?, source_application), html_content = ?, rtf_content = ? WHERE id = ?;",
+                    item.LastCopiedAt, (object?)newExpiry, item.SourceApplication, html, rtf, existing.Id);
                 existing.CopyCount += 1;
                 existing.LastCopiedAt = item.LastCopiedAt;
                 existing.ExpiresAt = newExpiry;
+                existing.HasRichText = html is not null || rtf is not null;
                 if (item.SourceApplication is not null) existing.SourceApplication = item.SourceApplication;
                 return (existing, false);
             }
 
             _db.Execute($@"INSERT INTO clipboard_items (content_type, subtype, title, text_content, binary_path, content_hash, size_bytes,
                 created_at, last_copied_at, accessed_at, expires_at, is_pinned, is_sensitive, copy_count, workspace, source_application,
-                detection_confidence, metadata_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);",
+                detection_confidence, metadata_json, html_content, rtf_content) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);",
                 item.Kind, item.Subtype, item.Title, item.TextContent, item.BinaryPath, item.ContentHash, item.SizeBytes,
                 item.CreatedAt, item.LastCopiedAt, (object?)item.AccessedAt, (object?)item.ExpiresAt, item.IsPinned, item.IsSensitive,
-                item.CopyCount, item.Workspace, item.SourceApplication, item.Confidence, item.MetadataJson);
+                item.CopyCount, item.Workspace, item.SourceApplication, item.Confidence, item.MetadataJson, html, rtf);
             item.Id = _db.LastInsertRowId;
+            item.HasRichText = html is not null || rtf is not null;
             IndexForSearch(item);
             return (item, true);
         });
@@ -108,6 +124,10 @@ public sealed class ClipboardRepository : IDisposable
 
     public ClipboardItem? Get(long id) =>
         _db.Scalar($"SELECT {Columns} FROM clipboard_items WHERE id = ?;", Map, id);
+
+    public RichText? GetRichText(long id) =>
+        _db.Scalar("SELECT html_content, rtf_content FROM clipboard_items WHERE id = ?;",
+            r => new RichText(r.GetStringOrNull(0), r.GetStringOrNull(1)), id);
 
     /// <summary>Most recent first; pinned items first when <paramref name="pinnedFirst"/> is true.</summary>
     public List<ClipboardItem> Search(SearchQuery query, int limit = 200, bool pinnedFirst = true)
@@ -142,7 +162,7 @@ public sealed class ClipboardRepository : IDisposable
         if (query.Before is not null) { where.Add("i.last_copied_at < ?"); args.Add(query.Before.Value); }
         if (query.After is not null) { where.Add("i.last_copied_at >= ?"); args.Add(query.After.Value); }
 
-        var sql = new StringBuilder($"SELECT {PrefixColumns("i")} FROM {from}");
+        var sql = new StringBuilder($"SELECT {Columns} FROM {from}");
         if (where.Count > 0) sql.Append(" WHERE ").Append(string.Join(" AND ", where));
         sql.Append(pinnedFirst ? " ORDER BY i.is_pinned DESC, i.last_copied_at DESC" : " ORDER BY i.last_copied_at DESC");
         sql.Append(" LIMIT ?;");
@@ -224,9 +244,6 @@ public sealed class ClipboardRepository : IDisposable
 
     private static string EscapeLike(string s) => s.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
-    private static string PrefixColumns(string alias) =>
-        string.Join(", ", Columns.Split(',').Select(c => alias + "." + c.Trim()));
-
     private static ClipboardItem Map(SqliteRow r) => new()
     {
         Id = r.GetInt64(0),
@@ -248,6 +265,7 @@ public sealed class ClipboardRepository : IDisposable
         SourceApplication = r.GetStringOrNull(16),
         Confidence = r.GetDouble(17),
         MetadataJson = r.GetStringOrNull(18),
+        HasRichText = r.GetBool(19),
     };
 
     public void Dispose() => _db.Dispose();
