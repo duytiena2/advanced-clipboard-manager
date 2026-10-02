@@ -175,7 +175,11 @@ public partial class QuickPasteWindow : Window
         _items.Clear();
         foreach (var item in results)
         {
-            _items.Add(new ItemViewModel(item, _svc.DataFolder) { IsMarked = markedIds.Contains(item.Id) });
+            _items.Add(new ItemViewModel(item, _svc.DataFolder)
+            {
+                IsMarked = markedIds.Contains(item.Id),
+                Shortcut = _items.Count < 9 ? (_items.Count + 1).ToString() : "",
+            });
         }
 
         var toSelect = selectedId is null ? null : _items.FirstOrDefault(i => i.Item.Id == selectedId);
@@ -256,6 +260,13 @@ public partial class QuickPasteWindow : Window
                 PasteSelected(plainText: mods == (ModifierKeys.Control | ModifierKeys.Shift));
                 e.Handled = true;
                 break;
+            case >= Key.D1 and <= Key.D9 or >= Key.NumPad1 and <= Key.NumPad9
+                when mods is ModifierKeys.Control or (ModifierKeys.Control | ModifierKeys.Shift):
+                // Ctrl+1…9 pastes the n-th visible item directly (Ctrl+Shift = plain text).
+                int n = key >= Key.NumPad1 ? key - Key.NumPad1 : key - Key.D1;
+                if (n < _items.Count) PasteSelected(plainText: mods.HasFlag(ModifierKeys.Shift), target: _items[n]);
+                e.Handled = true;
+                break;
             case Key.P when mods == ModifierKeys.Control:
                 TogglePinSelected();
                 e.Handled = true;
@@ -299,18 +310,19 @@ public partial class QuickPasteWindow : Window
     }
 
     /// <param name="plainText">Drop HTML/RTF formatting (Ctrl+Shift+Enter).</param>
-    private bool WriteToClipboard(bool plainText = false)
+    /// <param name="target">A specific item (Ctrl+1…9); null = the marked items, or the selection.</param>
+    private bool WriteToClipboard(bool plainText = false, ItemViewModel? target = null)
     {
         try
         {
-            var marked = _items.Where(i => i.IsMarked).ToList();
+            var marked = target is null ? _items.Where(i => i.IsMarked).ToList() : new();
             if (marked.Count > 1)
             {
                 _writer.WriteText(MergeService.Merge(marked.Select(m => m.Item), MergeSeparator.NewLine));
                 foreach (var m in marked) _svc.MarkUsed(m.Item);
                 return true;
             }
-            var vm = marked.Count == 1 ? marked[0] : ItemsList.SelectedItem as ItemViewModel;
+            var vm = target ?? (marked.Count == 1 ? marked[0] : ItemsList.SelectedItem as ItemViewModel);
             if (vm is null) return false;
             var payload = _svc.LoadPayload(vm.Item, plainText);
             if (payload is null)
@@ -334,9 +346,9 @@ public partial class QuickPasteWindow : Window
         }
     }
 
-    private void PasteSelected(bool plainText = false)
+    private void PasteSelected(bool plainText = false, ItemViewModel? target = null)
     {
-        if (!WriteToClipboard(plainText)) return;
+        if (!WriteToClipboard(plainText, target)) return;
         if (KeepOpen) ClearMarks(); else HidePalette();
         // Opened from the tray: there is no app to paste into, the item is just on the clipboard now.
         if (_paste.HasTarget) _paste.PasteIntoPreviousWindow();

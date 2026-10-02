@@ -29,6 +29,9 @@ public sealed class ItemViewModel : INotifyPropertyChanged
 
     public string Title => string.IsNullOrEmpty(Item.Title) ? "(empty)" : Item.Title;
 
+    /// <summary>"1"…"9" for the first rows (Ctrl+1…9 pastes them), otherwise empty.</summary>
+    public string Shortcut { get; init; } = "";
+
     public string TypeLabel => Item.IsSensitive
         ? Humanize.ExpiresIn(Item.ExpiresAt, DateTimeOffset.UtcNow).Replace("expires in ", "")
         : Item.DisplayType;

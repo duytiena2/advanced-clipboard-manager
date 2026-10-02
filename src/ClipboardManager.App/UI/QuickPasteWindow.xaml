@@ -206,6 +206,9 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel LastChildFill="True">
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Shortcut}" Width="12" FontSize="11" Opacity="0.55"
+                                       FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" Margin="0,0,4,0"
+                                       ToolTip="Ctrl + this number pastes the item" />
                             <TextBlock DockPanel.Dock="Left" Text="{Binding MarkGlyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                        FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0" />
                             <TextBlock DockPanel.Dock="Right" Text="{Binding TypeLabel}" FontSize="11.5" Opacity="0.75"
