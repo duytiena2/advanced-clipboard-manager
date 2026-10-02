@@ -276,6 +276,10 @@ public partial class QuickPasteWindow : Window
                 TogglePinSelected();
                 e.Handled = true;
                 break;
+            case Key.W when mods == ModifierKeys.Control:
+                CycleWorkspaceFilter();
+                e.Handled = true;
+                break;
             case Key.K when mods == ModifierKeys.Control:
                 ShowTransformMenu();
                 e.Handled = true;
@@ -380,6 +384,25 @@ public partial class QuickPasteWindow : Window
     {
         if (!WriteToClipboard()) return;
         if (KeepOpen) ClearMarks(); else HidePalette();
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex WorkspaceFilterRx =
+        new(@"(?:^|\s)(?:workspace|ws):(?:""(?<name>[^""]*)""|(?<name>\S+))", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>Ctrl+W: all workspaces → first → second → … → all, by editing the workspace: filter in the search text.</summary>
+    private void CycleWorkspaceFilter()
+    {
+        var names = _svc.Workspaces().Select(w => w.Name).ToList();
+        var text = SearchBox.Text;
+        var match = WorkspaceFilterRx.Match(text);
+        int index = match.Success ? names.FindIndex(n => n.Equals(match.Groups["name"].Value, StringComparison.OrdinalIgnoreCase)) : -1;
+        string? next = index + 1 < names.Count ? names[index + 1] : null;
+
+        var rest = (match.Success ? text.Remove(match.Index, match.Length) : text).Trim();
+        var filter = next is null ? "" : "workspace:" + (next.Contains(' ') ? $"\"{next}\"" : next);
+        var combined = string.Join(" ", new[] { filter, rest }.Where(s => s.Length > 0));
+        SearchBox.Text = combined.Length > 0 ? combined + " " : "";
+        SearchBox.CaretIndex = SearchBox.Text.Length;
     }
 
     /// <summary>Ctrl+K / right-click: paste the selection (or the marked items) converted by a text transform.</summary>

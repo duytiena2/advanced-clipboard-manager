@@ -253,7 +253,7 @@
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="Type" Style="{StaticResource MetaLabel}" />
                         <TextBlock Grid.Row="0" Grid.Column="1" x:Name="MetaType" Style="{StaticResource MetaValue}" />
-                        <TextBlock Grid.Row="1" Text="Source" Style="{StaticResource MetaLabel}" />
+                        <TextBlock Grid.Row="1" Text="Source → workspace" Style="{StaticResource MetaLabel}" />
                         <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MetaSource" Style="{StaticResource MetaValue}" />
                         <TextBlock Grid.Row="2" Text="Copied" Style="{StaticResource MetaLabel}" />
                         <TextBlock Grid.Row="2" Grid.Column="1" x:Name="MetaCopied" Style="{StaticResource MetaValue}" />

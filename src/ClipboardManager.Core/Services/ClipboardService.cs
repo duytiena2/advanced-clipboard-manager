@@ -87,7 +87,7 @@ public sealed class ClipboardService : IDisposable
             IsSensitive = result.IsSensitive,
             CreatedAt = now,
             LastCopiedAt = now,
-            Workspace = Settings.DefaultWorkspace,
+            Workspace = WorkspaceFor(content.SourceApplication),
             SourceApplication = content.SourceApplication,
         };
 
@@ -139,6 +139,18 @@ public sealed class ClipboardService : IDisposable
         HistoryChanged?.Invoke(this, EventArgs.Empty);
         return (isNew ? CaptureOutcome.Stored : CaptureOutcome.Duplicate, stored);
     }
+
+    /// <summary>Workspace for a copy from <paramref name="sourceApp"/>: the first matching rule, else the default workspace.</summary>
+    public string WorkspaceFor(string? sourceApp)
+    {
+        var rule = Settings.WorkspaceRules.FirstOrDefault(r => r.Matches(sourceApp));
+        var ws = rule?.Workspace.Trim();
+        if (string.IsNullOrEmpty(ws)) ws = Settings.DefaultWorkspace?.Trim();
+        return string.IsNullOrEmpty(ws) ? "Default" : ws;
+    }
+
+    /// <summary>Workspace names in use, with item counts.</summary>
+    public List<(string Name, int Count)> Workspaces() => _repo.Workspaces();
 
     public bool IsExcluded(string? sourceApp)
     {
