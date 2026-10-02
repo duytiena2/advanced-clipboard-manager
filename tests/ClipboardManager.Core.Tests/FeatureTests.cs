@@ -79,6 +79,87 @@ public sealed class FeatureTests : IDisposable
         Assert.Null(svc.LoadPayload(img!, plainText: true));
     }
 
+    // ---- #5 Text transforms ----
+
+    [Test]
+    public void Case_and_whitespace_transforms()
+    {
+        Assert.Equal("HELLO WORLD", TextTransforms.Apply("upper", "Hello World"));
+        Assert.Equal("hello world", TextTransforms.Apply("lower", "Hello World"));
+        Assert.Equal("Hello World", TextTransforms.Apply("title", "hELLO wORLD"));
+        Assert.Equal("Hello there. How are you?", TextTransforms.Apply("sentence", "HELLO THERE. HOW ARE YOU?"));
+        var nl = Environment.NewLine;
+        Assert.Equal("a b" + nl + "c", TextTransforms.Apply("trim", "  a \t  b  \n   c   \n\n"));
+        Assert.Equal("a b c", TextTransforms.Apply("one-line", "a\n  b\r\nc"));
+        Assert.Equal("a" + nl + "b", TextTransforms.Apply("remove-blank-lines", "a\n\n   \nb"));
+    }
+
+    [Test]
+    public void Json_transforms()
+    {
+        var nl = Environment.NewLine;
+        Assert.Equal("{" + nl + "  \"a\": 1," + nl + "  \"b\": \"chào\"" + nl + "}", TextTransforms.Apply("json-pretty", "{\"a\":1,\"b\":\"chào\"}").Replace("\n", nl).Replace("\r" + nl, nl));
+        Assert.Equal("{\"a\":[1,2]}", TextTransforms.Apply("json-minify", "{ \"a\": [ 1, 2 ] }"));
+        Throws<TransformException>(() => TextTransforms.Apply("json-pretty", "{ not json"));
+    }
+
+    [Test]
+    public void Base64_and_url_transforms()
+    {
+        Assert.Equal("WGluIGNow6Bv", TextTransforms.Apply("base64-encode", "Xin chào"));
+        Assert.Equal("Xin chào", TextTransforms.Apply("base64-decode", "WGluIGNow6Bv"));
+        Assert.Equal("hi?", TextTransforms.Apply("base64-decode", "aGk_")); // base64url, no padding
+        Throws<TransformException>(() => TextTransforms.Apply("base64-decode", "%%%"));
+        Throws<TransformException>(() => TextTransforms.Apply("base64-decode", "/w==")); // 0xFF is not UTF-8 text
+        Assert.Equal("a%20b%26c%3D%C4%91", TextTransforms.Apply("url-encode", "a b&c=đ"));
+        Assert.Equal("a b&c=đ", TextTransforms.Apply("url-decode", "a%20b%26c%3D%C4%91"));
+    }
+
+    [Test]
+    public void Sql_formatter_puts_clauses_on_lines()
+    {
+        var nl = Environment.NewLine;
+        var sql = "select u.id, u.name, count(o.id) as orders from users u left join orders o on o.user_id = u.id " +
+                  "where u.active = 1 and u.created_at between '2026-01-01' and '2026-12-31' group by u.id, u.name order by orders desc limit 10";
+        var expected = string.Join(nl,
+            "SELECT u.id,",
+            "    u.name,",
+            "    COUNT(o.id) AS orders",
+            "FROM users u",
+            "LEFT JOIN orders o",
+            "    ON o.user_id = u.id",
+            "WHERE u.active = 1",
+            "    AND u.created_at BETWEEN '2026-01-01' AND '2026-12-31'",
+            "GROUP BY u.id, u.name",
+            "ORDER BY orders DESC",
+            "LIMIT 10");
+        Assert.Equal(expected, TextTransforms.Apply("sql", sql));
+    }
+
+    [Test]
+    public void Sql_formatter_keeps_strings_and_handles_subqueries()
+    {
+        var nl = Environment.NewLine;
+        var formatted = SqlFormatter.Format("SELECT * FROM t WHERE name = 'select from where' AND id IN (SELECT id FROM x);");
+        var expected = string.Join(nl,
+            "SELECT *",
+            "FROM t",
+            "WHERE name = 'select from where'",
+            "    AND id IN (",
+            "        SELECT id",
+            "        FROM x",
+            "    );");
+        Assert.Equal(expected, formatted);
+        Assert.Equal("UPDATE t" + nl + "SET a = 1," + nl + "    b = 'x'" + nl + "WHERE id = 2", SqlFormatter.Format("update t set a = 1, b = 'x' where id = 2"));
+    }
+
+    private static void Throws<TEx>(Action a) where TEx : Exception
+    {
+        try { a(); }
+        catch (TEx) { return; }
+        throw new AssertionException("Expected " + typeof(TEx).Name);
+    }
+
     [Test]
     public void Schema_v1_database_is_upgraded()
     {
