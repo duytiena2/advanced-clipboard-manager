@@ -299,8 +299,8 @@
                     <Border Style="{StaticResource Kbd}"><TextBlock Text="Ctrl P" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
                     <TextBlock Text="Select" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
                     <Border Style="{StaticResource Kbd}"><TextBlock Text="Ctrl Space" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
-                    <TextBlock Text="Delete" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
-                    <Border Style="{StaticResource Kbd}"><TextBlock Text="Del" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
+                    <TextBlock Text="All keys" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
+                    <Border Style="{StaticResource Kbd}"><TextBlock Text="F1" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
                 </StackPanel>
             </DockPanel>
         </Border>

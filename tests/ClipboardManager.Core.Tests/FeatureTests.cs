@@ -484,6 +484,20 @@ public sealed class FeatureTests : IDisposable
         Assert.Equal(1, svc.Search("wombat").Count);
     }
 
+    // ---- #6 Settings UI helpers ----
+
+    [Test]
+    public void Retention_minutes_in_words()
+    {
+        Assert.Equal("never expires", Humanize.Minutes(0));
+        Assert.Equal("1 minute", Humanize.Minutes(1));
+        Assert.Equal("5 minutes", Humanize.Minutes(5));
+        Assert.Equal("1 hour", Humanize.Minutes(60));
+        Assert.Equal("1.5 hours", Humanize.Minutes(90));
+        Assert.Equal("1 day", Humanize.Minutes(1440));
+        Assert.Equal("7 days", Humanize.Minutes(10080));
+    }
+
     private static void Throws<TEx>(Action a) where TEx : Exception
     {
         try { a(); }

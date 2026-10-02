@@ -13,6 +13,7 @@ internal sealed class TrayIcon : IDisposable
     private readonly WinForms.ToolStripMenuItem _pauseItem;
     private readonly WinForms.ToolStripMenuItem _startupItem;
     private readonly WinForms.ToolStripMenuItem _stopStackItem;
+    private readonly WinForms.ToolStripMenuItem _openItem;
     private string? _stackStatus;
     private readonly Icon _appIcon;
     private readonly IntPtr _hIcon;
@@ -26,13 +27,14 @@ internal sealed class TrayIcon : IDisposable
     public event Action? OpenSettingsRequested;
     public event Action? ExitRequested;
     public event Action? StopPasteStackRequested;
+    public event Action? OpenSettingsWindowRequested;
 
     public TrayIcon(string hotkey, bool paused, bool startWithWindows)
     {
         (_appIcon, _hIcon) = DrawIcon();
 
         var menu = new WinForms.ContextMenuStrip();
-        var open = new WinForms.ToolStripMenuItem($"Quick Paste\t{hotkey}") { Font = new Font(WinForms.Control.DefaultFont, FontStyle.Bold) };
+        var open = _openItem = new WinForms.ToolStripMenuItem($"Quick Paste\t{hotkey}") { Font = new Font(WinForms.Control.DefaultFont, FontStyle.Bold) };
         open.Click += (_, _) => OpenRequested?.Invoke();
         _stopStackItem = new WinForms.ToolStripMenuItem("Stop paste stack") { Visible = false };
         _stopStackItem.Click += (_, _) => StopPasteStackRequested?.Invoke();
@@ -44,7 +46,9 @@ internal sealed class TrayIcon : IDisposable
         _startupItem.CheckedChanged += (_, _) => { if (!_settingStartup) StartupToggled?.Invoke(_startupItem.Checked); };
         var folder = new WinForms.ToolStripMenuItem("Open data folder");
         folder.Click += (_, _) => OpenDataFolderRequested?.Invoke();
-        var settings = new WinForms.ToolStripMenuItem("Edit settings (settings.json)");
+        var settingsWindow = new WinForms.ToolStripMenuItem("Settings…");
+        settingsWindow.Click += (_, _) => OpenSettingsWindowRequested?.Invoke();
+        var settings = new WinForms.ToolStripMenuItem("Edit settings.json (advanced)");
         settings.Click += (_, _) => OpenSettingsRequested?.Invoke();
         var exit = new WinForms.ToolStripMenuItem("Exit");
         exit.Click += (_, _) => ExitRequested?.Invoke();
@@ -53,7 +57,7 @@ internal sealed class TrayIcon : IDisposable
         {
             open, _stopStackItem, new WinForms.ToolStripSeparator(),
             _pauseItem, clear, new WinForms.ToolStripSeparator(),
-            _startupItem, folder, settings, new WinForms.ToolStripSeparator(),
+            settingsWindow, _startupItem, folder, settings, new WinForms.ToolStripSeparator(),
             exit,
         });
 
@@ -68,6 +72,8 @@ internal sealed class TrayIcon : IDisposable
     }
 
     public void SetPaused(bool paused) => _pauseItem.Checked = paused;
+
+    public void SetHotkey(string hotkey) => _openItem.Text = $"Quick Paste\t{hotkey}";
 
     /// <summary>Reflects the real startup state without raising <see cref="StartupToggled"/> again.</summary>
     public void SetStartupChecked(bool enabled)

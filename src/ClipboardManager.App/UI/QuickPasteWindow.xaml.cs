@@ -189,6 +189,7 @@ public partial class QuickPasteWindow : Window
         PreviewColumn.Width = docked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
         PreviewPane.Visibility = PreviewSplit.Visibility = FooterHints.Visibility = docked ? Visibility.Collapsed : Visibility.Visible;
         DockButton.Tag = docked ? "docked" : null;
+        Placeholder.Text = docked ? "Search clipboard…   F1: keys" : "Search clipboard…   type:sql  pinned:true  workspace:name   F1: keys";
         Header.ToolTip = Footer.ToolTip = docked ? null : "Drag to move";
     }
 
@@ -339,6 +340,10 @@ public partial class QuickPasteWindow : Window
                 TogglePinSelected();
                 e.Handled = true;
                 break;
+            case Key.F1:
+                ShowKeyHelp();
+                e.Handled = true;
+                break;
             case Key.D when mods == ModifierKeys.Control:
                 CycleDock();
                 e.Handled = true;
@@ -469,6 +474,38 @@ public partial class QuickPasteWindow : Window
     {
         if (!WriteToClipboard()) return;
         if (KeepOpen) ClearMarks(); else HidePalette();
+    }
+
+    private const string KeyHelp =
+        "Enter               paste (merged if several are marked)\n" +
+        "Ctrl+Shift+Enter    paste as plain text (an image: its text)\n" +
+        "Ctrl+1 … 9          paste item 1 … 9 (Ctrl+Shift = plain)\n" +
+        "Ctrl+K / right-click  transform: case, trim, JSON, SQL, Base64, URL\n" +
+        "Ctrl+C              copy without pasting\n" +
+        "Ctrl+Space          mark item (in order)\n" +
+        "Ctrl+S              paste stack: each Ctrl+V pastes the next marked item\n" +
+        "Ctrl+P              pin / unpin\n" +
+        "Ctrl+N / Ctrl+E     save as snippet / edit snippet\n" +
+        "Ctrl+W              next workspace\n" +
+        "Ctrl+T              keep open\n" +
+        "Ctrl+D              dock as sidebar: right → left → off\n" +
+        "Ctrl+R              reveal a secret\n" +
+        "Del                 delete item\n" +
+        "Esc                 close\n\n" +
+        "Search filters: type:sql  type:snippet  type:image  pinned:true  workspace:dev  after:2026-09-01";
+
+    /// <summary>F1: the keyboard reference, shown in the preview pane (or the status line when docked).</summary>
+    private void ShowKeyHelp()
+    {
+        if (Docked)
+        {
+            StatusText.Text = "Keys: Ctrl+K transform · Ctrl+S paste stack · Ctrl+1…9 · Ctrl+D undock";
+            return;
+        }
+        PreviewImage.Visibility = Visibility.Collapsed;
+        PreviewText.Visibility = Visibility.Visible;
+        PreviewText.FontFamily = new System.Windows.Media.FontFamily("Cascadia Mono, Consolas");
+        PreviewText.Text = KeyHelp;
     }
 
     /// <summary>Ctrl+S: the marked items, in the order they were marked, become a paste stack (each Ctrl+V pastes the next).</summary>
