@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -45,6 +46,10 @@ public partial class QuickPasteWindow : Window
         PreviewKeyDown += OnPreviewKeyDown;
         Deactivated += (_, _) => HidePalette();
 
+        // Borderless window: drag it by the search bar or the footer (the text box itself keeps normal mouse behavior).
+        Header.MouseLeftButtonDown += OnDragAreaMouseDown;
+        Footer.MouseLeftButtonDown += OnDragAreaMouseDown;
+
         _svc.HistoryChanged += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
         {
             if (IsVisible) Reload(keepSelection: true);
@@ -79,11 +84,46 @@ public partial class QuickPasteWindow : Window
         _hiding = false;
     }
 
+    private void OnDragAreaMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState != MouseButtonState.Pressed) return;
+        try
+        {
+            DragMove();
+        }
+        catch (InvalidOperationException)
+        {
+            return; // mouse already released
+        }
+        // Remember where the user put it (also across restarts).
+        _svc.Settings.QuickPasteLeft = Left;
+        _svc.Settings.QuickPasteTop = Top;
+        try { _svc.Settings.Save(Path.Combine(_svc.DataFolder, "settings.json")); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+        SearchBox.Focus();
+    }
+
     private void PositionOnScreen()
     {
+        var s = _svc.Settings;
+        if (s.QuickPasteLeft is double left && s.QuickPasteTop is double top && IsOnScreen(left, top))
+        {
+            Left = left;
+            Top = top;
+            return;
+        }
         var area = SystemParameters.WorkArea;
         Left = area.Left + (area.Width - Width) / 2;
         Top = area.Top + Math.Max(40, (area.Height - Height) * 0.3);
+    }
+
+    /// <summary>True when at least the top-left 100×40 px of the window would be visible on some monitor.</summary>
+    private static bool IsOnScreen(double left, double top)
+    {
+        double vl = SystemParameters.VirtualScreenLeft, vt = SystemParameters.VirtualScreenTop;
+        double vw = SystemParameters.VirtualScreenWidth, vh = SystemParameters.VirtualScreenHeight;
+        return left >= vl - 50 && top >= vt && left + 100 <= vl + vw && top + 40 <= vt + vh;
     }
 
     private void Reload(bool keepSelection = false)

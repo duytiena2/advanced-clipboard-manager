@@ -14,6 +14,10 @@ public sealed class AppSettings
     public long MaxTextChars { get; set; } = 1_000_000;
     public string DefaultWorkspace { get; set; } = "Default";
 
+    /// <summary>Last position of the Quick Paste window (null = centered).</summary>
+    public double? QuickPasteLeft { get; set; }
+    public double? QuickPasteTop { get; set; }
+
     // Privacy
     public bool DetectSensitive { get; set; } = true;
     public bool NeverStorePasswords { get; set; } = false;
