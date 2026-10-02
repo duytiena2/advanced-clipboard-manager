@@ -123,7 +123,17 @@ public sealed class ClipboardService : IDisposable
 
         item.ExpiresAt = Expiration.ExpiresAt(item, now);
 
-        var (stored, isNew) = _repo.AddOrTouch(item);
+        // Formatting is kept for ordinary text only: never for secrets, and only within the size limit.
+        RichText? rich = null;
+        if (hasText && !hasFiles && !hasImage && !item.IsSensitive)
+        {
+            var limit = Settings.MaxTextChars * 4;
+            rich = new RichText(
+                content.Html is { Length: > 0 } h && h.Length <= limit ? h : null,
+                content.Rtf is { Length: > 0 } r && r.Length <= limit ? r : null);
+        }
+
+        var (stored, isNew) = _repo.AddOrTouch(item, rich);
         if (isNew) _repo.EnforceMaxItems(Settings.MaxItems).ForEach(DeleteBinary);
         ItemCaptured?.Invoke(this, stored);
         HistoryChanged?.Invoke(this, EventArgs.Empty);
@@ -140,6 +150,36 @@ public sealed class ClipboardService : IDisposable
     public List<ClipboardItem> Search(string? input, int limit = 200) => _repo.Search(SearchQuery.Parse(input), limit);
 
     public ClipboardItem? Get(long id) => _repo.Get(id);
+
+    public RichText? GetRichText(ClipboardItem item) => item.HasRichText ? _repo.GetRichText(item.Id) : null;
+
+    /// <summary>
+    /// What to put on the OS clipboard for <paramref name="item"/>.
+    /// <paramref name="plainText"/> drops formatting: text only, file lists become their paths.
+    /// Returns null when there is nothing to paste (e.g. plain text of an image, or a missing image file).
+    /// </summary>
+    public ClipboardPayload? LoadPayload(ClipboardItem item, bool plainText = false)
+    {
+        if (plainText)
+        {
+            var text = item.Kind == ContentKind.Image ? null : item.TextContent;
+            return string.IsNullOrEmpty(text) ? null : new ClipboardPayload { Text = text, IsSensitive = item.IsSensitive };
+        }
+
+        switch (item.Kind)
+        {
+            case ContentKind.Image:
+                var path = FullBinaryPath(item);
+                if (path is null || !File.Exists(path)) return null;
+                return new ClipboardPayload { ImagePng = File.ReadAllBytes(path), IsSensitive = item.IsSensitive };
+            case ContentKind.Files when item.TextContent is not null:
+                var files = item.TextContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                return new ClipboardPayload { Files = files, IsSensitive = item.IsSensitive };
+            default:
+                var rich = GetRichText(item);
+                return new ClipboardPayload { Text = item.TextContent ?? "", Html = rich?.Html, Rtf = rich?.Rtf, IsSensitive = item.IsSensitive };
+        }
+    }
 
     public void TogglePin(ClipboardItem item)
     {

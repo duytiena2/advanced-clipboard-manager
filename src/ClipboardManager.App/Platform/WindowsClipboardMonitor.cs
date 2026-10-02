@@ -114,16 +114,29 @@ internal sealed class WindowsClipboardMonitor : IClipboardMonitor
         return false;
     }
 
+    /// <summary>Optional formats: a broken or huge one must not prevent capturing the text itself.</summary>
+    private static string? TryGetString(IDataObject data, string format)
+    {
+        try
+        {
+            return data.GetDataPresent(format) && data.GetData(format) is string s && s.Length > 0 ? s : null;
+        }
+        catch (COMException) { return null; }
+        catch (ExternalException) { return null; }
+        catch (OutOfMemoryException) { return null; }
+    }
+
     private static CapturedContent? Extract(IDataObject data, string? source)
     {
         // Priority: files → text → image (apps like Excel put both text and a picture; text is more useful).
         if (data.GetDataPresent(DataFormats.FileDrop) && data.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0)
             return CapturedContent.FromFiles(files.ToList(), source);
 
-        if (data.GetDataPresent(DataFormats.UnicodeText) && data.GetData(DataFormats.UnicodeText) is string text && text.Length > 0)
-            return CapturedContent.FromText(text, source);
-        if (data.GetDataPresent(DataFormats.Text) && data.GetData(DataFormats.Text) is string ansi && ansi.Length > 0)
-            return CapturedContent.FromText(ansi, source);
+        string? text = null;
+        if (data.GetDataPresent(DataFormats.UnicodeText) && data.GetData(DataFormats.UnicodeText) is string unicode && unicode.Length > 0) text = unicode;
+        else if (data.GetDataPresent(DataFormats.Text) && data.GetData(DataFormats.Text) is string ansi && ansi.Length > 0) text = ansi;
+        if (text is not null)
+            return new CapturedContent { Text = text, SourceApplication = source, Html = TryGetString(data, DataFormats.Html), Rtf = TryGetString(data, DataFormats.Rtf) };
 
         if (WpfClipboard.ContainsImage())
         {

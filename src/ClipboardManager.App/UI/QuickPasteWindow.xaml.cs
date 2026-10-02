@@ -253,7 +253,7 @@ public partial class QuickPasteWindow : Window
                 e.Handled = true;
                 break;
             case Key.Enter:
-                PasteSelected();
+                PasteSelected(plainText: mods == (ModifierKeys.Control | ModifierKeys.Shift));
                 e.Handled = true;
                 break;
             case Key.P when mods == ModifierKeys.Control:
@@ -298,7 +298,8 @@ public partial class QuickPasteWindow : Window
         StatusText.Text = n > 1 ? $"{n} selected — Enter pastes them merged" : n == 1 ? "1 selected" : $"{_svc.Count()} items";
     }
 
-    private bool WriteToClipboard()
+    /// <param name="plainText">Drop HTML/RTF formatting (Ctrl+Shift+Enter).</param>
+    private bool WriteToClipboard(bool plainText = false)
     {
         try
         {
@@ -311,7 +312,13 @@ public partial class QuickPasteWindow : Window
             }
             var vm = marked.Count == 1 ? marked[0] : ItemsList.SelectedItem as ItemViewModel;
             if (vm is null) return false;
-            _writer.Write(vm.Item, _svc.DataFolder);
+            var payload = _svc.LoadPayload(vm.Item, plainText);
+            if (payload is null)
+            {
+                StatusText.Text = plainText ? "This item has no text to paste" : "The item's file is missing";
+                return false;
+            }
+            _writer.Write(payload);
             _svc.MarkUsed(vm.Item);
             return true;
         }
@@ -320,11 +327,16 @@ public partial class QuickPasteWindow : Window
             StatusText.Text = "Clipboard is busy — try again";
             return false;
         }
+        catch (IOException)
+        {
+            StatusText.Text = "Could not read the item's file";
+            return false;
+        }
     }
 
-    private void PasteSelected()
+    private void PasteSelected(bool plainText = false)
     {
-        if (!WriteToClipboard()) return;
+        if (!WriteToClipboard(plainText)) return;
         if (KeepOpen) ClearMarks(); else HidePalette();
         // Opened from the tray: there is no app to paste into, the item is just on the clipboard now.
         if (_paste.HasTarget) _paste.PasteIntoPreviousWindow();

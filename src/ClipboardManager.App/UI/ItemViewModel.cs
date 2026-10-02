@@ -85,7 +85,8 @@ public sealed class ItemViewModel : INotifyPropertyChanged
         }
     }
 
-    public string MetaType => Item.Kind == ContentKind.Sensitive ? "Sensitive · " + Item.Subtype : Item.DisplayType;
+    public string MetaType => Item.Kind == ContentKind.Sensitive ? "Sensitive · " + Item.Subtype
+        : Item.HasRichText ? Item.DisplayType + " · formatted" : Item.DisplayType;
     public string MetaSource => Item.SourceApplication ?? "Unknown";
     public string MetaCopied
     {

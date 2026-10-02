@@ -14,35 +14,35 @@ namespace ClipboardManager.App.Platform;
 
 internal sealed class WindowsClipboardWriter : IClipboardWriter
 {
-    public void Write(ClipboardItem item, string dataFolder)
+    public void Write(ClipboardPayload payload)
     {
         var data = new DataObject();
-        switch (item.Kind)
+        if (payload.ImagePng is { Length: > 0 } png)
         {
-            case ContentKind.Image when item.BinaryPath is not null:
-                var path = Path.Combine(dataFolder, item.BinaryPath);
-                if (!File.Exists(path)) return;
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.CacheOption = BitmapCacheOption.OnLoad; // don't keep the file locked
-                bmp.UriSource = new Uri(path);
-                bmp.EndInit();
-                bmp.Freeze();
-                data.SetImage(bmp);
-                break;
-
-            case ContentKind.Files when item.TextContent is not null:
-                var list = new StringCollection();
-                foreach (var f in item.TextContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)) list.Add(f);
-                data.SetFileDropList(list);
-                break;
-
-            default:
-                data.SetText(item.TextContent ?? "", TextDataFormat.UnicodeText);
-                break;
+            using var ms = new MemoryStream(png);
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.StreamSource = ms;
+            bmp.EndInit();
+            bmp.Freeze();
+            data.SetImage(bmp);
+        }
+        else if (payload.Files is { Count: > 0 } files)
+        {
+            var list = new StringCollection();
+            foreach (var f in files) list.Add(f);
+            data.SetFileDropList(list);
+        }
+        else
+        {
+            data.SetText(payload.Text ?? "", TextDataFormat.UnicodeText);
+            // Raw CF_HTML exactly as captured; WPF writes it back as UTF-8, so its byte offsets stay valid.
+            if (!string.IsNullOrEmpty(payload.Html)) data.SetData(DataFormats.Html, payload.Html);
+            if (!string.IsNullOrEmpty(payload.Rtf)) data.SetData(DataFormats.Rtf, payload.Rtf);
         }
 
-        if (item.IsSensitive)
+        if (payload.IsSensitive)
         {
             // Keep secrets out of Windows' own clipboard history and cloud clipboard.
             data.SetData("CanIncludeInClipboardHistory", new MemoryStream(BitConverter.GetBytes(0)));
