@@ -15,4 +15,10 @@
     <ProjectReference Include="..\..\src\ClipboardManager.Core\ClipboardManager.Core.csproj" />
   </ItemGroup>
 
+  <!-- Same official SQLite build as the app (build.ps1 downloads it into lib\), so the tests never pick up an
+       unrelated sqlite3.dll from PATH. Falls back to winsqlite3 / libsqlite3 if absent. -->
+  <ItemGroup Condition="Exists('..\..\lib\sqlite3.dll')">
+    <None Include="..\..\lib\sqlite3.dll" CopyToOutputDirectory="PreserveNewest" Link="sqlite3.dll" />
+  </ItemGroup>
+
 </Project>
