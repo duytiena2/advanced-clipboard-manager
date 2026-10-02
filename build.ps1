@@ -23,9 +23,28 @@ function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 
 # 1. .NET 8 SDK
 Step 'Checking .NET SDK'
-$dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
-if (-not $dotnet) {
-    throw ".NET 8 SDK not found. Install it with:  winget install Microsoft.DotNet.SDK.8"
+function Find-Dotnet {
+    $cmd = Get-Command dotnet -ErrorAction SilentlyContinue
+    if ($cmd) { return $true }
+    # Installed but this PowerShell window has an old PATH
+    $default = Join-Path $env:ProgramFiles 'dotnet'
+    if (Test-Path (Join-Path $default 'dotnet.exe')) {
+        $env:PATH = "$default;$env:PATH"
+        return $true
+    }
+    return $false
+}
+
+if (-not (Find-Dotnet)) {
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $winget) {
+        throw ".NET 8 SDK not found and winget is unavailable. Download 'SDK 8.0 - Windows x64' from https://dotnet.microsoft.com/download/dotnet/8.0, install it, then run .\build.ps1 again."
+    }
+    Write-Host '.NET 8 SDK not found - installing with winget (a UAC prompt may appear)...' -ForegroundColor Yellow
+    & winget install --id Microsoft.DotNet.SDK.8 --exact --accept-source-agreements --accept-package-agreements
+    if (-not (Find-Dotnet)) {
+        throw "Installation did not complete (winget exit code $LASTEXITCODE). Install .NET 8 SDK manually from https://dotnet.microsoft.com/download/dotnet/8.0, then run .\build.ps1 again."
+    }
 }
 $sdks = & dotnet --list-sdks
 if (-not ($sdks | Where-Object { $_ -match '^(8|9|10)\.' })) {
