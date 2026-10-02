@@ -370,17 +370,40 @@ public sealed class ClipboardRepository : IDisposable
     public List<string> DeleteExpired(DateTimeOffset now) =>
         DeleteWhere("is_pinned = 0 AND expires_at IS NOT NULL AND expires_at <= ?", now);
 
-    /// <summary>Deletes all unpinned items.</summary>
-    public List<string> ClearUnpinned() => DeleteWhere("is_pinned = 0");
+    /// <summary>Deletes all unpinned history items (snippets are kept).</summary>
+    public List<string> ClearUnpinned() => DeleteWhere("is_pinned = 0 AND content_type <> 'Snippet'");
 
-    /// <summary>Keeps at most <paramref name="maxItems"/> unpinned items, deleting the oldest.</summary>
+    /// <summary>Keeps at most <paramref name="maxItems"/> unpinned history items, deleting the oldest. Snippets don't count.</summary>
     public List<string> EnforceMaxItems(int maxItems)
     {
         if (maxItems <= 0) return new();
         return DeleteWhere(
-            "is_pinned = 0 AND id NOT IN (SELECT id FROM clipboard_items WHERE is_pinned = 0 ORDER BY last_copied_at DESC LIMIT ?)",
+            "is_pinned = 0 AND content_type <> 'Snippet' AND id NOT IN (SELECT id FROM clipboard_items WHERE is_pinned = 0 AND content_type <> 'Snippet' ORDER BY last_copied_at DESC LIMIT ?)",
             maxItems);
     }
+
+    /// <summary>Replaces an item's title/text (snippet edits) and re-indexes it.</summary>
+    public void UpdateContent(ClipboardItem item)
+    {
+        _db.InTransaction(() =>
+        {
+            _db.Execute("UPDATE clipboard_items SET title = ?, text_content = ?, content_hash = ?, size_bytes = ?, workspace = ? WHERE id = ?;",
+                Protect(item.Title), Protect(item.TextContent), item.ContentHash, item.SizeBytes, item.Workspace, item.Id);
+            if (FullTextEnabled)
+            {
+                _db.Execute($"DELETE FROM {Fts} WHERE rowid = ?;", item.Id);
+                IndexForSearch(item);
+            }
+            return 0;
+        });
+    }
+
+    /// <summary>Moves an item to the top of the recency order (used snippets float up).</summary>
+    public void Touch(long id, DateTimeOffset when) =>
+        _db.Execute("UPDATE clipboard_items SET last_copied_at = ?, accessed_at = ? WHERE id = ?;", when, when, id);
+
+    public bool ExistsWithHash(string hash, string workspace, long exceptId) =>
+        _db.Scalar("SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ? AND workspace = ? AND id <> ?;", r => r.GetInt64(0), hash, workspace, exceptId) > 0;
 
     private List<string> DeleteWhere(string condition, params object?[] args)
     {

@@ -12,6 +12,8 @@ public enum ContentKind
     Image,
     Files,
     Sensitive,
+    /// <summary>User-made reusable text/template; never expires and is never cleared or evicted.</summary>
+    Snippet,
 }
 
 /// <summary>A single stored clipboard entry.</summary>

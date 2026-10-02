@@ -99,6 +99,8 @@ public sealed class ClipboardService : IDisposable
     {
         ContentKind.Image when imagePng is not null => _repo.Hash(imagePng),
         ContentKind.Files => _repo.Hash(Encoding.UTF8.GetBytes("files:" + item.TextContent)),
+        // Own namespace, so copying the same text never merges into the snippet.
+        ContentKind.Snippet => _repo.Hash(Encoding.UTF8.GetBytes("snippet:" + item.Title + "\0" + item.TextContent)),
         _ => _repo.Hash(Encoding.UTF8.GetBytes(item.TextContent ?? "")),
     };
 
@@ -240,8 +242,14 @@ public sealed class ClipboardService : IDisposable
     /// <paramref name="plainText"/> drops formatting: text only, file lists become their paths.
     /// Returns null when there is nothing to paste (e.g. plain text of an image, or a missing image file).
     /// </summary>
-    public ClipboardPayload? LoadPayload(ClipboardItem item, bool plainText = false)
+    /// <param name="template">Values for snippet variables; by default {clipboard} is the newest history text.</param>
+    public ClipboardPayload? LoadPayload(ClipboardItem item, bool plainText = false, TemplateContext? template = null)
     {
+        if (item.Kind == ContentKind.Snippet)
+        {
+            template ??= new TemplateContext { Now = _clock.Now.ToLocalTime().DateTime, Clipboard = LatestHistoryText };
+            return new ClipboardPayload { Text = TemplateEngine.Expand(item.TextContent ?? "", template) };
+        }
         if (plainText)
         {
             var text = item.Kind == ContentKind.Image ? null : item.TextContent;
@@ -275,7 +283,60 @@ public sealed class ClipboardService : IDisposable
         HistoryChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void MarkUsed(ClipboardItem item) => _repo.MarkAccessed(item.Id, _clock.Now);
+    public void MarkUsed(ClipboardItem item)
+    {
+        if (item.Kind == ContentKind.Snippet) _repo.Touch(item.Id, _clock.Now); // recently used snippets come first
+        else _repo.MarkAccessed(item.Id, _clock.Now);
+    }
+
+    // ---- Snippets ----
+
+    /// <summary>Text of the most recent copy that is neither a snippet, an image nor a secret.</summary>
+    public string? LatestHistoryText() =>
+        _repo.Search(new SearchQuery { Sensitive = false }, 20, pinnedFirst: false)
+            .FirstOrDefault(i => i.Kind is not (ContentKind.Snippet or ContentKind.Image) && !string.IsNullOrEmpty(i.TextContent))?.TextContent;
+
+    public List<ClipboardItem> Snippets() => _repo.Search(new SearchQuery { Kind = ContentKind.Snippet }, int.MaxValue, pinnedFirst: false)
+        .OrderBy(s => s.Title, StringComparer.CurrentCultureIgnoreCase).ToList();
+
+    /// <summary>Creates a snippet, or updates <paramref name="existing"/>. Snippets never expire.</summary>
+    /// <exception cref="ArgumentException">Empty name/body, or another snippet already has the same name and text.</exception>
+    public ClipboardItem SaveSnippet(string name, string body, ClipboardItem? existing = null)
+    {
+        name = name.Trim();
+        if (name.Length == 0) throw new ArgumentException("A snippet needs a name.", nameof(name));
+        if (string.IsNullOrEmpty(body)) throw new ArgumentException("A snippet needs some text.", nameof(body));
+
+        var now = _clock.Now;
+        var item = existing ?? new ClipboardItem { Kind = ContentKind.Snippet, CreatedAt = now, LastCopiedAt = now, Confidence = 1 };
+        if (item.Kind != ContentKind.Snippet) throw new ArgumentException("Not a snippet.", nameof(existing));
+        item.Subtype = TemplateEngine.HasVariables(body) ? "template" : "snippet";
+        item.Title = name;
+        item.TextContent = body;
+        if (existing is null) item.Workspace = WorkspaceFor(null);
+        item.SizeBytes = Encoding.UTF8.GetByteCount(body);
+        item.ContentHash = HashOf(item, null);
+        item.ExpiresAt = null;
+
+        if (existing is null)
+        {
+            var (stored, isNew) = _repo.AddOrTouch(item);
+            if (!isNew) throw new ArgumentException($"A snippet named \"{name}\" with this text already exists.");
+            item = stored;
+        }
+        else
+        {
+            if (_repo.ExistsWithHash(item.ContentHash, item.Workspace, item.Id))
+                throw new ArgumentException($"A snippet named \"{name}\" with this text already exists.");
+            _repo.UpdateContent(item);
+        }
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+        return item;
+    }
+
+    /// <summary>A history item as the starting point of a new snippet (name = its title).</summary>
+    public static (string Name, string Body) SnippetDraftFrom(ClipboardItem item) =>
+        (item.Kind == ContentKind.Snippet ? item.Title : ContentClassifier.MakeTitle(item.TextContent, 40), item.TextContent ?? "");
 
     public void Delete(ClipboardItem item)
     {
