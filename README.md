@@ -29,6 +29,7 @@ A local-first, keyboard-first clipboard manager for Windows 10/11. It keeps your
 | `Ctrl+P` | Pin / unpin |
 | `Ctrl+Space` | Mark for multi-select |
 | `Ctrl+R` | Reveal sensitive content |
+| `Ctrl+T` | Keep open: the palette stays on screen (drag it to a screen edge) and pastes into the app you used last |
 | `Del` | Delete item (when the cursor is at the end of the search text) |
 | `Esc` | Close |
 

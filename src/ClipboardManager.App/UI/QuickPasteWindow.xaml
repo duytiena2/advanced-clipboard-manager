@@ -75,6 +75,28 @@
             <DockPanel Margin="18,0">
                 <TextBlock DockPanel.Dock="Left" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                            FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                <ToggleButton x:Name="KeepOpenButton" DockPanel.Dock="Right" Width="32" Height="32" Margin="8,0,0,0"
+                              Focusable="False" Cursor="Hand" ToolTip="Keep open (Ctrl+T)"
+                              AutomationProperties.Name="Keep Quick Paste open">
+                    <ToggleButton.Template>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                                <TextBlock x:Name="Glyph" Text="&#xE718;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#F1F3F5" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="Glyph" Property="Foreground" Value="#FFFFFF" />
+                                    <Setter TargetName="Glyph" Property="Text" Value="&#xE840;" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </ToggleButton.Template>
+                </ToggleButton>
                 <TextBlock x:Name="CountText" DockPanel.Dock="Right" Foreground="{StaticResource Muted}" FontSize="12"
                            VerticalAlignment="Center" Margin="12,0,0,0" />
                 <Grid>
