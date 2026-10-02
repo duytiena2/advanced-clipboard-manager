@@ -41,7 +41,8 @@ public sealed class ClipboardService : IDisposable
     public event EventHandler<ClipboardItem>? ItemCaptured;
     public event EventHandler? HistoryChanged;
 
-    public ClipboardService(string dataFolder, AppSettings settings, IClock? clock = null, bool enableFullText = true)
+    /// <param name="protector">OS user-bound encryption (DPAPI on Windows). Required when <see cref="AppSettings.EncryptDatabase"/> is on.</param>
+    public ClipboardService(string dataFolder, AppSettings settings, IClock? clock = null, bool enableFullText = true, IDataProtector? protector = null)
     {
         _dataFolder = dataFolder;
         Directory.CreateDirectory(dataFolder);
@@ -49,7 +50,81 @@ public sealed class ClipboardService : IDisposable
         Settings = settings;
         Expiration = new ExpirationPolicy(settings);
         _clock = clock ?? new SystemClock();
-        _repo = new ClipboardRepository(Path.Combine(dataFolder, "clipboard.db"), enableFullText);
+        _repo = new ClipboardRepository(Path.Combine(dataFolder, "clipboard.db"), enableFullText, protector);
+        if (settings.EncryptDatabase != _repo.IsEncrypted && (protector is not null || !settings.EncryptDatabase))
+            SetEncryption(settings.EncryptDatabase);
+    }
+
+    public bool IsEncrypted => _repo.IsEncrypted;
+
+    private const string EncryptedImageSuffix = ".dpapi";
+
+    /// <summary>
+    /// Encrypts (or decrypts) the whole history in place: database fields, the search index (moved to memory) and image files.
+    /// Can take a few seconds on a large history.
+    /// </summary>
+    public void SetEncryption(bool on)
+    {
+        if (on == _repo.IsEncrypted) return;
+        var written = new List<string>();
+        var replaced = new List<string>();
+        try
+        {
+            _repo.SetEncrypted(on, item =>
+            {
+                if (item.Kind != ContentKind.Image || item.BinaryPath is null) return (HashOf(item, null), item.BinaryPath);
+                var png = ReadBinary(item); // old format
+                if (png is null) return (HashOf(item, null) + ":missing", item.BinaryPath);
+                var hash = HashOf(item, png);  // new scheme: the repository already switched modes
+                var path = StoreImage(hash, png);
+                written.Add(path);
+                if (!path.Equals(item.BinaryPath, StringComparison.OrdinalIgnoreCase)) replaced.Add(item.BinaryPath);
+                return (hash, path);
+            });
+        }
+        catch
+        {
+            written.ForEach(DeleteBinary);
+            throw;
+        }
+        replaced.ForEach(DeleteBinary);
+        Settings.EncryptDatabase = on;
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Content hash for de-duplication (keyed HMAC when the database is encrypted).</summary>
+    public string HashText(string text) => _repo.Hash(Encoding.UTF8.GetBytes(text));
+
+    private string HashOf(ClipboardItem item, byte[]? imagePng) => item.Kind switch
+    {
+        ContentKind.Image when imagePng is not null => _repo.Hash(imagePng),
+        ContentKind.Files => _repo.Hash(Encoding.UTF8.GetBytes("files:" + item.TextContent)),
+        // Own namespace, so copying the same text never merges into the snippet.
+        ContentKind.Snippet => _repo.Hash(Encoding.UTF8.GetBytes("snippet:" + item.Title + "\0" + item.TextContent)),
+        _ => _repo.Hash(Encoding.UTF8.GetBytes(item.TextContent ?? "")),
+    };
+
+    /// <returns>The relative path of the stored file (encrypted when the database is).</returns>
+    private string StoreImage(string hash, byte[] png)
+    {
+        var fileName = hash[..16] + ".png" + (_repo.IsEncrypted ? EncryptedImageSuffix : "");
+        var fullPath = Path.Combine(ImagesFolder, fileName);
+        if (!File.Exists(fullPath))
+        {
+            var tmp = fullPath + ".tmp";
+            File.WriteAllBytes(tmp, _repo.IsEncrypted ? _repo.ProtectBytes(png) : png);
+            File.Move(tmp, fullPath, overwrite: true);
+        }
+        return Path.Combine("images", fileName);
+    }
+
+    /// <summary>The item's binary payload (an image), decrypted. Null when the file is missing.</summary>
+    public byte[]? ReadBinary(ClipboardItem item)
+    {
+        var path = FullBinaryPath(item);
+        if (path is null || !File.Exists(path)) return null;
+        var bytes = File.ReadAllBytes(path);
+        return path.EndsWith(EncryptedImageSuffix, StringComparison.OrdinalIgnoreCase) ? _repo.UnprotectBytes(bytes) : bytes;
     }
 
     public static string DefaultDataFolder() =>
@@ -87,7 +162,7 @@ public sealed class ClipboardService : IDisposable
             IsSensitive = result.IsSensitive,
             CreatedAt = now,
             LastCopiedAt = now,
-            Workspace = Settings.DefaultWorkspace,
+            Workspace = WorkspaceFor(content.SourceApplication),
             SourceApplication = content.SourceApplication,
         };
 
@@ -96,16 +171,13 @@ public sealed class ClipboardService : IDisposable
             var joined = string.Join(Environment.NewLine, content.Files!);
             item.TextContent = joined;
             item.Title = content.Files!.Count == 1 ? Path.GetFileName(content.Files[0]) : $"{content.Files.Count} files — {Path.GetFileName(content.Files[0])}, …";
-            item.ContentHash = Hash(Encoding.UTF8.GetBytes("files:" + joined));
+            item.ContentHash = HashOf(item, null);
             item.SizeBytes = Encoding.UTF8.GetByteCount(joined);
         }
         else if (hasImage)
         {
-            item.ContentHash = Hash(content.ImagePng!);
-            var fileName = item.ContentHash[..16] + ".png";
-            var fullPath = Path.Combine(ImagesFolder, fileName);
-            if (!File.Exists(fullPath)) File.WriteAllBytes(fullPath, content.ImagePng!);
-            item.BinaryPath = Path.Combine("images", fileName);
+            item.ContentHash = HashOf(item, content.ImagePng);
+            item.BinaryPath = StoreImage(item.ContentHash, content.ImagePng!);
             item.SizeBytes = content.ImagePng!.Length;
             item.Title = $"Image {content.ImageWidth} × {content.ImageHeight}";
             item.MetadataJson = JsonSerializer.Serialize(new { width = content.ImageWidth, height = content.ImageHeight, mime = "image/png" });
@@ -114,7 +186,7 @@ public sealed class ClipboardService : IDisposable
         {
             var text = content.Text!;
             item.TextContent = text;
-            item.ContentHash = Hash(Encoding.UTF8.GetBytes(text));
+            item.ContentHash = HashOf(item, null);
             item.SizeBytes = Encoding.UTF8.GetByteCount(text);
             item.Title = item.IsSensitive ? ContentClassifier.Mask(text) : ContentClassifier.MakeTitle(text);
             if (item.Kind == ContentKind.Url && ContentClassifier.TryGetHost(text.Trim()) is { } host)
@@ -123,12 +195,34 @@ public sealed class ClipboardService : IDisposable
 
         item.ExpiresAt = Expiration.ExpiresAt(item, now);
 
-        var (stored, isNew) = _repo.AddOrTouch(item);
+        // Formatting is kept for ordinary text only: never for secrets, and only within the size limit.
+        RichText? rich = null;
+        if (hasText && !hasFiles && !hasImage && !item.IsSensitive)
+        {
+            var limit = Settings.MaxTextChars * 4;
+            rich = new RichText(
+                content.Html is { Length: > 0 } h && h.Length <= limit ? h : null,
+                content.Rtf is { Length: > 0 } r && r.Length <= limit ? r : null);
+        }
+
+        var (stored, isNew) = _repo.AddOrTouch(item, rich);
         if (isNew) _repo.EnforceMaxItems(Settings.MaxItems).ForEach(DeleteBinary);
         ItemCaptured?.Invoke(this, stored);
         HistoryChanged?.Invoke(this, EventArgs.Empty);
         return (isNew ? CaptureOutcome.Stored : CaptureOutcome.Duplicate, stored);
     }
+
+    /// <summary>Workspace for a copy from <paramref name="sourceApp"/>: the first matching rule, else the default workspace.</summary>
+    public string WorkspaceFor(string? sourceApp)
+    {
+        var rule = Settings.WorkspaceRules.FirstOrDefault(r => r.Matches(sourceApp));
+        var ws = rule?.Workspace.Trim();
+        if (string.IsNullOrEmpty(ws)) ws = Settings.DefaultWorkspace?.Trim();
+        return string.IsNullOrEmpty(ws) ? "Default" : ws;
+    }
+
+    /// <summary>Workspace names in use, with item counts.</summary>
+    public List<(string Name, int Count)> Workspaces() => _repo.Workspaces();
 
     public bool IsExcluded(string? sourceApp)
     {
@@ -140,6 +234,41 @@ public sealed class ClipboardService : IDisposable
     public List<ClipboardItem> Search(string? input, int limit = 200) => _repo.Search(SearchQuery.Parse(input), limit);
 
     public ClipboardItem? Get(long id) => _repo.Get(id);
+
+    public RichText? GetRichText(ClipboardItem item) => item.HasRichText ? _repo.GetRichText(item.Id) : null;
+
+    /// <summary>
+    /// What to put on the OS clipboard for <paramref name="item"/>.
+    /// <paramref name="plainText"/> drops formatting: text only, file lists become their paths.
+    /// Returns null when there is nothing to paste (e.g. plain text of an image, or a missing image file).
+    /// </summary>
+    /// <param name="template">Values for snippet variables; by default {clipboard} is the newest history text.</param>
+    public ClipboardPayload? LoadPayload(ClipboardItem item, bool plainText = false, TemplateContext? template = null)
+    {
+        if (item.Kind == ContentKind.Snippet)
+        {
+            template ??= new TemplateContext { Now = _clock.Now.ToLocalTime().DateTime, Clipboard = LatestHistoryText };
+            return new ClipboardPayload { Text = TemplateEngine.Expand(item.TextContent ?? "", template) };
+        }
+        if (plainText)
+        {
+            var text = item.Kind == ContentKind.Image ? item.OcrText : item.TextContent; // an image's plain text = its OCR text
+            return string.IsNullOrEmpty(text) ? null : new ClipboardPayload { Text = text, IsSensitive = item.IsSensitive };
+        }
+
+        switch (item.Kind)
+        {
+            case ContentKind.Image:
+                var png = ReadBinary(item);
+                return png is null ? null : new ClipboardPayload { ImagePng = png, IsSensitive = item.IsSensitive };
+            case ContentKind.Files when item.TextContent is not null:
+                var files = item.TextContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                return new ClipboardPayload { Files = files, IsSensitive = item.IsSensitive };
+            default:
+                var rich = GetRichText(item);
+                return new ClipboardPayload { Text = item.TextContent ?? "", Html = rich?.Html, Rtf = rich?.Rtf, IsSensitive = item.IsSensitive };
+        }
+    }
 
     public void TogglePin(ClipboardItem item)
     {
@@ -154,7 +283,107 @@ public sealed class ClipboardService : IDisposable
         HistoryChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void MarkUsed(ClipboardItem item) => _repo.MarkAccessed(item.Id, _clock.Now);
+    public void MarkUsed(ClipboardItem item)
+    {
+        if (item.Kind == ContentKind.Snippet) _repo.Touch(item.Id, _clock.Now); // recently used snippets come first
+        else _repo.MarkAccessed(item.Id, _clock.Now);
+    }
+
+    // ---- OCR ----
+
+    /// <summary>Images still waiting for text recognition (e.g. copied before OCR was enabled).</summary>
+    public List<ClipboardItem> ImagesWithoutOcr(int limit = 50) => _repo.ImagesWithoutOcr(limit);
+
+    /// <summary>
+    /// Stores the text recognized in an image so search finds it and Ctrl+Shift+Enter pastes it.
+    /// Text that looks like a secret is not kept (the image is marked as processed with no text).
+    /// </summary>
+    /// <returns>true when text was stored.</returns>
+    public bool AttachOcrText(ClipboardItem item, string? text)
+    {
+        if (item.Kind != ContentKind.Image) return false;
+        var clean = (text ?? "").Replace("\r\n", "\n").Trim();
+        if (clean.Length > Settings.MaxTextChars) clean = clean[..(int)Settings.MaxTextChars];
+        bool secret = clean.Length > 0 && (SensitiveDataDetector.Detect(clean) is not null ||
+                                           clean.Split('\n').Any(l => SensitiveDataDetector.Detect(l) is not null));
+        if (secret) clean = "";
+        _repo.SetOcrText(item, clean.Replace("\n", Environment.NewLine));
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+        return clean.Length > 0;
+    }
+
+    /// <summary>Recognizes text in <paramref name="items"/> one by one (failures count as "no text" so they aren't retried forever).</summary>
+    public async Task<int> RunOcrAsync(IOcrEngine engine, IEnumerable<ClipboardItem> items, CancellationToken cancellationToken = default)
+    {
+        int found = 0;
+        foreach (var item in items)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (item.Kind != ContentKind.Image) continue;
+            string text;
+            try
+            {
+                var png = ReadBinary(item);
+                text = png is null ? "" : await engine.RecognizeAsync(png, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or System.Runtime.InteropServices.COMException)
+            {
+                text = "";
+            }
+            if (AttachOcrText(item, text)) found++;
+        }
+        return found;
+    }
+
+    // ---- Snippets ----
+
+    /// <summary>Text of the most recent copy that is neither a snippet, an image nor a secret.</summary>
+    public string? LatestHistoryText() =>
+        _repo.Search(new SearchQuery { Sensitive = false }, 20, pinnedFirst: false)
+            .FirstOrDefault(i => i.Kind is not (ContentKind.Snippet or ContentKind.Image) && !string.IsNullOrEmpty(i.TextContent))?.TextContent;
+
+    public List<ClipboardItem> Snippets() => _repo.Search(new SearchQuery { Kind = ContentKind.Snippet }, int.MaxValue, pinnedFirst: false)
+        .OrderBy(s => s.Title, StringComparer.CurrentCultureIgnoreCase).ToList();
+
+    /// <summary>Creates a snippet, or updates <paramref name="existing"/>. Snippets never expire.</summary>
+    /// <exception cref="ArgumentException">Empty name/body, or another snippet already has the same name and text.</exception>
+    public ClipboardItem SaveSnippet(string name, string body, ClipboardItem? existing = null)
+    {
+        name = name.Trim();
+        if (name.Length == 0) throw new ArgumentException("A snippet needs a name.", nameof(name));
+        if (string.IsNullOrEmpty(body)) throw new ArgumentException("A snippet needs some text.", nameof(body));
+
+        var now = _clock.Now;
+        var item = existing ?? new ClipboardItem { Kind = ContentKind.Snippet, CreatedAt = now, LastCopiedAt = now, Confidence = 1 };
+        if (item.Kind != ContentKind.Snippet) throw new ArgumentException("Not a snippet.", nameof(existing));
+        item.Subtype = TemplateEngine.HasVariables(body) ? "template" : "snippet";
+        item.Title = name;
+        item.TextContent = body;
+        if (existing is null) item.Workspace = WorkspaceFor(null);
+        item.SizeBytes = Encoding.UTF8.GetByteCount(body);
+        item.ContentHash = HashOf(item, null);
+        item.ExpiresAt = null;
+
+        if (existing is null)
+        {
+            var (stored, isNew) = _repo.AddOrTouch(item);
+            if (!isNew) throw new ArgumentException($"A snippet named \"{name}\" with this text already exists.");
+            item = stored;
+        }
+        else
+        {
+            if (_repo.ExistsWithHash(item.ContentHash, item.Workspace, item.Id))
+                throw new ArgumentException($"A snippet named \"{name}\" with this text already exists.");
+            _repo.UpdateContent(item);
+        }
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+        return item;
+    }
+
+    /// <summary>A history item as the starting point of a new snippet (name = its title).</summary>
+    public static (string Name, string Body) SnippetDraftFrom(ClipboardItem item) =>
+        (item.Kind == ContentKind.Snippet ? item.Title : ContentClassifier.MakeTitle(item.TextContent, 40), item.TextContent ?? "");
 
     public void Delete(ClipboardItem item)
     {

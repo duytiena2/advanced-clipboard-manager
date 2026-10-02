@@ -27,6 +27,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private QuickPasteWindow? _palette;
     private DispatcherTimer? _cleanupTimer;
+    private PasteStackController? _pasteStack;
 
     // Most recent sensitive capture: when it expires we also wipe it from the OS clipboard if it is still there.
     private string? _pendingSecretHash;
@@ -58,7 +59,7 @@ public partial class App : Application
 
         try
         {
-            _svc = new ClipboardService(_dataFolder, settings);
+            _svc = new ClipboardService(_dataFolder, settings, protector: new DpapiProtector());
         }
         catch (Exception ex)
         {
@@ -109,15 +110,24 @@ public partial class App : Application
                 _tray.ShowBalloon("Start with Windows", "Could not change the setting: " + ex.Message, warning: true);
             }
         };
+        _pasteStack = new PasteStackController(_svc, writer);
+        _pasteStack.StatusChanged += status => _tray.SetPasteStackStatus(status);
+        _pasteStack.Notify += (message, warning) => _tray.ShowBalloon("Paste stack", message, warning);
+        _palette.PasteStackRequested += items => _pasteStack.Start(items);
+        _tray.StopPasteStackRequested += () => _pasteStack.Stop("Paste stack stopped.");
+        // Raised on the UI thread for copies made in other apps (our own writes are skipped by the monitor).
+        _monitor.ContentCaptured += (_, _) => _pasteStack.OnExternalClipboardChange();
+
         _tray.OpenDataFolderRequested += () => OpenShell(_dataFolder);
         _tray.OpenSettingsRequested += () => OpenShell(_settingsPath);
+        _tray.OpenSettingsWindowRequested += ShowSettings;
         _tray.ExitRequested += () => Shutdown();
 
         _hotkeys = new WindowsHotkeyService();
         if (!_hotkeys.Register(settings.QuickPasteHotkey, () => _palette.TogglePalette()))
         {
             _tray.ShowBalloon("Shortcut unavailable",
-                $"{settings.QuickPasteHotkey} is already used by another app. Change \"QuickPasteHotkey\" in settings.json, " +
+                $"{settings.QuickPasteHotkey} is already used by another app. Pick another one in Settings (tray menu), " +
                 "or click the tray icon to open Quick Paste.", warning: true);
         }
         else if (!StartupRegistration.LaunchedAtStartup(e.Args))
@@ -131,6 +141,9 @@ public partial class App : Application
         _cleanupTimer.Tick += (_, _) => RunCleanup();
         _cleanupTimer.Start();
         RunCleanup();
+
+        // Images copied before OCR was available (or while it was off) get their text now.
+        StartOcr(_svc.ImagesWithoutOcr(200));
     }
 
     private void OnCaptured(CapturedContent content)
@@ -139,6 +152,7 @@ public partial class App : Application
         try
         {
             var (outcome, item) = _svc.Capture(content);
+            if (outcome == CaptureOutcome.Stored && item is { Kind: ContentKind.Image }) StartOcr(new[] { item });
             if (item is { IsSensitive: true } && (outcome is CaptureOutcome.Stored or CaptureOutcome.Duplicate))
             {
                 _pendingSecretHash = item.ContentHash;
@@ -150,6 +164,73 @@ public partial class App : Application
             Log(ex);
         }
     }
+
+    private SettingsWindow? _settingsWindow;
+
+    private void ShowSettings()
+    {
+        if (_svc is null) return;
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+        _ocr ??= new WindowsOcrEngine();
+        _settingsWindow = new SettingsWindow(_svc, _settingsPath, _ocr.Language);
+        _settingsWindow.Saved += OnSettingsSaved;
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
+    }
+
+    /// <summary>Applies what can't just be read from the shared settings object: the global shortcut and tray state.</summary>
+    private void OnSettingsSaved(string oldHotkey)
+    {
+        if (_svc is null || _tray is null || _palette is null) return;
+        var s = _svc.Settings;
+        _tray.SetPaused(!s.CaptureEnabled);
+        if (!string.Equals(oldHotkey, s.QuickPasteHotkey, StringComparison.OrdinalIgnoreCase))
+        {
+            _hotkeys?.Dispose();
+            _hotkeys = new WindowsHotkeyService();
+            if (_hotkeys.Register(s.QuickPasteHotkey, () => _palette.TogglePalette()))
+            {
+                _tray.SetHotkey(s.QuickPasteHotkey);
+                _tray.ShowBalloon("Shortcut changed", $"Press {s.QuickPasteHotkey} to open Quick Paste.");
+            }
+            else
+            {
+                // Keep the old one working rather than leaving the user with no shortcut.
+                _hotkeys.Register(oldHotkey, () => _palette.TogglePalette());
+                s.QuickPasteHotkey = oldHotkey;
+                try { s.Save(_settingsPath); } catch (IOException) { }
+                _tray.ShowBalloon("Shortcut unavailable", $"Another app already uses that shortcut; {oldHotkey} still works.", warning: true);
+            }
+        }
+        StartOcr(_svc.ImagesWithoutOcr(200)); // in case OCR was just turned on
+    }
+
+    /// <summary>Recognizes text in images in the background (one batch at a time) so they become searchable.</summary>
+    private void StartOcr(System.Collections.Generic.IReadOnlyList<ClipboardItem> images)
+    {
+        if (_svc is null || !_svc.Settings.OcrEnabled || images.Count == 0) return;
+        var svc = _svc;
+        lock (_ocrGate) // called from capture threads and the UI thread
+        {
+            _ocr ??= new WindowsOcrEngine();
+            if (!_ocr.IsAvailable) return;
+            var engine = _ocr;
+            _ocrQueue = _ocrQueue.ContinueWith(async _ =>
+            {
+                try { await svc.RunOcrAsync(engine, images); }
+                catch (Exception ex) { Log(ex); }
+            }, TaskScheduler.Default).Unwrap();
+        }
+    }
+
+    private readonly object _ocrGate = new();
+    private WindowsOcrEngine? _ocr;
+    private Task _ocrQueue = Task.CompletedTask;
 
     private void RunCleanup()
     {
@@ -176,7 +257,7 @@ public partial class App : Application
         {
             if (!WpfClipboard.ContainsText()) return;
             var current = WpfClipboard.GetText();
-            if (ClipboardService.Hash(Encoding.UTF8.GetBytes(current)) == hash) WpfClipboard.Clear();
+            if (_svc?.HashText(current) == hash) WpfClipboard.Clear();
         }
         catch (COMException) { /* clipboard busy; skip this round */ }
     }
@@ -213,6 +294,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _cleanupTimer?.Stop();
+        _pasteStack?.Dispose();
         _hotkeys?.Dispose();
         _monitor?.Dispose();
         _tray?.Dispose();

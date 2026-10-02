@@ -12,6 +12,9 @@ internal sealed class TrayIcon : IDisposable
     private readonly WinForms.NotifyIcon _icon;
     private readonly WinForms.ToolStripMenuItem _pauseItem;
     private readonly WinForms.ToolStripMenuItem _startupItem;
+    private readonly WinForms.ToolStripMenuItem _stopStackItem;
+    private readonly WinForms.ToolStripMenuItem _openItem;
+    private string? _stackStatus;
     private readonly Icon _appIcon;
     private readonly IntPtr _hIcon;
     private bool _settingStartup;
@@ -23,14 +26,18 @@ internal sealed class TrayIcon : IDisposable
     public event Action? OpenDataFolderRequested;
     public event Action? OpenSettingsRequested;
     public event Action? ExitRequested;
+    public event Action? StopPasteStackRequested;
+    public event Action? OpenSettingsWindowRequested;
 
     public TrayIcon(string hotkey, bool paused, bool startWithWindows)
     {
         (_appIcon, _hIcon) = DrawIcon();
 
         var menu = new WinForms.ContextMenuStrip();
-        var open = new WinForms.ToolStripMenuItem($"Quick Paste\t{hotkey}") { Font = new Font(WinForms.Control.DefaultFont, FontStyle.Bold) };
+        var open = _openItem = new WinForms.ToolStripMenuItem($"Quick Paste\t{hotkey}") { Font = new Font(WinForms.Control.DefaultFont, FontStyle.Bold) };
         open.Click += (_, _) => OpenRequested?.Invoke();
+        _stopStackItem = new WinForms.ToolStripMenuItem("Stop paste stack") { Visible = false };
+        _stopStackItem.Click += (_, _) => StopPasteStackRequested?.Invoke();
         _pauseItem = new WinForms.ToolStripMenuItem("Pause clipboard capture") { CheckOnClick = true, Checked = paused };
         _pauseItem.CheckedChanged += (_, _) => { PauseToggled?.Invoke(_pauseItem.Checked); UpdateText(); };
         var clear = new WinForms.ToolStripMenuItem("Clear history (keeps pinned)");
@@ -39,16 +46,18 @@ internal sealed class TrayIcon : IDisposable
         _startupItem.CheckedChanged += (_, _) => { if (!_settingStartup) StartupToggled?.Invoke(_startupItem.Checked); };
         var folder = new WinForms.ToolStripMenuItem("Open data folder");
         folder.Click += (_, _) => OpenDataFolderRequested?.Invoke();
-        var settings = new WinForms.ToolStripMenuItem("Edit settings (settings.json)");
+        var settingsWindow = new WinForms.ToolStripMenuItem("Settings…");
+        settingsWindow.Click += (_, _) => OpenSettingsWindowRequested?.Invoke();
+        var settings = new WinForms.ToolStripMenuItem("Edit settings.json (advanced)");
         settings.Click += (_, _) => OpenSettingsRequested?.Invoke();
         var exit = new WinForms.ToolStripMenuItem("Exit");
         exit.Click += (_, _) => ExitRequested?.Invoke();
 
         menu.Items.AddRange(new WinForms.ToolStripItem[]
         {
-            open, new WinForms.ToolStripSeparator(),
+            open, _stopStackItem, new WinForms.ToolStripSeparator(),
             _pauseItem, clear, new WinForms.ToolStripSeparator(),
-            _startupItem, folder, settings, new WinForms.ToolStripSeparator(),
+            settingsWindow, _startupItem, folder, settings, new WinForms.ToolStripSeparator(),
             exit,
         });
 
@@ -63,6 +72,8 @@ internal sealed class TrayIcon : IDisposable
     }
 
     public void SetPaused(bool paused) => _pauseItem.Checked = paused;
+
+    public void SetHotkey(string hotkey) => _openItem.Text = $"Quick Paste\t{hotkey}";
 
     /// <summary>Reflects the real startup state without raising <see cref="StartupToggled"/> again.</summary>
     public void SetStartupChecked(bool enabled)
@@ -80,8 +91,19 @@ internal sealed class TrayIcon : IDisposable
         _icon.ShowBalloonTip(4000);
     }
 
-    private void UpdateText() =>
-        _icon.Text = _pauseItem.Checked ? "Clipboard Manager — capture paused" : "Clipboard Manager — recording";
+    /// <summary>Shows a running paste stack in the tooltip and enables "Stop paste stack"; null hides both.</summary>
+    public void SetPasteStackStatus(string? status)
+    {
+        _stackStatus = status;
+        _stopStackItem.Visible = status is not null;
+        UpdateText();
+    }
+
+    private void UpdateText()
+    {
+        var text = _stackStatus ?? (_pauseItem.Checked ? "Clipboard Manager — capture paused" : "Clipboard Manager — recording");
+        _icon.Text = text.Length <= 127 ? text : text[..126] + "…"; // NotifyIcon.Text limit
+    }
 
     /// <summary>Draws a simple clipboard glyph so the app needs no binary .ico asset.</summary>
     private static (Icon, IntPtr) DrawIcon()

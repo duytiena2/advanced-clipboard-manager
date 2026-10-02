@@ -14,20 +14,23 @@ public sealed class ItemViewModel : INotifyPropertyChanged
     private static readonly FontFamily Mono = new("Cascadia Mono, Consolas, Courier New");
     private static readonly FontFamily Sans = new("Segoe UI Variable Text, Segoe UI");
 
-    private readonly string _dataFolder;
+    private readonly ClipboardService _svc;
     private bool _isMarked;
     private bool _revealed;
     private BitmapImage? _image;
 
     public ClipboardItem Item { get; }
 
-    public ItemViewModel(ClipboardItem item, string dataFolder)
+    public ItemViewModel(ClipboardItem item, ClipboardService svc)
     {
         Item = item;
-        _dataFolder = dataFolder;
+        _svc = svc;
     }
 
     public string Title => string.IsNullOrEmpty(Item.Title) ? "(empty)" : Item.Title;
+
+    /// <summary>"1"…"9" for the first rows (Ctrl+1…9 pastes them), otherwise empty.</summary>
+    public string Shortcut { get; init; } = "";
 
     public string TypeLabel => Item.IsSensitive
         ? Humanize.ExpiresIn(Item.ExpiresAt, DateTimeOffset.UtcNow).Replace("expires in ", "")
@@ -46,6 +49,9 @@ public sealed class ItemViewModel : INotifyPropertyChanged
     }
 
     public string MarkGlyph => _isMarked ? "" : ""; // "CheckMark"
+
+    /// <summary>When the item was marked (a sequence number): the paste stack uses marking order.</summary>
+    public long MarkOrder { get; set; }
 
     public bool Revealed
     {
@@ -72,21 +78,27 @@ public sealed class ItemViewModel : INotifyPropertyChanged
         {
             if (!IsImage || Item.BinaryPath is null) return null;
             if (_image is not null) return _image;
-            var path = Path.Combine(_dataFolder, Item.BinaryPath);
-            if (!File.Exists(path)) return null;
+            byte[]? png;
+            try { png = _svc.ReadBinary(Item); } // decrypts when the history is encrypted
+            catch (IOException) { return null; }
+            catch (InvalidOperationException) { return null; }
+            if (png is null) return null;
+            using var ms = new MemoryStream(png);
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.DecodePixelWidth = 640; // thumbnail-sized decode keeps memory low
-            bmp.UriSource = new Uri(path);
+            bmp.StreamSource = ms;
             bmp.EndInit();
             bmp.Freeze();
             return _image = bmp;
         }
     }
 
-    public string MetaType => Item.Kind == ContentKind.Sensitive ? "Sensitive · " + Item.Subtype : Item.DisplayType;
-    public string MetaSource => Item.SourceApplication ?? "Unknown";
+    public string MetaType => Item.Kind == ContentKind.Sensitive ? "Sensitive · " + Item.Subtype
+        : Item.HasRichText ? Item.DisplayType + " · formatted"
+        : Item.OcrText is { Length: > 0 } ? Item.DisplayType + " · contains text" : Item.DisplayType;
+    public string MetaSource => $"{(Item.Kind == ContentKind.Snippet ? "Snippet" : Item.SourceApplication ?? "Unknown")} → {Item.Workspace}";
     public string MetaCopied
     {
         get

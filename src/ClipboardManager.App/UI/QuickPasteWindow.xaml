@@ -178,6 +178,27 @@
                         </ControlTemplate>
                     </ToggleButton.Template>
                 </ToggleButton>
+                <Button x:Name="DockButton" DockPanel.Dock="Right" Width="32" Height="32" Margin="4,0,0,0"
+                        Focusable="False" Cursor="Hand" ToolTip="Dock as a sidebar: right → left → off (Ctrl+D)"
+                        AutomationProperties.Name="Dock Quick Paste to a screen edge">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                                <TextBlock x:Name="DockGlyph" Text="&#xE90D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#F1F3F5" />
+                                </Trigger>
+                                <Trigger Property="Tag" Value="docked">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="DockGlyph" Property="Foreground" Value="#FFFFFF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
                 <TextBlock x:Name="CountText" DockPanel.Dock="Right" Foreground="{StaticResource Muted}" FontSize="12"
                            VerticalAlignment="Center" Margin="12,0,0,0" />
                 <Grid>
@@ -193,9 +214,10 @@
         <!-- List + preview -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="340" />
-                <ColumnDefinition Width="1" />
-                <ColumnDefinition Width="*" />
+                <!-- Docked as a sidebar: the list takes the whole width and the preview is hidden (see ApplyLayout). -->
+                <ColumnDefinition x:Name="ListColumn" Width="340" />
+                <ColumnDefinition x:Name="SplitColumn" Width="1" />
+                <ColumnDefinition x:Name="PreviewColumn" Width="*" />
             </Grid.ColumnDefinitions>
 
             <ListBox x:Name="ItemsList" Grid.Column="0" BorderThickness="0" Padding="6,8"
@@ -206,6 +228,9 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel LastChildFill="True">
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Shortcut}" Width="12" FontSize="11" Opacity="0.55"
+                                       FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" Margin="0,0,4,0"
+                                       ToolTip="Ctrl + this number pastes the item" />
                             <TextBlock DockPanel.Dock="Left" Text="{Binding MarkGlyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                        FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0" />
                             <TextBlock DockPanel.Dock="Right" Text="{Binding TypeLabel}" FontSize="11.5" Opacity="0.75"
@@ -219,9 +244,9 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <Rectangle Grid.Column="1" Fill="{StaticResource Line}" />
+            <Rectangle x:Name="PreviewSplit" Grid.Column="1" Fill="{StaticResource Line}" />
 
-            <Grid Grid.Column="2">
+            <Grid x:Name="PreviewPane" Grid.Column="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
@@ -250,7 +275,7 @@
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="Type" Style="{StaticResource MetaLabel}" />
                         <TextBlock Grid.Row="0" Grid.Column="1" x:Name="MetaType" Style="{StaticResource MetaValue}" />
-                        <TextBlock Grid.Row="1" Text="Source" Style="{StaticResource MetaLabel}" />
+                        <TextBlock Grid.Row="1" Text="Source → workspace" Style="{StaticResource MetaLabel}" />
                         <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MetaSource" Style="{StaticResource MetaValue}" />
                         <TextBlock Grid.Row="2" Text="Copied" Style="{StaticResource MetaLabel}" />
                         <TextBlock Grid.Row="2" Grid.Column="1" x:Name="MetaCopied" Style="{StaticResource MetaValue}" />
@@ -265,15 +290,17 @@
         <Border x:Name="Footer" Grid.Row="2" Background="#F8F9FA" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
             <DockPanel Margin="18,0,4,0">
                 <TextBlock x:Name="StatusText" DockPanel.Dock="Left" Foreground="#4A505C" FontSize="12.5" VerticalAlignment="Center" />
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <StackPanel x:Name="FooterHints" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="Paste" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
                     <Border Style="{StaticResource Kbd}"><TextBlock Text="Enter" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
+                    <TextBlock Text="Plain" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
+                    <Border Style="{StaticResource Kbd}"><TextBlock Text="Ctrl Shift Enter" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
                     <TextBlock Text="Pin" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
                     <Border Style="{StaticResource Kbd}"><TextBlock Text="Ctrl P" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
                     <TextBlock Text="Select" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
                     <Border Style="{StaticResource Kbd}"><TextBlock Text="Ctrl Space" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
-                    <TextBlock Text="Delete" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
-                    <Border Style="{StaticResource Kbd}"><TextBlock Text="Del" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
+                    <TextBlock Text="All keys" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
+                    <Border Style="{StaticResource Kbd}"><TextBlock Text="F1" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
                 </StackPanel>
             </DockPanel>
         </Border>

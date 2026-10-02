@@ -1,0 +1,49 @@
+<Window x:Class="ClipboardManager.App.UI.SnippetDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Snippet"
+        Width="520" Height="420" MinWidth="380" MinHeight="300"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="True" Topmost="True"
+        Background="#FFFFFF" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="#15171C"
+        UseLayoutRounding="True">
+    <Window.Resources>
+        <SolidColorBrush x:Key="Accent" Color="#0E6B68" />
+        <SolidColorBrush x:Key="Muted" Color="#5A6170" />
+        <Style TargetType="Button">
+            <Setter Property="MinWidth" Value="84" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Padding" Value="12,0" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Name" Foreground="{StaticResource Muted}" Margin="0,0,0,4" />
+        <TextBox Grid.Row="1" x:Name="NameBox" Padding="6,4" AutomationProperties.Name="Snippet name" />
+
+        <TextBlock Grid.Row="2" Text="Text" Foreground="{StaticResource Muted}" Margin="0,12,0,4" />
+        <TextBox Grid.Row="3" x:Name="BodyBox" Padding="6,4" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" FontFamily="Cascadia Mono, Consolas" FontSize="12.5"
+                 AutomationProperties.Name="Snippet text" />
+
+        <TextBlock Grid.Row="4" x:Name="VariablesText" Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" />
+        <TextBlock Grid.Row="5" x:Name="ErrorText" Foreground="#B42318" FontSize="12.5" TextWrapping="Wrap" Margin="0,6,0,0" />
+
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="SaveButton" Content="Save" IsDefault="False" Background="{StaticResource Accent}" Foreground="White" BorderThickness="0"
+                    ToolTip="Ctrl+Enter" />
+            <Button x:Name="CancelButton" Content="Cancel" IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</Window>
