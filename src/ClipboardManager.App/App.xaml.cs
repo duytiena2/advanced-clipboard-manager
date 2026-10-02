@@ -58,7 +58,7 @@ public partial class App : Application
 
         try
         {
-            _svc = new ClipboardService(_dataFolder, settings);
+            _svc = new ClipboardService(_dataFolder, settings, protector: new DpapiProtector());
         }
         catch (Exception ex)
         {
@@ -176,7 +176,7 @@ public partial class App : Application
         {
             if (!WpfClipboard.ContainsText()) return;
             var current = WpfClipboard.GetText();
-            if (ClipboardService.Hash(Encoding.UTF8.GetBytes(current)) == hash) WpfClipboard.Clear();
+            if (_svc?.HashText(current) == hash) WpfClipboard.Clear();
         }
         catch (COMException) { /* clipboard busy; skip this round */ }
     }
