@@ -50,6 +50,9 @@ public sealed class ItemViewModel : INotifyPropertyChanged
 
     public string MarkGlyph => _isMarked ? "" : ""; // "CheckMark"
 
+    /// <summary>When the item was marked (a sequence number): the paste stack uses marking order.</summary>
+    public long MarkOrder { get; set; }
+
     public bool Revealed
     {
         get => _revealed;

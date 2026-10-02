@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -28,6 +29,7 @@ public partial class QuickPasteWindow : Window
 
     private bool KeepOpen => KeepOpenButton.IsChecked == true;
     private bool _hiding;
+    private long _markSequence;
 
     internal QuickPasteWindow(ClipboardService svc, IClipboardWriter writer, WindowsPasteSimulator paste)
     {
@@ -177,7 +179,7 @@ public partial class QuickPasteWindow : Window
     private void Reload(bool keepSelection = false)
     {
         long? selectedId = keepSelection && ItemsList.SelectedItem is ItemViewModel cur ? cur.Item.Id : null;
-        var markedIds = _items.Where(i => i.IsMarked).Select(i => i.Item.Id).ToHashSet();
+        var marks = _items.Where(i => i.IsMarked).ToDictionary(i => i.Item.Id, i => i.MarkOrder);
 
         var results = _svc.Search(SearchBox.Text, MaxResults);
         _items.Clear();
@@ -185,7 +187,8 @@ public partial class QuickPasteWindow : Window
         {
             _items.Add(new ItemViewModel(item, _svc)
             {
-                IsMarked = markedIds.Contains(item.Id),
+                IsMarked = marks.ContainsKey(item.Id),
+                MarkOrder = marks.GetValueOrDefault(item.Id),
                 Shortcut = _items.Count < 9 ? (_items.Count + 1).ToString() : "",
             });
         }
@@ -279,6 +282,10 @@ public partial class QuickPasteWindow : Window
                 TogglePinSelected();
                 e.Handled = true;
                 break;
+            case Key.S when mods == ModifierKeys.Control:
+                StartPasteStack();
+                e.Handled = true;
+                break;
             case Key.N when mods == ModifierKeys.Control:
                 EditSnippet(createNew: true);
                 e.Handled = true;
@@ -304,7 +311,13 @@ public partial class QuickPasteWindow : Window
                 e.Handled = true;
                 break;
             case Key.Space when mods == ModifierKeys.Control:
-                if (ItemsList.SelectedItem is ItemViewModel m) { m.IsMarked = !m.IsMarked; MoveSelection(+1); UpdateMarkedStatus(); }
+                if (ItemsList.SelectedItem is ItemViewModel m)
+                {
+                    m.IsMarked = !m.IsMarked;
+                    m.MarkOrder = m.IsMarked ? ++_markSequence : 0;
+                    MoveSelection(+1);
+                    UpdateMarkedStatus();
+                }
                 e.Handled = true;
                 break;
             case Key.C when mods == ModifierKeys.Control && SearchBox.SelectionLength == 0:
@@ -396,6 +409,23 @@ public partial class QuickPasteWindow : Window
         if (!WriteToClipboard()) return;
         if (KeepOpen) ClearMarks(); else HidePalette();
     }
+
+    /// <summary>Ctrl+S: the marked items, in the order they were marked, become a paste stack (each Ctrl+V pastes the next).</summary>
+    private void StartPasteStack()
+    {
+        var marked = _items.Where(i => i.IsMarked).OrderBy(i => i.MarkOrder).Select(i => i.Item).ToList();
+        if (marked.Count == 0)
+        {
+            StatusText.Text = "Mark items with Ctrl+Space in the order to paste, then Ctrl+S";
+            return;
+        }
+        if (PasteStackRequested is null) return;
+        if (KeepOpen) ClearMarks(); else HidePalette();
+        PasteStackRequested(marked);
+    }
+
+    /// <summary>Raised by Ctrl+S with the items to paste one by one.</summary>
+    public event Action<IReadOnlyList<ClipboardItem>>? PasteStackRequested;
 
     /// <summary>Snippet variables: {clipboard} is what is on the Windows clipboard right now (falls back to the newest history text).</summary>
     private TemplateContext SnippetContext() => new()

@@ -393,6 +393,27 @@ public sealed class FeatureTests : IDisposable
         Assert.Equal("Old", svc.Search(null)[0].Title);
     }
 
+    // ---- #4 Paste stack ----
+
+    [Test]
+    public void Paste_stack_walks_items_in_order()
+    {
+        var items = new[] { "Nguyễn Văn A", "a@example.com", "0901234567" }
+            .Select((t, i) => new ClipboardItem { Id = i + 1, TextContent = t }).ToList();
+        var stack = new PasteStack(items);
+        Assert.Equal(3, stack.Count);
+        Assert.Equal("Nguyễn Văn A", stack.Current!.TextContent);
+        Assert.Equal(1, stack.Position);
+        Assert.Equal("a@example.com", stack.Advance()!.TextContent);
+        Assert.Equal(2, stack.Remaining);
+        Assert.Equal("0901234567", stack.Advance()!.TextContent);
+        Assert.Null(stack.Advance());
+        Assert.True(stack.IsFinished);
+        Assert.Null(stack.Advance(), "advancing past the end is harmless");
+        Assert.Equal(0, stack.Remaining);
+        Throws<ArgumentException>(() => new PasteStack(Array.Empty<ClipboardItem>()));
+    }
+
     private static void Throws<TEx>(Action a) where TEx : Exception
     {
         try { a(); }
