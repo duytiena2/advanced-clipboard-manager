@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <RootNamespace>ClipboardManager.Core</RootNamespace>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Intentionally zero NuGet dependencies: SQLite is accessed through P/Invoke
+       (bundled sqlite3.dll, or Windows' built-in winsqlite3.dll, or libsqlite3 on Linux). -->
+
+</Project>

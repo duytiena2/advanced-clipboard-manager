@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Explicit usings only: WPF + WinForms implicit usings clash (Application, MessageBox, Clipboard…). -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <AssemblyName>ClipboardManager</AssemblyName>
+    <RootNamespace>ClipboardManager.App</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.1.0</Version>
+    <Product>Advanced Clipboard Manager</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClipboardManager.Core\ClipboardManager.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Official SQLite build (with FTS5). build.ps1 downloads it into lib\; falls back to Windows' winsqlite3.dll if absent. -->
+  <ItemGroup Condition="Exists('..\..\lib\sqlite3.dll')">
+    <None Include="..\..\lib\sqlite3.dll" CopyToOutputDirectory="PreserveNewest" Link="sqlite3.dll" />
+  </ItemGroup>
+
+</Project>
