@@ -252,7 +252,7 @@ public sealed class ClipboardService : IDisposable
         }
         if (plainText)
         {
-            var text = item.Kind == ContentKind.Image ? null : item.TextContent;
+            var text = item.Kind == ContentKind.Image ? item.OcrText : item.TextContent; // an image's plain text = its OCR text
             return string.IsNullOrEmpty(text) ? null : new ClipboardPayload { Text = text, IsSensitive = item.IsSensitive };
         }
 
@@ -287,6 +287,53 @@ public sealed class ClipboardService : IDisposable
     {
         if (item.Kind == ContentKind.Snippet) _repo.Touch(item.Id, _clock.Now); // recently used snippets come first
         else _repo.MarkAccessed(item.Id, _clock.Now);
+    }
+
+    // ---- OCR ----
+
+    /// <summary>Images still waiting for text recognition (e.g. copied before OCR was enabled).</summary>
+    public List<ClipboardItem> ImagesWithoutOcr(int limit = 50) => _repo.ImagesWithoutOcr(limit);
+
+    /// <summary>
+    /// Stores the text recognized in an image so search finds it and Ctrl+Shift+Enter pastes it.
+    /// Text that looks like a secret is not kept (the image is marked as processed with no text).
+    /// </summary>
+    /// <returns>true when text was stored.</returns>
+    public bool AttachOcrText(ClipboardItem item, string? text)
+    {
+        if (item.Kind != ContentKind.Image) return false;
+        var clean = (text ?? "").Replace("\r\n", "\n").Trim();
+        if (clean.Length > Settings.MaxTextChars) clean = clean[..(int)Settings.MaxTextChars];
+        bool secret = clean.Length > 0 && (SensitiveDataDetector.Detect(clean) is not null ||
+                                           clean.Split('\n').Any(l => SensitiveDataDetector.Detect(l) is not null));
+        if (secret) clean = "";
+        _repo.SetOcrText(item, clean.Replace("\n", Environment.NewLine));
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+        return clean.Length > 0;
+    }
+
+    /// <summary>Recognizes text in <paramref name="items"/> one by one (failures count as "no text" so they aren't retried forever).</summary>
+    public async Task<int> RunOcrAsync(IOcrEngine engine, IEnumerable<ClipboardItem> items, CancellationToken cancellationToken = default)
+    {
+        int found = 0;
+        foreach (var item in items)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (item.Kind != ContentKind.Image) continue;
+            string text;
+            try
+            {
+                var png = ReadBinary(item);
+                text = png is null ? "" : await engine.RecognizeAsync(png, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or System.Runtime.InteropServices.COMException)
+            {
+                text = "";
+            }
+            if (AttachOcrText(item, text)) found++;
+        }
+        return found;
     }
 
     // ---- Snippets ----

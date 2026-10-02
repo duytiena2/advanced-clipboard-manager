@@ -414,6 +414,76 @@ public sealed class FeatureTests : IDisposable
         Throws<ArgumentException>(() => new PasteStack(Array.Empty<ClipboardItem>()));
     }
 
+    [Test]
+    public void Search_folds_vietnamese_d()
+    {
+        foreach (var fts in new[] { true, false })
+        {
+            var svc = NewService(fts: fts);
+            svc.Capture(CapturedContent.FromText("Đơn hàng đã giao"));
+            Assert.Equal(1, svc.Search("don hang").Count, "fts=" + fts);
+            Assert.Equal(1, svc.Search("da giao").Count, "fts=" + fts);
+            Assert.Equal(1, svc.Search("đơn").Count, "fts=" + fts);
+        }
+    }
+
+    // ---- #8 OCR ----
+
+    private sealed class FakeOcr : IOcrEngine
+    {
+        public Func<byte[], string> Recognize { get; init; } = _ => "";
+        public bool IsAvailable => true;
+        public Task<string> RecognizeAsync(byte[] png, CancellationToken cancellationToken = default) => Task.FromResult(Recognize(png));
+    }
+
+    [Test]
+    public void Ocr_text_makes_images_searchable_and_pasteable()
+    {
+        foreach (var (fts, encrypt) in new[] { (true, false), (false, false), (true, true), (false, true) })
+        {
+            var svc = NewService(new AppSettings { EncryptDatabase = encrypt }, fts: fts, protector: new FakeProtector());
+            var (_, img) = svc.Capture(CapturedContent.FromImage(new byte[] { 1, 2, 3 }, 10, 10));
+            var (_, blank) = svc.Capture(CapturedContent.FromImage(new byte[] { 9, 9 }, 10, 10));
+            Assert.Equal(2, svc.ImagesWithoutOcr().Count);
+
+            var ocr = new FakeOcr { Recognize = png => png[0] == 1 ? "Hóa đơn số 1234\r\nTổng cộng 500.000đ" : "" };
+            int found = svc.RunOcrAsync(ocr, svc.ImagesWithoutOcr()).GetAwaiter().GetResult();
+            Assert.Equal(1, found);
+            Assert.Equal(0, svc.ImagesWithoutOcr().Count, "both processed, even the one without text");
+
+            var hits = svc.Search("hoa don");
+            Assert.Equal(1, hits.Count, $"fts={fts} encrypt={encrypt}");
+            Assert.Equal(img!.Id, hits[0].Id);
+            Assert.Equal("Hóa đơn số 1234" + Environment.NewLine + "Tổng cộng 500.000đ", svc.LoadPayload(hits[0], plainText: true)!.Text);
+            Assert.Null(svc.LoadPayload(svc.Get(blank!.Id)!, plainText: true), "no text found = nothing to paste as text");
+            Assert.True(svc.LoadPayload(hits[0])!.ImagePng is { Length: 3 }, "normal paste is still the image");
+        }
+    }
+
+    [Test]
+    public void Ocr_text_with_a_secret_is_not_kept()
+    {
+        var svc = NewService();
+        var (_, img) = svc.Capture(CapturedContent.FromImage(new byte[] { 5 }, 1, 1));
+        Assert.False(svc.AttachOcrText(img!, "config\nsk_live_51HxAbCdEfGhIjKlMnOpQrStUv\nend"));
+        Assert.Equal("", svc.Get(img!.Id)!.OcrText);
+        Assert.Equal(0, svc.Search("config").Count);
+        Assert.Equal(0, svc.ImagesWithoutOcr().Count);
+    }
+
+    [Test]
+    public void Ocr_survives_encryption_toggle()
+    {
+        var svc = NewService(protector: new FakeProtector());
+        var (_, img) = svc.Capture(CapturedContent.FromImage(new byte[] { 7, 7 }, 1, 1));
+        svc.AttachOcrText(img!, "wombat invoice");
+        svc.SetEncryption(true);
+        Assert.Equal(1, svc.Search("wombat").Count);
+        Assert.Equal("wombat invoice", svc.Search("wombat")[0].OcrText);
+        svc.SetEncryption(false);
+        Assert.Equal(1, svc.Search("wombat").Count);
+    }
+
     private static void Throws<TEx>(Action a) where TEx : Exception
     {
         try { a(); }
