@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using ClipboardManager.App.Platform;
@@ -63,6 +64,10 @@ public partial class QuickPasteWindow : Window
         };
         ItemsList.SelectionChanged += (_, _) => UpdatePreview();
         ItemsList.MouseDoubleClick += (_, _) => PasteSelected();
+        ItemsList.PreviewMouseRightButtonUp += (_, e) =>
+        {
+            if (ItemsList.SelectedItem is not null) { ShowTransformMenu(); e.Handled = true; }
+        };
         PreviewKeyDown += OnPreviewKeyDown;
         Deactivated += (_, _) => { if (!KeepOpen) HidePalette(); };
 
@@ -271,6 +276,10 @@ public partial class QuickPasteWindow : Window
                 TogglePinSelected();
                 e.Handled = true;
                 break;
+            case Key.K when mods == ModifierKeys.Control:
+                ShowTransformMenu();
+                e.Handled = true;
+                break;
             case Key.T when mods == ModifierKeys.Control:
                 KeepOpenButton.IsChecked = !KeepOpen;
                 e.Handled = true;
@@ -311,20 +320,28 @@ public partial class QuickPasteWindow : Window
 
     /// <param name="plainText">Drop HTML/RTF formatting (Ctrl+Shift+Enter).</param>
     /// <param name="target">A specific item (Ctrl+1…9); null = the marked items, or the selection.</param>
-    private bool WriteToClipboard(bool plainText = false, ItemViewModel? target = null)
+    /// <param name="transform">Converts the text before it goes on the clipboard (Ctrl+K menu); implies plain text.</param>
+    private bool WriteToClipboard(bool plainText = false, ItemViewModel? target = null, TextTransform? transform = null)
     {
         try
         {
             var marked = target is null ? _items.Where(i => i.IsMarked).ToList() : new();
             if (marked.Count > 1)
             {
-                _writer.WriteText(MergeService.Merge(marked.Select(m => m.Item), MergeSeparator.NewLine));
+                var merged = MergeService.Merge(marked.Select(m => m.Item), MergeSeparator.NewLine);
+                _writer.Write(new ClipboardPayload
+                {
+                    Text = transform is null ? merged : transform.Apply(merged),
+                    IsSensitive = marked.Any(m => m.Item.IsSensitive),
+                });
                 foreach (var m in marked) _svc.MarkUsed(m.Item);
                 return true;
             }
             var vm = target ?? (marked.Count == 1 ? marked[0] : ItemsList.SelectedItem as ItemViewModel);
             if (vm is null) return false;
-            var payload = _svc.LoadPayload(vm.Item, plainText);
+            var payload = _svc.LoadPayload(vm.Item, plainText || transform is not null);
+            if (payload is not null && transform is not null)
+                payload = new ClipboardPayload { Text = transform.Apply(payload.Text ?? ""), IsSensitive = payload.IsSensitive };
             if (payload is null)
             {
                 StatusText.Text = plainText ? "This item has no text to paste" : "The item's file is missing";
@@ -344,11 +361,16 @@ public partial class QuickPasteWindow : Window
             StatusText.Text = "Could not read the item's file";
             return false;
         }
+        catch (TransformException ex)
+        {
+            StatusText.Text = ex.Message;
+            return false;
+        }
     }
 
-    private void PasteSelected(bool plainText = false, ItemViewModel? target = null)
+    private void PasteSelected(bool plainText = false, ItemViewModel? target = null, TextTransform? transform = null)
     {
-        if (!WriteToClipboard(plainText, target)) return;
+        if (!WriteToClipboard(plainText, target, transform)) return;
         if (KeepOpen) ClearMarks(); else HidePalette();
         // Opened from the tray: there is no app to paste into, the item is just on the clipboard now.
         if (_paste.HasTarget) _paste.PasteIntoPreviousWindow();
@@ -358,6 +380,40 @@ public partial class QuickPasteWindow : Window
     {
         if (!WriteToClipboard()) return;
         if (KeepOpen) ClearMarks(); else HidePalette();
+    }
+
+    /// <summary>Ctrl+K / right-click: paste the selection (or the marked items) converted by a text transform.</summary>
+    private void ShowTransformMenu()
+    {
+        if (ItemsList.SelectedItem is not ItemViewModel vm) return;
+        if (vm.IsImage && !_items.Any(i => i.IsMarked))
+        {
+            StatusText.Text = "Transforms work on text items";
+            return;
+        }
+
+        var menu = new ContextMenu
+        {
+            PlacementTarget = ItemsList.ItemContainerGenerator.ContainerFromItem(vm) as UIElement ?? ItemsList,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+        };
+        menu.Items.Add(new MenuItem { Header = "Paste as plain text", InputGestureText = "Ctrl+Shift+Enter", Tag = "plain" });
+        menu.Items.Add(new Separator());
+        foreach (var t in TextTransforms.All)
+        {
+            if (t.Id is "json-pretty" or "sql" or "base64-encode") menu.Items.Add(new Separator());
+            menu.Items.Add(new MenuItem { Header = t.Name, Tag = t });
+        }
+        menu.AddHandler(MenuItem.ClickEvent, new RoutedEventHandler((_, e) =>
+        {
+            if (e.OriginalSource is not MenuItem mi) return;
+            menu.IsOpen = false;
+            if (mi.Tag is TextTransform t) PasteSelected(transform: t);
+            else PasteSelected(plainText: true);
+        }));
+        menu.Closed += (_, _) => { if (IsVisible) SearchBox.Focus(); };
+        menu.Opened += (_, _) => (menu.Items[0] as MenuItem)?.Focus();
+        menu.IsOpen = true;
     }
 
     private void ClearMarks()
