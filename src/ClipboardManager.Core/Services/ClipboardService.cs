@@ -41,7 +41,7 @@ public sealed class ClipboardService : IDisposable
     public event EventHandler<ClipboardItem>? ItemCaptured;
     public event EventHandler? HistoryChanged;
 
-    public ClipboardService(string dataFolder, AppSettings settings, IClock? clock = null)
+    public ClipboardService(string dataFolder, AppSettings settings, IClock? clock = null, bool enableFullText = true)
     {
         _dataFolder = dataFolder;
         Directory.CreateDirectory(dataFolder);
@@ -49,7 +49,7 @@ public sealed class ClipboardService : IDisposable
         Settings = settings;
         Expiration = new ExpirationPolicy(settings);
         _clock = clock ?? new SystemClock();
-        _repo = new ClipboardRepository(Path.Combine(dataFolder, "clipboard.db"));
+        _repo = new ClipboardRepository(Path.Combine(dataFolder, "clipboard.db"), enableFullText);
     }
 
     public static string DefaultDataFolder() =>

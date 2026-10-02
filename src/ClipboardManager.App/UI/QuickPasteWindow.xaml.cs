@@ -22,6 +22,7 @@ public partial class QuickPasteWindow : Window
     private readonly WindowsPasteSimulator _paste;
     private readonly ObservableCollection<ItemViewModel> _items = new();
     private readonly DispatcherTimer _debounce;
+    private readonly DispatcherTimer _tick;
     private bool _hiding;
 
     internal QuickPasteWindow(ClipboardService svc, IClipboardWriter writer, WindowsPasteSimulator paste)
@@ -34,6 +35,18 @@ public partial class QuickPasteWindow : Window
         ItemsList.ItemsSource = _items;
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(70) };
         _debounce.Tick += (_, _) => { _debounce.Stop(); Reload(); };
+
+        // Live countdown for sensitive items while the palette is open.
+        _tick = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _tick.Tick += (_, _) =>
+        {
+            foreach (var vm in _items)
+            {
+                if (vm.Item.IsSensitive) vm.Refresh();
+            }
+            if (ItemsList.SelectedItem is ItemViewModel sel) MetaExpires.Text = sel.MetaExpires;
+        };
+        IsVisibleChanged += (_, _) => { if (IsVisible) _tick.Start(); else _tick.Stop(); };
 
         SearchBox.TextChanged += (_, _) =>
         {
@@ -282,7 +295,8 @@ public partial class QuickPasteWindow : Window
     {
         if (!WriteToClipboard()) return;
         HidePalette();
-        _paste.PasteIntoPreviousWindow();
+        // Opened from the tray: there is no app to paste into, the item is just on the clipboard now.
+        if (_paste.HasTarget) _paste.PasteIntoPreviousWindow();
     }
 
     private void CopySelected()

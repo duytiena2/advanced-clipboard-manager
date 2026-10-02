@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using ClipboardManager.App.Native;
 using ClipboardManager.Core.Platform;
@@ -12,7 +13,28 @@ internal sealed class WindowsPasteSimulator : IPasteSimulator
     private IntPtr _target;
 
     /// <summary>Call right before showing the palette.</summary>
-    public void RememberForegroundWindow() => _target = NativeMethods.GetForegroundWindow();
+    public void RememberForegroundWindow()
+    {
+        var hwnd = NativeMethods.GetForegroundWindow();
+        _target = IsPasteTarget(hwnd) ? hwnd : IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Opening the palette from the tray makes the taskbar the foreground window; pasting there would do nothing useful,
+    /// so in that case the item is only copied to the clipboard.
+    /// </summary>
+    private static bool IsPasteTarget(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return false;
+        NativeMethods.GetWindowThreadProcessId(hwnd, out var pid);
+        if (pid == (uint)Environment.ProcessId) return false;
+        var cls = new StringBuilder(256);
+        NativeMethods.GetClassName(hwnd, cls, cls.Capacity);
+        return cls.ToString() is not ("Shell_TrayWnd" or "Shell_SecondaryTrayWnd" or "NotifyIconOverflowWindow"
+            or "TopLevelWindowForOverflowXamlIsland" or "Progman" or "WorkerW");
+    }
+
+    public bool HasTarget => _target != IntPtr.Zero;
 
     public void PasteIntoPreviousWindow() => _ = PasteAsync();
 

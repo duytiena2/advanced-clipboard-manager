@@ -18,10 +18,11 @@ public sealed class ClipboardRepository : IDisposable
         "last_copied_at, accessed_at, expires_at, is_pinned, is_sensitive, copy_count, workspace, source_application, " +
         "detection_confidence, metadata_json";
 
-    public ClipboardRepository(string databasePath)
+    /// <param name="enableFullText">false forces the LIKE fallback (used by tests; also what happens when FTS5 is missing).</param>
+    public ClipboardRepository(string databasePath, bool enableFullText = true)
     {
         _db = new SqliteDb(databasePath);
-        FullTextEnabled = _db.SupportsFts5();
+        FullTextEnabled = enableFullText && _db.SupportsFts5();
         Migrate();
     }
 
