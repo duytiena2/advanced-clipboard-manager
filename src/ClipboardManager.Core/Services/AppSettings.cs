@@ -38,6 +38,8 @@ public sealed class AppSettings
     public double? QuickPasteTop { get; set; }
     /// <summary>Quick Paste stays open (doesn't hide when it loses focus).</summary>
     public bool QuickPasteKeepOpen { get; set; }
+    /// <summary>Quick Paste docked as a sidebar: "None", "Left" or "Right".</summary>
+    public string SidebarEdge { get; set; } = "None";
 
     // Privacy
     public bool DetectSensitive { get; set; } = true;

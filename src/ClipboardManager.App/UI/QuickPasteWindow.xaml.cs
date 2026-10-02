@@ -27,7 +27,11 @@ public partial class QuickPasteWindow : Window
     private readonly DispatcherTimer _tick;
     private readonly DispatcherTimer _trackForeground;
 
-    private bool KeepOpen => KeepOpenButton.IsChecked == true;
+    // A docked sidebar is always kept open.
+    private bool KeepOpen => KeepOpenButton.IsChecked == true || Docked;
+    private bool Docked => SidebarEdge != DockEdge.None;
+    private const double PaletteWidth = 760, PaletteHeight = 520, SidebarWidth = 400;
+    private readonly AppBar _appBar;
     private bool _hiding;
     private long _markSequence;
 
@@ -85,6 +89,12 @@ public partial class QuickPasteWindow : Window
         Header.MouseLeftButtonDown += OnDragAreaMouseDown;
         Footer.MouseLeftButtonDown += OnDragAreaMouseDown;
 
+        // Sidebar: docked to a screen edge as an app bar (the shell keeps other windows out of that strip).
+        _appBar = new AppBar(this, SidebarWidth);
+        DockButton.Click += (_, _) => CycleDock();
+        ApplyLayout();
+        Closed += (_, _) => _appBar.Dispose();
+
         _svc.HistoryChanged += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
         {
             if (IsVisible) Reload(keepSelection: true);
@@ -101,12 +111,13 @@ public partial class QuickPasteWindow : Window
     public void ShowPalette(bool keepTarget = false, string search = "")
     {
         if (!keepTarget) _paste.RememberForegroundWindow();
-        PositionOnScreen();
+        if (!Docked) PositionOnScreen();
         SearchBox.Text = search;
         SearchBox.CaretIndex = search.Length;
         Reload();
         _hiding = false;
         Show();
+        if (Docked) _appBar.Dock(SidebarEdge);
         Activate();
         SearchBox.Focus();
         Keyboard.Focus(SearchBox);
@@ -132,13 +143,58 @@ public partial class QuickPasteWindow : Window
         if (_hiding || !IsVisible) return;
         _hiding = true;
         foreach (var vm in _items) vm.IsMarked = false;
+        _appBar.Undock(); // give the reserved strip back while hidden
         Hide();
         _hiding = false;
     }
 
+    private DockEdge SidebarEdge =>
+        Enum.TryParse<DockEdge>(_svc.Settings.SidebarEdge, ignoreCase: true, out var edge) ? edge : DockEdge.None;
+
+    /// <summary>Ctrl+D / dock button: floating → right edge → left edge → floating.</summary>
+    private void CycleDock()
+    {
+        var next = SidebarEdge switch
+        {
+            DockEdge.None => DockEdge.Right,
+            DockEdge.Right => DockEdge.Left,
+            _ => DockEdge.None,
+        };
+        _svc.Settings.SidebarEdge = next.ToString();
+        SaveSettings();
+        ApplyLayout();
+        if (next == DockEdge.None)
+        {
+            _appBar.Undock();
+            Width = PaletteWidth;
+            Height = PaletteHeight;
+            PositionOnScreen();
+            if (!KeepOpen) _trackForeground.Stop();
+        }
+        else
+        {
+            if (IsVisible) _appBar.Dock(next);
+            if (IsVisible) _trackForeground.Start();
+        }
+        StatusText.Text = next == DockEdge.None ? "Floating" : $"Docked {next.ToString().ToLowerInvariant()} — Enter pastes into the app you used last";
+        SearchBox.Focus();
+    }
+
+    /// <summary>Sidebar = list only (no preview, no key hints); floating = list + preview.</summary>
+    private void ApplyLayout()
+    {
+        bool docked = Docked;
+        ListColumn.Width = docked ? new GridLength(1, GridUnitType.Star) : new GridLength(340);
+        SplitColumn.Width = new GridLength(docked ? 0 : 1);
+        PreviewColumn.Width = docked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        PreviewPane.Visibility = PreviewSplit.Visibility = FooterHints.Visibility = docked ? Visibility.Collapsed : Visibility.Visible;
+        DockButton.Tag = docked ? "docked" : null;
+        Header.ToolTip = Footer.ToolTip = docked ? null : "Drag to move";
+    }
+
     private void OnDragAreaMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ButtonState != MouseButtonState.Pressed) return;
+        if (e.ButtonState != MouseButtonState.Pressed || Docked) return;
         try
         {
             DragMove();
@@ -280,6 +336,10 @@ public partial class QuickPasteWindow : Window
                 break;
             case Key.P when mods == ModifierKeys.Control:
                 TogglePinSelected();
+                e.Handled = true;
+                break;
+            case Key.D when mods == ModifierKeys.Control:
+                CycleDock();
                 e.Handled = true;
                 break;
             case Key.S when mods == ModifierKeys.Control:
