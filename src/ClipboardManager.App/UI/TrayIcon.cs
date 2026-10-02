@@ -14,6 +14,7 @@ internal sealed class TrayIcon : IDisposable
     private readonly WinForms.ToolStripMenuItem _startupItem;
     private readonly Icon _appIcon;
     private readonly IntPtr _hIcon;
+    private bool _settingStartup;
 
     public event Action? OpenRequested;
     public event Action<bool>? PauseToggled;
@@ -35,7 +36,7 @@ internal sealed class TrayIcon : IDisposable
         var clear = new WinForms.ToolStripMenuItem("Clear history (keeps pinned)");
         clear.Click += (_, _) => ClearRequested?.Invoke();
         _startupItem = new WinForms.ToolStripMenuItem("Start with Windows") { CheckOnClick = true, Checked = startWithWindows };
-        _startupItem.CheckedChanged += (_, _) => StartupToggled?.Invoke(_startupItem.Checked);
+        _startupItem.CheckedChanged += (_, _) => { if (!_settingStartup) StartupToggled?.Invoke(_startupItem.Checked); };
         var folder = new WinForms.ToolStripMenuItem("Open data folder");
         folder.Click += (_, _) => OpenDataFolderRequested?.Invoke();
         var settings = new WinForms.ToolStripMenuItem("Edit settings (settings.json)");
@@ -62,6 +63,14 @@ internal sealed class TrayIcon : IDisposable
     }
 
     public void SetPaused(bool paused) => _pauseItem.Checked = paused;
+
+    /// <summary>Reflects the real startup state without raising <see cref="StartupToggled"/> again.</summary>
+    public void SetStartupChecked(bool enabled)
+    {
+        _settingStartup = true;
+        try { _startupItem.Checked = enabled; }
+        finally { _settingStartup = false; }
+    }
 
     public void ShowBalloon(string title, string text, bool warning = false)
     {

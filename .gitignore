@@ -1,6 +1,8 @@
 bin/
 obj/
 publish/
+dist/
+.tools/
 lib/
 .vs/
 .vscode/
