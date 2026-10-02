@@ -79,6 +79,15 @@ if (-not $SkipTests) {
 }
 
 # 4. Build app
+# A running copy locks bin\...\*.dll, so stop instances started from this repo first.
+$running = Get-Process -Name ClipboardManager -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -and $_.Path.StartsWith($PSScriptRoot, [System.StringComparison]::OrdinalIgnoreCase) }
+if ($running) {
+    Step 'Stopping the running Clipboard Manager'
+    $running | Stop-Process -Force
+    $running | Wait-Process -Timeout 10 -ErrorAction SilentlyContinue
+}
+
 Step "Building app ($Configuration)"
 & dotnet build src/ClipboardManager.App -c $Configuration
 if ($LASTEXITCODE -ne 0) { throw "Build failed." }
