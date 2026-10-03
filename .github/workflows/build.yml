@@ -25,9 +25,14 @@ jobs:
         run: |
           dotnet run --project tests/ClipboardManager.Core.Tests -c Release > test_out.txt 2>&1 || true
           cat test_out.txt
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat test_out.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-test-results
+          path: test_out.txt
+      - name: Check test results
+        run: |
           if grep -q "FAIL" test_out.txt || grep -q "Build FAILED" test_out.txt; then exit 1; fi
 
   windows:
