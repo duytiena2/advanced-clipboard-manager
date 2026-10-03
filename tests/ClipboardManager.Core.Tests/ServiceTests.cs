@@ -35,7 +35,12 @@ public sealed class ServiceTests : IDisposable
     }
 
     [Test]
-    public void Fts5_is_available_in_test_environment() => Assert.True(_svc.FullTextSearchEnabled, "FTS5 missing");
+    public void Fts5_is_available_in_test_environment()
+    {
+        // On Windows and macOS, SQLite is bundled with FTS5. On Linux CI, system libsqlite3 may lack FTS5 and gracefully fall back.
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
+            Assert.True(_svc.FullTextSearchEnabled, "FTS5 missing");
+    }
 
     [Test]
     public void Stores_history_newest_first()

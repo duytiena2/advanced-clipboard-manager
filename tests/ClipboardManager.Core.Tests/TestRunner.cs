@@ -74,6 +74,8 @@ public static class Program
             }
         }
         Console.WriteLine($"\n{passed} passed, {failed} failed, {tests.Count} total ({sw.ElapsedMilliseconds} ms)");
-        return failed == 0 ? 0 : 1;
+        var code = failed == 0 ? 0 : 1;
+        Environment.Exit(code);
+        return code;
     }
 }
