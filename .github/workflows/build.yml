@@ -33,7 +33,12 @@ jobs:
           path: test_out.txt
       - name: Check test results
         run: |
-          if grep -q "FAIL" test_out.txt || grep -q "Build FAILED" test_out.txt; then exit 1; fi
+          if grep -q "FAIL" test_out.txt; then
+            while IFS= read -r line; do
+              echo "::error title=Test Failure::$line"
+            done < <(grep "FAIL" test_out.txt)
+            exit 1
+          fi
 
   windows:
     runs-on: windows-latest
