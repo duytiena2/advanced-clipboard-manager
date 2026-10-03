@@ -19,6 +19,9 @@ internal sealed class TrayIcon : IDisposable
     private readonly IntPtr _hIcon;
     private bool _settingStartup;
 
+    private readonly WinForms.ToolStripMenuItem _checkUpdateItem;
+    private Action? _balloonAction;
+
     public event Action? OpenRequested;
     public event Action<bool>? PauseToggled;
     public event Action? ClearRequested;
@@ -28,6 +31,7 @@ internal sealed class TrayIcon : IDisposable
     public event Action? ExitRequested;
     public event Action? StopPasteStackRequested;
     public event Action? OpenSettingsWindowRequested;
+    public event Action? CheckForUpdatesRequested;
 
     public TrayIcon(string hotkey, bool paused, bool startWithWindows)
     {
@@ -50,6 +54,8 @@ internal sealed class TrayIcon : IDisposable
         settingsWindow.Click += (_, _) => OpenSettingsWindowRequested?.Invoke();
         var settings = new WinForms.ToolStripMenuItem("Edit settings.json (advanced)");
         settings.Click += (_, _) => OpenSettingsRequested?.Invoke();
+        _checkUpdateItem = new WinForms.ToolStripMenuItem("Check for updates…");
+        _checkUpdateItem.Click += (_, _) => CheckForUpdatesRequested?.Invoke();
         var exit = new WinForms.ToolStripMenuItem("Exit");
         exit.Click += (_, _) => ExitRequested?.Invoke();
 
@@ -57,7 +63,7 @@ internal sealed class TrayIcon : IDisposable
         {
             open, _stopStackItem, new WinForms.ToolStripSeparator(),
             _pauseItem, clear, new WinForms.ToolStripSeparator(),
-            settingsWindow, _startupItem, folder, settings, new WinForms.ToolStripSeparator(),
+            settingsWindow, _checkUpdateItem, _startupItem, folder, settings, new WinForms.ToolStripSeparator(),
             exit,
         });
 
@@ -68,6 +74,7 @@ internal sealed class TrayIcon : IDisposable
             Visible = true,
         };
         _icon.MouseClick += (_, e) => { if (e.Button == WinForms.MouseButtons.Left) OpenRequested?.Invoke(); };
+        _icon.BalloonTipClicked += (_, _) => _balloonAction?.Invoke();
         UpdateText();
     }
 
@@ -83,13 +90,24 @@ internal sealed class TrayIcon : IDisposable
         finally { _settingStartup = false; }
     }
 
-    public void ShowBalloon(string title, string text, bool warning = false)
+    public void ShowBalloon(string title, string text, bool warning = false, Action? onClick = null)
     {
+        _balloonAction = onClick;
         _icon.BalloonTipTitle = title;
         _icon.BalloonTipText = text;
         _icon.BalloonTipIcon = warning ? WinForms.ToolTipIcon.Warning : WinForms.ToolTipIcon.Info;
         _icon.ShowBalloonTip(4000);
     }
+
+    public void SetUpdateAvailable(string tagName, Action onClick)
+    {
+        _checkUpdateItem.Text = $"⭐ Update available ({tagName})…";
+        _checkUpdateItem.Font = new Font(WinForms.Control.DefaultFont, FontStyle.Bold);
+        _checkUpdateItem.Click -= CheckUpdateClick;
+        _checkUpdateItem.Click += (_, _) => onClick();
+    }
+
+    private void CheckUpdateClick(object? sender, EventArgs e) => CheckForUpdatesRequested?.Invoke();
 
     /// <summary>Shows a running paste stack in the tooltip and enables "Stop paste stack"; null hides both.</summary>
     public void SetPasteStackStatus(string? status)

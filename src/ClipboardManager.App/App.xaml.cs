@@ -121,6 +121,7 @@ public partial class App : Application
         _tray.OpenDataFolderRequested += () => OpenShell(_dataFolder);
         _tray.OpenSettingsRequested += () => OpenShell(_settingsPath);
         _tray.OpenSettingsWindowRequested += ShowSettings;
+        _tray.CheckForUpdatesRequested += () => RunUpdateCheck(silent: false);
         _tray.ExitRequested += () => Shutdown();
 
         _hotkeys = new WindowsHotkeyService();
@@ -144,6 +145,12 @@ public partial class App : Application
 
         // Images copied before OCR was available (or while it was off) get their text now.
         StartOcr(_svc.ImagesWithoutOcr(200));
+
+        // Background update check for non-packaged builds (MSIX is updated by Microsoft Store)
+        if (!PackageInfo.IsPackaged)
+        {
+            Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(_ => Dispatcher.Invoke(() => RunUpdateCheck(silent: true)));
+        }
     }
 
     private void OnCaptured(CapturedContent content)
@@ -272,6 +279,37 @@ public partial class App : Application
     {
         try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
         catch (Exception ex) { Log(ex); }
+    }
+
+    private async void RunUpdateCheck(bool silent)
+    {
+        if (_tray is null) return;
+        try
+        {
+            if (!silent) _tray.ShowBalloon("Clipboard Manager", "Checking for updates…");
+            var update = await UpdateChecker.CheckForUpdateAsync().ConfigureAwait(true);
+            if (update is not null)
+            {
+                var targetUrl = update.DownloadUrl ?? update.ReleaseUrl;
+                _tray.SetUpdateAvailable(update.TagName, () => OpenShell(targetUrl));
+                _tray.ShowBalloon("Update available",
+                    $"Version {update.TagName} is available! Click to download or view changes.",
+                    onClick: () => OpenShell(targetUrl));
+            }
+            else if (!silent)
+            {
+                _tray.ShowBalloon("Clipboard Manager",
+                    $"You are up to date! Version {UpdateChecker.CurrentVersionString} is the latest version.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+            if (!silent)
+            {
+                _tray.ShowBalloon("Check for updates", "Could not check for updates. Please try again later.", warning: true);
+            }
+        }
     }
 
     private static readonly object LogGate = new();

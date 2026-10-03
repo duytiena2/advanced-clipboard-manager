@@ -18,6 +18,7 @@ param(
     [ValidateSet('Debug', 'Release')] [string]$Configuration = 'Release',
     # Official SQLite DLL (includes FTS5). Override if this version is no longer hosted.
     [string]$SqliteUrl = 'https://www.sqlite.org/2025/sqlite-dll-win-x64-3500400.zip',
+    [string]$AppVersion = '',
     # MSIX identity. For the Store, use the values from Partner Center > Product identity
     # (CI reads them from the MSIX_* repository variables). The defaults only suit local testing.
     [string]$MsixIdentityName = $(if ($env:MSIX_IDENTITY_NAME) { $env:MSIX_IDENTITY_NAME } else { 'duytiena2.AdvancedClipboardManager' }),
@@ -102,25 +103,34 @@ Step "Building app ($Configuration)"
 & dotnet build src/ClipboardManager.App -c $Configuration
 if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 
+# Determine version: parameter, GITHUB_REF_NAME (tag), or fallback to .csproj
+if (-not $AppVersion -and $env:GITHUB_REF_NAME -match '^v?(\d+\.\d+\.\d+.*)$') {
+    $AppVersion = $matches[1]
+}
+if ($AppVersion) {
+    $version = $AppVersion.TrimStart('v').Trim()
+} else {
+    [xml]$proj = Get-Content src/ClipboardManager.App/ClipboardManager.App.csproj
+    $version = ($proj.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
+}
+
 if ($Publish) {
-    Step 'Publishing self-contained single-file exe'
+    Step "Publishing self-contained single-file exe v$version"
     & dotnet publish src/ClipboardManager.App -c Release -r win-x64 --self-contained true `
-        -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+        -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$version -o publish
     if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
     Write-Host "`nDone: $(Join-Path $PSScriptRoot 'publish\ClipboardManager.exe')" -ForegroundColor Green
 }
 
 if ($Installer -or $Msix) {
-    [xml]$proj = Get-Content src/ClipboardManager.App/ClipboardManager.App.csproj
-    $version = ($proj.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
     $appDir = Join-Path $PSScriptRoot 'publish\app'
     $dist = Join-Path $PSScriptRoot 'dist'
     New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
     # Folder (not single-file) build: Setup.exe and MSIX both ship it as-is.
-    Step 'Publishing app folder for packaging'
+    Step "Publishing app folder for packaging v$version"
     if (Test-Path $appDir) { Remove-Item $appDir -Recurse -Force }
-    & dotnet publish src/ClipboardManager.App -c Release -r win-x64 --self-contained true -p:DebugType=none -o $appDir
+    & dotnet publish src/ClipboardManager.App -c Release -r win-x64 --self-contained true -p:DebugType=none -p:Version=$version -o $appDir
     if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
 }
 
@@ -153,7 +163,8 @@ if ($Installer) {
 }
 
 if ($Msix) {
-    $msixVersion = "$version.0"   # Store requires a 4-part version with revision 0
+    $numericVer = ($version -replace '-.*$', '')
+    $msixVersion = "$numericVer.0"   # Store requires a 4-part version with revision 0
     Step "Building MSIX package v$msixVersion"
 
     # makeappx.exe: installed Windows SDK, otherwise the Microsoft.Windows.SDK.BuildTools NuGet package.
