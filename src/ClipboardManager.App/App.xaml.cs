@@ -290,11 +290,10 @@ public partial class App : Application
             var update = await UpdateChecker.CheckForUpdateAsync().ConfigureAwait(true);
             if (update is not null)
             {
-                var targetUrl = update.DownloadUrl ?? update.ReleaseUrl;
-                _tray.SetUpdateAvailable(update.TagName, () => OpenShell(targetUrl));
+                _tray.SetUpdateAvailable(update.TagName, () => ApplyUpdate(update));
                 _tray.ShowBalloon("Update available",
-                    $"Version {update.TagName} is available! Click to download or view changes.",
-                    onClick: () => OpenShell(targetUrl));
+                    $"Version {update.TagName} is available! Click to update now.",
+                    onClick: () => ApplyUpdate(update));
             }
             else if (!silent)
             {
@@ -309,6 +308,53 @@ public partial class App : Application
             {
                 _tray.ShowBalloon("Check for updates", "Could not check for updates. Please try again later.", warning: true);
             }
+        }
+    }
+
+    private async void ApplyUpdate(UpdateInfo update)
+    {
+        if (_tray is null) return;
+
+        if (string.IsNullOrWhiteSpace(update.DownloadUrl))
+        {
+            OpenShell(update.ReleaseUrl);
+            return;
+        }
+
+        var result = MessageBox.Show(
+            $"A new version of Advanced Clipboard Manager ({update.TagName}) is available.\n\n" +
+            "Would you like to download and install it now?\nThe app will restart automatically after updating.",
+            "Update Available",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Information);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        _tray.ShowBalloon("Updating Clipboard Manager", $"Downloading version {update.TagName} in the background…");
+
+        var installerPath = await Task.Run(() => UpdateChecker.DownloadInstallerAsync(update));
+        if (string.IsNullOrEmpty(installerPath) || !File.Exists(installerPath))
+        {
+            _tray.ShowBalloon("Update failed", "Could not download the update. Opening release page in browser…", warning: true);
+            OpenShell(update.ReleaseUrl);
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = installerPath,
+                Arguments = "/SILENT",
+                UseShellExecute = true
+            });
+
+            Dispatcher.Invoke(Shutdown);
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+            try { Process.Start(new ProcessStartInfo(installerPath) { UseShellExecute = true }); } catch { }
         }
     }
 

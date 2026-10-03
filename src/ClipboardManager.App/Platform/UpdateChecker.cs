@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -86,6 +87,46 @@ internal static class UpdateChecker
             }
 
             return new UpdateInfo(tag, remoteVersion, htmlUrl, downloadUrl, body);
+        }
+        catch (Exception ex)
+        {
+            App.Log(ex);
+            return null;
+        }
+    }
+
+    public static async Task<string?> DownloadInstallerAsync(UpdateInfo update, IProgress<int>? progress = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(update.DownloadUrl)) return null;
+
+        try
+        {
+            var tempDir = Path.GetTempPath();
+            var fileName = $"AdvancedClipboardManager-Setup-{update.TagName}.exe";
+            var tempFilePath = Path.Combine(tempDir, fileName);
+
+            using var response = await HttpClient.GetAsync(update.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+
+            var totalBytes = response.Content.Headers.ContentLength ?? -1L;
+            await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true);
+
+            var buffer = new byte[8192];
+            long totalRead = 0;
+            int bytesRead;
+
+            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+                totalRead += bytesRead;
+                if (totalBytes > 0 && progress is not null)
+                {
+                    progress.Report((int)((totalRead * 100) / totalBytes));
+                }
+            }
+
+            return tempFilePath;
         }
         catch (Exception ex)
         {
