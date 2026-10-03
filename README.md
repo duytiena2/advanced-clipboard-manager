@@ -1,5 +1,7 @@
 # Advanced Clipboard Manager
 
+[English](README.md) • [Tiếng Việt](README.vi.md)
+
 A local-first, keyboard-first clipboard manager for Windows 10/11 and macOS. It keeps your clipboard history, sorts each copy by type, and finds anything again instantly with **Ctrl+Shift+V** (or menu bar on macOS).
 
 > Status: **Phases 1–3 complete, Phase 4 (macOS) in progress** (see Roadmap). Name is a working title.
