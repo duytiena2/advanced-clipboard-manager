@@ -1,8 +1,8 @@
 # Advanced Clipboard Manager
 
-A local-first, keyboard-first clipboard manager for Windows 10/11. It keeps your clipboard history, sorts each copy by type, and finds anything again instantly with **Ctrl+Shift+V**.
+A local-first, keyboard-first clipboard manager for Windows 10/11 and macOS. It keeps your clipboard history, sorts each copy by type, and finds anything again instantly with **Ctrl+Shift+V** (or menu bar on macOS).
 
-> Status: **Phase 1 + most of Phases 2–3** (see Roadmap). Name is a working title.
+> Status: **Phases 1–3 complete, Phase 4 (macOS) in progress** (see Roadmap). Name is a working title.
 
 ## Features
 
@@ -18,13 +18,13 @@ A local-first, keyboard-first clipboard manager for Windows 10/11. It keeps your
 | Paste stack | Mark items with **Ctrl+Space** in the order you need them, press **Ctrl+S**, then each **Ctrl+V** in any app pastes the next one — handy for filling forms. It stops when used up, when you copy something else, or from the tray. |
 | Snippets & templates | Reusable text that never expires: **Ctrl+N** saves the selection as a snippet, **Ctrl+E** edits one, or manage them in Settings. Variables: `{date}`, `{time}`, `{datetime}`, `{date:dd/MM/yyyy}`, `{clipboard}`, `{uuid}`. |
 | Workspaces by app | Rules such as `Code → Dev`, `OUTLOOK → Mail` file copies into workspaces automatically. **Ctrl+W** cycles the workspace filter. |
-| OCR | Copied images go through Windows' built-in OCR (offline), so screenshots are found by the text in them and can be pasted as text. Uses the OCR languages installed in Windows (add Vietnamese in *Settings › Time & language › Language*). |
-| Sidebar | **Ctrl+D** docks Quick Paste to the right or left screen edge as an app bar (the space is reserved like the taskbar). It stays open and pastes into the app you used last. |
+| OCR | Copied images go through Windows' built-in OCR (offline, Windows 10/11), so screenshots are found by the text in them and can be pasted as text. Uses the OCR languages installed in Windows (add Vietnamese in *Settings › Time & language › Language*). |
+| Sidebar | **Ctrl+D** docks Quick Paste to the right or left screen edge as an app bar (Windows, space is reserved like the taskbar). It stays open and pastes into the app you used last. |
 | Encryption | Optional: the history is encrypted with your Windows account (DPAPI), with no password needed. Text, formatting, OCR text and images are encrypted on disk, the search index lives in memory only, and duplicate detection uses a keyed hash. |
 | Pin | **Ctrl+P**. Pinned items never expire and always appear first. |
 | Auto-expiration | Retention per type: secrets 5 min, passwords 1 min, text 1 day, code/URL 7 days, images 1 hour. Configurable. |
 | Sensitive content | API keys, tokens, JWTs, AWS keys, private keys, connection strings and passwords are detected, masked in the list, and kept out of the search index. They are hidden in preview until **Ctrl+R**, and wiped from the Windows clipboard when they expire. Private keys are never stored. |
-| Privacy | Everything stays local in `%LOCALAPPDATA%\ClipboardManager`. It respects the "don't record me" flags set by password managers, and ships with an exclusion list (1Password, KeePass, Bitwarden…). There is no network access at all. |
+| Privacy | Everything stays local in `%LOCALAPPDATA%\ClipboardManager` (Windows) or `~/Library/Application Support/ClipboardManager` (macOS). It respects the "don't record me" flags set by password managers, and ships with an exclusion list (1Password, KeePass, Bitwarden…). There is no network access at all. |
 | Multi-select & merge | **Ctrl+Space** marks items. **Enter** pastes them merged (one per line). |
 | Tray app | Pause capture, clear history (keeps pinned items and snippets), stop a paste stack, settings, check for updates, start with Windows, open data folder. |
 
@@ -72,8 +72,10 @@ You can also open `AdvancedClipboardManager.sln` in Visual Studio 2022 and press
 | Channel | File | Notes |
 |---|---|---|
 | Microsoft Store (main) | `dist\AdvancedClipboardManager_<ver>.0_x64.msix` | The Store signs it. Install, updates and uninstall are handled by Windows. "Start with Windows" uses the package's StartupTask. Data lives in the package folder and is removed on uninstall. |
-| Direct download | `dist\AdvancedClipboardManager-Setup-<ver>.exe` | Per-user install, no admin prompt, Start Menu shortcut, optional "Start with Windows", uninstall from Settings > Apps. |
-| Portable | `publish\ClipboardManager.exe` | No install. |
+| Direct download (Windows) | `dist\AdvancedClipboardManager-Setup-<ver>.exe` | Per-user install, no admin prompt, Start Menu shortcut, optional "Start with Windows", uninstall from Settings > Apps. |
+| Portable (Windows) | `publish\ClipboardManager.exe` | No install. |
+| macOS (Apple Silicon) | `dist/AdvancedClipboardManager-osx-arm64.dmg` / `.zip` | Disk image installer (.dmg) and standalone `.app` bundle for Apple Silicon (M1/M2/M3/M4). |
+| macOS (Intel) | `dist/AdvancedClipboardManager-osx-x64.dmg` / `.zip` | Disk image installer (.dmg) and standalone `.app` bundle for Intel Macs. |
 
 **Publishing to the Store:**
 
@@ -86,7 +88,7 @@ To test the package locally, turn on Developer Mode, run `.\build.ps1 -Msix`, th
 
 **Publishing a GitHub Release:**
 
-Pushing a version tag triggers GitHub Actions to build, test, and automatically create a new GitHub Release with the installer, portable exe, and MSIX:
+Pushing a version tag triggers GitHub Actions to build, test, and automatically create a new GitHub Release with the installer, portable exe, MSIX, and macOS DMG/zip packages:
 
 ```powershell
 git tag v0.2.0
@@ -108,13 +110,13 @@ The suite covers classification, sensitive-data detection, deduplication, FTS5 s
 
 ## CI (GitHub Actions)
 
-`.github/workflows/build.yml` runs the core tests on Ubuntu, then builds, tests and packages on `windows-latest`. It uploads three artifacts: the portable exe, Setup.exe and the MSIX.
+`.github/workflows/build.yml` runs the core tests on Ubuntu, builds, tests and packages on `windows-latest` (portable exe, Setup.exe, and MSIX), and packages macOS `.dmg` disk image installers and `.zip` bundles on `macos-latest` (arm64 & x64). On version tags, it attaches all Windows and macOS assets directly to the GitHub Release.
 
 ## Settings
 
 Tray → **Settings…** covers everything: shortcut (applies immediately), capture, privacy rules, excluded apps, encryption, retention per type, workspace rules, OCR and snippets.
 
-Underneath, settings live in `settings.json` in the data folder (tray → *Edit settings.json (advanced)*; restart the app after editing it by hand):
+Underneath, settings live in `settings.json` in the data folder (`%LOCALAPPDATA%\ClipboardManager` on Windows, `~/Library/Application Support/ClipboardManager` on macOS; tray → *Edit settings.json (advanced)*; restart the app after editing it by hand):
 
 ```json
 {
@@ -152,6 +154,9 @@ tests/ClipboardManager.Core.Tests/   self-contained test runner (no xUnit)
 packaging/
   Assets/                       logos, app.ico
   mac/                          Info.plist, build-mac.sh
+  AppxManifest.xml              Store package manifest
+  setup.iss                     Inno Setup script
+  generate-assets.ps1           Logo and icon asset generation
 ```
 
 ## macOS
@@ -162,7 +167,7 @@ Requirements: macOS 11+ (Apple Silicon or Intel) and [.NET 8 SDK](https://dotnet
 # Run on macOS
 dotnet run --project src/ClipboardManager.Mac
 
-# Build standalone .app bundle
+# Build standalone .app bundle and .dmg installer
 ./packaging/mac/build-mac.sh osx-arm64 0.1.0   # Apple Silicon (M1/M2/M3/M4)
 ./packaging/mac/build-mac.sh osx-x64 0.1.0     # Intel Mac
 ```
