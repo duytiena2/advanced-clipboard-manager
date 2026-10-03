@@ -1,0 +1,78 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ClipboardManager.Mac.Views.MainWindow"
+        Title="Advanced Clipboard Manager"
+        Width="780" Height="500"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur"
+        SystemDecorations="None">
+
+    <Border Background="{DynamicResource SystemAltHighColor}"
+            BorderBrush="{DynamicResource SystemAccentColor}"
+            BorderThickness="1"
+            CornerRadius="12"
+            BoxShadow="0 10 30 0 #40000000"
+            Margin="10">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Search bar -->
+            <Border Grid.Row="0" BorderBrush="{DynamicResource SystemBaseLowColor}" BorderThickness="0,0,0,1" Padding="14,10">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Grid.Column="0" Text="🔍" VerticalAlignment="Center" Margin="0,0,10,0" Opacity="0.6"/>
+                    <TextBox x:Name="SearchBox" Grid.Column="1"
+                             Watermark="Search clipboard history, snippets, or type:code …"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             FontSize="15"
+                             VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ItemCountText" Grid.Column="2" Text="0 items" VerticalAlignment="Center" FontSize="12" Opacity="0.5"/>
+                </Grid>
+            </Border>
+
+            <!-- Main content: List + Preview -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,1.2*">
+                <!-- Items list -->
+                <ListBox x:Name="ItemsList" Grid.Column="0"
+                         Background="Transparent"
+                         BorderThickness="0,0,1,0"
+                         BorderBrush="{DynamicResource SystemBaseLowColor}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,2">
+                                <Border Grid.Column="0" Background="{DynamicResource SystemAccentColorLight2}" CornerRadius="4" Padding="4,2" Margin="0,0,8,0">
+                                    <TextBlock Text="{Binding Subtype}" FontSize="10" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="13"/>
+                                <TextBlock Grid.Column="2" Text="{Binding TimeAgo}" FontSize="11" Opacity="0.5" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Preview pane -->
+                <ScrollViewer Grid.Column="1" Padding="14">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="PreviewTitle" FontWeight="Bold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                        <TextBox x:Name="PreviewContent" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                                 Background="Transparent" BorderThickness="0" FontSize="12" FontFamily="Consolas, Menlo, monospace"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- Footer: Shortcut hints -->
+            <Border Grid.Row="2" Background="{DynamicResource SystemChromeLowColor}" CornerRadius="0,0,11,11" Padding="14,8">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
+                        <TextBlock Text="↵ Paste" FontSize="11" Opacity="0.7"/>
+                        <TextBlock Text="⇧↵ Plain Text" FontSize="11" Opacity="0.7"/>
+                        <TextBlock Text="⌘1-9 Quick Paste" FontSize="11" Opacity="0.7"/>
+                        <TextBlock Text="⌘P Pin" FontSize="11" Opacity="0.7"/>
+                        <TextBlock Text="⎋ Close" FontSize="11" Opacity="0.7"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="Advanced Clipboard Manager" FontSize="11" Opacity="0.4"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

@@ -57,7 +57,7 @@ jobs:
         with:
           name: ClipboardManager-msix
           path: dist/*.msix
-      - name: Create GitHub Release
+      - name: Create GitHub Release (Windows)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
@@ -66,4 +66,37 @@ jobs:
             dist/*.exe
             dist/*.msix
           generate_release_notes: true
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build and package macOS bundles (.app)
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+            VERSION="0.1.0"
+          fi
+          chmod +x packaging/mac/build-mac.sh
+          ./packaging/mac/build-mac.sh osx-arm64 "$VERSION"
+          ./packaging/mac/build-mac.sh osx-x64 "$VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClipboardManager-macOS-arm64
+          path: dist/AdvancedClipboardManager-osx-arm64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClipboardManager-macOS-x64
+          path: dist/AdvancedClipboardManager-osx-x64.zip
+      - name: Attach macOS bundles to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/AdvancedClipboardManager-osx-arm64.zip
+            dist/AdvancedClipboardManager-osx-x64.zip
+
 

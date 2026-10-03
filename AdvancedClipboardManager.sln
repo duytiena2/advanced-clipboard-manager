@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{2AEF1C28
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClipboardManager.Core.Tests", "tests\ClipboardManager.Core.Tests\ClipboardManager.Core.Tests.csproj", "{052F0999-79BF-4B09-B478-1B04B276ED59}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClipboardManager.Mac", "src\ClipboardManager.Mac\ClipboardManager.Mac.csproj", "{A564DE8F-5FC8-4AEA-B50E-7D8A84FB8235}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,10 +36,15 @@ Global
 		{7C3B1E52-4A2D-4F7B-9C1E-6B2A9D8E4F10}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C3B1E52-4A2D-4F7B-9C1E-6B2A9D8E4F10}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C3B1E52-4A2D-4F7B-9C1E-6B2A9D8E4F10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A564DE8F-5FC8-4AEA-B50E-7D8A84FB8235}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A564DE8F-5FC8-4AEA-B50E-7D8A84FB8235}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A564DE8F-5FC8-4AEA-B50E-7D8A84FB8235}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A564DE8F-5FC8-4AEA-B50E-7D8A84FB8235}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{E21F9804-1919-4485-B8AF-857BBFCBE0FF} = {0720153C-5FC2-43B5-8005-A2B87AC29FD7}
 		{052F0999-79BF-4B09-B478-1B04B276ED59} = {2AEF1C28-B389-4320-96E5-E5669284D8A2}
 		{7C3B1E52-4A2D-4F7B-9C1E-6B2A9D8E4F10} = {0720153C-5FC2-43B5-8005-A2B87AC29FD7}
+		{A564DE8F-5FC8-4AEA-B50E-7D8A84FB8235} = {0720153C-5FC2-43B5-8005-A2B87AC29FD7}
 	EndGlobalSection
 EndGlobal

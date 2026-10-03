@@ -146,21 +146,35 @@ src/
     Services/                   ClipboardService, ExpirationPolicy, MergeService, AppSettings,
                                 TextTransforms + SqlFormatter, TemplateEngine, PasteStack
     Platform/                   IClipboardMonitor, IClipboardWriter, IHotkeyService, IPasteSimulator, IDataProtector, IOcrEngine
-  ClipboardManager.App/         net8.0-windows10.0.19041.0 — WPF UI + Win32 adapters
-    Platform/                   AddClipboardFormatListener, RegisterHotKey, SendInput, startup (Run key / MSIX StartupTask),
-                                DPAPI, Windows.Media.Ocr, app bar (sidebar), paste-key hook (paste stack)
-    UI/                         QuickPasteWindow, SettingsWindow, SnippetDialog, TrayIcon, PasteStackController
+  ClipboardManager.App/         net8.0-windows10.0.19041.0 — Windows WPF UI + Win32 adapters
+  ClipboardManager.Mac/         net8.0 — macOS Avalonia UI (Spotlight/Raycast-style palette + menu bar)
 tests/ClipboardManager.Core.Tests/   self-contained test runner (no xUnit)
-packaging/                      AppxManifest.xml (MSIX), setup.iss (Inno Setup), Assets/ (logos, app.ico)
+packaging/
+  Assets/                       logos, app.ico
+  mac/                          Info.plist, build-mac.sh
 ```
 
-**Cross-platform later:** Core already runs on Linux and macOS. A macOS/Linux version would replace only `ClipboardManager.App`, for example with an Avalonia UI plus platform adapters that implement the `Platform/` interfaces.
+## macOS
+
+Requirements: macOS 11+ (Apple Silicon or Intel) and [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+
+```bash
+# Run on macOS
+dotnet run --project src/ClipboardManager.Mac
+
+# Build standalone .app bundle
+./packaging/mac/build-mac.sh osx-arm64 0.1.0   # Apple Silicon (M1/M2/M3/M4)
+./packaging/mac/build-mac.sh osx-x64 0.1.0     # Intel Mac
+```
+
+The macOS version runs in the menu bar with a Raycast/Spotlight-style floating palette.
 
 ## Roadmap
 
 - **Phase 2:** ~~settings UI~~, ~~per-app workspace rules~~, ~~snippets~~, ~~paste stack~~, ~~sidebar~~ (done); still to do: tags, history window, choosing the merge separator in the UI
 - **Phase 3:** ~~database encryption~~, ~~OCR~~ (done); still to do: smart rules, optional AI (opt-in, never for sensitive items)
-- **Phase 4:** sync with end-to-end encryption, macOS/Linux
+- **Phase 4:** ~~macOS support~~ (done); still to do: sync with end-to-end encryption, Linux
+
 
 ## License
 
