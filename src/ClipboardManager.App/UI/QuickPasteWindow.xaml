@@ -7,35 +7,44 @@
         WindowStyle="None" ResizeMode="CanResize"
         Topmost="True" ShowInTaskbar="False" ShowActivated="True"
         WindowStartupLocation="Manual"
-        Background="#FFFFFF" BorderBrush="#CDD1D8" BorderThickness="1"
+        Background="Transparent" BorderThickness="0"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="#15171C"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
 
     <Window.Resources>
         <SolidColorBrush x:Key="Accent" Color="#0E6B68" />
-        <SolidColorBrush x:Key="Line" Color="#E6E8EC" />
+        <SolidColorBrush x:Key="Line" Color="#22000000" />
         <SolidColorBrush x:Key="Muted" Color="#5A6170" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
         <Style x:Key="ItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Height" Value="36" />
-            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Height" Value="52" />
+            <Setter Property="Padding" Value="8,4" />
             <Setter Property="Margin" Value="0,0,0,1" />
             <Setter Property="Foreground" Value="#15171C" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="ToolTip" Value="{Binding HoverToolTip}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Stretch" />
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <!-- Focus indicator on left edge (Item 6) -->
+                                <Border x:Name="FocusBar" Width="3" HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                                        CornerRadius="1.5" Background="{StaticResource Accent}" Visibility="Collapsed" Margin="-6,2,0,2" />
+                                <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Stretch" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#F1F3F5" />
+                                <Setter TargetName="Bd" Property="Background" Value="#14000000" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
+                                <Setter TargetName="FocusBar" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="FocusBar" Property="Background" Value="#FFFFFF" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -53,13 +62,123 @@
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
         <Style x:Key="Kbd" TargetType="Border">
-            <Setter Property="Background" Value="#FFFFFF" />
-            <Setter Property="BorderBrush" Value="#DADDE2" />
+            <Setter Property="Background" Value="#40FFFFFF" />
+            <Setter Property="BorderBrush" Value="#25000000" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="5,0" />
             <Setter Property="Margin" Value="6,0,14,0" />
             <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="Keycap" TargetType="Border">
+            <Setter Property="Background" Value="#1C000000" />
+            <Setter Property="BorderBrush" Value="#25000000" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="5,1" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="KeycapText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Segoe UI" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#15171C" />
+        </Style>
+        <Style x:Key="HintLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#4A505C" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+        </Style>
+        <Style x:Key="ChipButton" TargetType="Button">
+            <Setter Property="Background" Value="#10000000" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#4A505C" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#20000000" />
+                                <Setter Property="Foreground" Value="#15171C" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="active">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PillButton" TargetType="Button">
+            <Setter Property="Background" Value="#0D000000" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#15000000" />
+            <Setter Property="Foreground" Value="#2D3139" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Margin" Value="0,0,5,5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#18000000" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#28000000" />
+                                <Setter Property="Foreground" Value="#15171C" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="active">
+                                <Setter TargetName="Bd" Property="Background" Value="#200E6B68" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#500E6B68" />
+                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HeaderActionButton" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="#10000000" CornerRadius="4" Padding="8,3" BorderBrush="{StaticResource Line}" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#20000000" />
+                                <Setter Property="Foreground" Value="#15171C" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Slim overlay-style scrollbar: no arrows, rounded thumb that darkens on hover/drag -->
@@ -80,13 +199,13 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="Bd" Background="#C4C8CF" CornerRadius="3" />
+                        <Border x:Name="Bd" Background="#55808080" CornerRadius="3" />
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#9AA0AA" />
+                                <Setter TargetName="Bd" Property="Background" Value="#80808080" />
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#7D8490" />
+                                <Setter TargetName="Bd" Property="Background" Value="#A0808080" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -144,178 +263,1058 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="56" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="40" />
-        </Grid.RowDefinitions>
+    <!-- Main Widget Container with iOS-style rounded corners and frosted glass border -->
+    <Border x:Name="RootBorder" CornerRadius="16" BorderThickness="1" BorderBrush="#35000000"
+            Background="#D8F6F7F9" SnapsToDevicePixels="True">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="16" /> <!-- Drag handle bar (Row 0) -->
+                <RowDefinition Height="48" /> <!-- Search and buttons (Row 1) -->
+                <RowDefinition Height="Auto" /> <!-- Filter chips & Paste Stack banner (Row 2) -->
+                <RowDefinition Height="*" />  <!-- List + Preview (Row 3) -->
+                <RowDefinition Height="36" /> <!-- Footer (Row 4) -->
+            </Grid.RowDefinitions>
 
-        <!-- Search -->
-        <Border x:Name="Header" Grid.Row="0" Background="Transparent" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1"
-                ToolTip="Drag to move">
-            <DockPanel Margin="18,0">
-                <TextBlock DockPanel.Dock="Left" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                           FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,12,0" />
-                <ToggleButton x:Name="KeepOpenButton" DockPanel.Dock="Right" Width="32" Height="32" Margin="8,0,0,0"
-                              Focusable="False" Cursor="Hand" ToolTip="Pin window / keep open (Ctrl+T)"
-                              AutomationProperties.Name="Keep Quick Paste open">
-                    <ToggleButton.Template>
-                        <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
-                                <TextBlock x:Name="Glyph" Text="&#xE718;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
-                                           Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <!-- Row 0: iOS style drag handle pill -->
+            <Border x:Name="DragBar" Grid.Row="0" Background="Transparent" Cursor="SizeAll"
+                    ToolTip="Kéo để di chuyển widget / Drag to move widget">
+                <Border x:Name="DragPill" Width="38" Height="4" CornerRadius="2"
+                        Background="#4D808080" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+
+            <!-- Row 1: Search and Header Controls -->
+            <Border x:Name="Header" Grid.Row="1" Background="Transparent" BorderBrush="{StaticResource Line}"
+                    BorderThickness="0,0,0,1" ToolTip="Drag to move">
+                <DockPanel Margin="14,0,14,0">
+                    <ToggleButton x:Name="KeepOpenButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
+                                  Focusable="False" Cursor="Hand" ToolTip="Ghim widget / Pin window (Ctrl+T)"
+                                  AutomationProperties.Name="Keep Quick Paste open">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                    <TextBlock x:Name="Glyph" Text="&#xE718;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
+                                        <Setter TargetName="Glyph" Property="Foreground" Value="#FFFFFF" />
+                                        <Setter TargetName="Glyph" Property="Text" Value="&#xE840;" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                    </ToggleButton>
+
+                    <Button x:Name="DockButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Snap widget: Phải → Trái → Tự do (Ctrl+D)"
+                            AutomationProperties.Name="Snap widget to screen edge">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                    <TextBlock x:Name="DockGlyph" Text="&#xE90D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                    </Trigger>
+                                    <Trigger Property="Tag" Value="docked">
+                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
+                                        <Setter TargetName="DockGlyph" Property="Foreground" Value="#FFFFFF" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button x:Name="WidgetModeButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Chuyển chế độ Widget / Mở rộng (Ctrl+M)"
+                            AutomationProperties.Name="Toggle widget or expanded mode">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                    <TextBlock x:Name="WidgetGlyph" Text="&#xE7C4;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                    </Trigger>
+                                    <Trigger Property="Tag" Value="compact">
+                                        <Setter TargetName="Bd" Property="Background" Value="#20000000" />
+                                        <Setter TargetName="WidgetGlyph" Property="Foreground" Value="{StaticResource Accent}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button x:Name="SplitPresetButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Tỷ lệ List / Preview: 25/75, 30/70, 40/60, 50/50 (Ctrl+L)"
+                            AutomationProperties.Name="Chia tỷ lệ danh sách và xem trước">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                    <TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button x:Name="TransparencyButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Bật / tắt trong suốt kiểu iOS (Ctrl+Shift+T)"
+                            AutomationProperties.Name="Toggle iOS glass transparency">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                    <TextBlock x:Name="TransGlyph" Text="&#xE790;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                    </Trigger>
+                                    <Trigger Property="Tag" Value="active">
+                                        <Setter TargetName="Bd" Property="Background" Value="#20000000" />
+                                        <Setter TargetName="TransGlyph" Property="Foreground" Value="{StaticResource Accent}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button x:Name="SettingsButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Cài đặt / Settings (Ctrl+,)"
+                            AutomationProperties.Name="Open settings">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                    <TextBlock x:Name="SettingsGlyph" Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                        <Setter TargetName="SettingsGlyph" Property="Foreground" Value="#15171C" />
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#25000000" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button x:Name="HelpButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Phím tắt / Shortcuts (F1)"
+                            AutomationProperties.Name="Show keyboard shortcuts">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                    <TextBlock x:Name="HelpGlyph" Text="&#xE897;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                        <Setter TargetName="HelpGlyph" Property="Foreground" Value="#15171C" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button x:Name="WorkspaceSelectorButton" DockPanel.Dock="Right" Height="30" Margin="4,0,6,0" Padding="8,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Chọn Workspace / Switch workspace (Ctrl+W)">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="#12000000" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#22000000" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="11" Margin="0,0,4,0" VerticalAlignment="Center" Opacity="0.7" />
+                            <TextBlock x:Name="WorkspaceButtonText" Text="All ▾" FontSize="12" FontWeight="SemiBold" Foreground="#15171C" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <TextBlock x:Name="CountText" DockPanel.Dock="Right" Foreground="{StaticResource Muted}" FontSize="12"
+                               VerticalAlignment="Center" Margin="8,0,0,0" />
+
+                    <!-- Search box with inline Filter Chips -->
+                    <Border x:Name="SearchContainer" CornerRadius="10" Background="#12000000"
+                            Height="34" Margin="0,0,8,0" Padding="10,0">
+                        <Grid VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="13" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <Grid Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="Placeholder" Text="Search clipboard…"
+                                           Foreground="#8A909C" FontSize="13.5" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                <TextBox x:Name="SearchBox" BorderThickness="0" Background="Transparent" FontSize="13.5"
+                                         VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="0"
+                                         AutomationProperties.Name="Search clipboard" />
+                            </Grid>
+                            <!-- Filter Chips: [SQL x] [Pinned x] [Dev x] -->
+                            <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                          Focusable="False" VerticalAlignment="Center">
+                                <ItemsControl x:Name="FilterChipsItemsControl" VerticalAlignment="Center">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#200E6B68" BorderBrush="#350E6B68" BorderThickness="1"
+                                                    CornerRadius="10" Margin="3,0,0,0" Padding="7,2,4,2" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                                    <Button Click="OnRemoveFilterChipClick" Tag="{Binding}"
+                                                            Width="14" Height="14" Margin="3,0,0,0"
+                                                            Background="Transparent" BorderThickness="0"
+                                                            Cursor="Hand" Focusable="False" VerticalAlignment="Center"
+                                                            ToolTip="Remove filter (Backspace)">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="7" Width="14" Height="14">
+                                                                    <TextBlock Text="✕" FontSize="8" FontWeight="Bold"
+                                                                               Foreground="{StaticResource Accent}"
+                                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="Bd" Property="Background" Value="#350E6B68" />
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </DockPanel>
+            </Border>
+
+            <!-- Search Suggestions Dropdown (Recent searches & Filter discovery) -->
+            <Popup x:Name="SearchSuggestionsPopup"
+                   PlacementTarget="{Binding ElementName=SearchContainer}"
+                   Placement="Bottom"
+                   AllowsTransparency="True"
+                   StaysOpen="False"
+                   PopupAnimation="Fade"
+                   VerticalOffset="4">
+                <Border x:Name="SuggestionsCard"
+                        Width="{Binding ElementName=SearchContainer, Path=ActualWidth}"
+                        MinWidth="340" MaxHeight="380"
+                        Background="#FFFFFF"
+                        BorderBrush="{StaticResource Line}" BorderThickness="1"
+                        CornerRadius="10" Padding="0,6"
+                        UseLayoutRounding="True" SnapsToDevicePixels="True">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270" Color="#000000" Opacity="0.15" />
+                    </Border.Effect>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <!-- RECENT SEARCHES -->
+                            <Border x:Name="RecentSearchesSection" Visibility="Collapsed" Margin="0,0,0,4">
+                                <StackPanel>
+                                    <DockPanel Margin="14,4,14,4">
+                                        <TextBlock Text="RECENT SEARCHES" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="#8A909C" DockPanel.Dock="Left" />
+                                        <Button x:Name="ClearAllRecentButton" Content="Clear" DockPanel.Dock="Right"
+                                                Foreground="#8A909C" FontSize="10.5" Background="Transparent"
+                                                BorderThickness="0" Cursor="Hand" Focusable="False"
+                                                Click="OnClearAllRecentClick" />
+                                    </DockPanel>
+                                    <ItemsControl x:Name="RecentSearchesList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="Transparent" Padding="14,5" Cursor="Hand"
+                                                        MouseLeftButtonUp="OnRecentSearchItemClick">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#0A000000" />
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <DockPanel LastChildFill="True">
+                                                        <Button DockPanel.Dock="Right" Width="18" Height="18"
+                                                                Background="Transparent" BorderThickness="0"
+                                                                Cursor="Hand" Focusable="False" ToolTip="Remove from recent"
+                                                                Click="OnRemoveRecentSearchClick" Tag="{Binding}">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border x:Name="DelBd" Background="Transparent" CornerRadius="4">
+                                                                        <TextBlock Text="✕" FontSize="9" Foreground="#8A909C"
+                                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="DelBd" Property="Background" Value="#20000000" />
+                                                                            <Setter Property="Foreground" Value="#15171C" />
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+                                                        <TextBlock Text="&#xE81C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                                   FontSize="11.5" Foreground="#8A909C" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                        <TextBlock Text="{Binding}" FontSize="12.5" Foreground="#15171C"
+                                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    </DockPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Rectangle Height="1" Fill="{StaticResource Line}" Margin="12,6" />
+                                </StackPanel>
                             </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="#F1F3F5" />
-                                </Trigger>
-                                <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
-                                    <Setter TargetName="Glyph" Property="Foreground" Value="#FFFFFF" />
-                                    <Setter TargetName="Glyph" Property="Text" Value="&#xE840;" />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </ToggleButton.Template>
-                </ToggleButton>
-                <Button x:Name="DockButton" DockPanel.Dock="Right" Width="32" Height="32" Margin="4,0,0,0"
-                        Focusable="False" Cursor="Hand" ToolTip="Dock as a sidebar: right → left → off (Ctrl+D)"
-                        AutomationProperties.Name="Dock Quick Paste to a screen edge">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
-                                <TextBlock x:Name="DockGlyph" Text="&#xE90D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
-                                           Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                            <!-- FILTERS DISCOVERY -->
+                            <TextBlock Text="FILTERS" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="#8A909C" Margin="14,4,14,6" />
+
+                            <!-- Type -->
+                            <Border Padding="14,4" Background="Transparent">
+                                <StackPanel>
+                                    <TextBlock Text="🏷️ Type" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
+                                    <WrapPanel x:Name="TypeFilterPills" Orientation="Horizontal" />
+                                </StackPanel>
                             </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="#F1F3F5" />
-                                </Trigger>
-                                <Trigger Property="Tag" Value="docked">
-                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
-                                    <Setter TargetName="DockGlyph" Property="Foreground" Value="#FFFFFF" />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-                <TextBlock x:Name="CountText" DockPanel.Dock="Right" Foreground="{StaticResource Muted}" FontSize="12"
-                           VerticalAlignment="Center" Margin="12,0,0,0" />
-                <Grid>
-                    <TextBlock x:Name="Placeholder" Text="Search clipboard…   type:sql  pinned:true  workspace:name"
-                               Foreground="#8A909C" FontSize="15" VerticalAlignment="Center" IsHitTestVisible="False" />
-                    <TextBox x:Name="SearchBox" BorderThickness="0" Background="Transparent" FontSize="15"
-                             VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="0"
-                             AutomationProperties.Name="Search clipboard" />
-                </Grid>
-            </DockPanel>
-        </Border>
 
-        <!-- List + preview -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <!-- Docked as a sidebar: the list takes the whole width and the preview is hidden (see ApplyLayout). -->
-                <ColumnDefinition x:Name="ListColumn" Width="340" />
-                <ColumnDefinition x:Name="SplitColumn" Width="1" />
-                <ColumnDefinition x:Name="PreviewColumn" Width="*" />
-            </Grid.ColumnDefinitions>
+                            <!-- Workspace -->
+                            <Border Padding="14,4" Background="Transparent">
+                                <StackPanel>
+                                    <TextBlock Text="📁 Workspace" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
+                                    <WrapPanel x:Name="WorkspaceFilterPills" Orientation="Horizontal" />
+                                </StackPanel>
+                            </Border>
 
-            <ListBox x:Name="ItemsList" Grid.Column="0" BorderThickness="0" Padding="6,8"
-                     ItemContainerStyle="{StaticResource ItemStyle}"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
-                     AutomationProperties.Name="Clipboard items">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <DockPanel LastChildFill="True">
-                            <TextBlock DockPanel.Dock="Left" Text="{Binding Shortcut}" Width="12" FontSize="11" Opacity="0.55"
-                                       FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" Margin="0,0,4,0"
-                                       ToolTip="Ctrl + this number pastes the item" />
-                            <TextBlock DockPanel.Dock="Left" Text="{Binding MarkGlyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                       FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock DockPanel.Dock="Right" Text="{Binding TypeLabel}" FontSize="11.5" Opacity="0.75"
-                                       VerticalAlignment="Center" Margin="8,0,0,0" />
-                            <TextBlock DockPanel.Dock="Right" Text="{Binding PinGlyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                       FontSize="11" VerticalAlignment="Center" Margin="6,0,0,0" />
-                            <TextBlock Text="{Binding Title}" FontFamily="{Binding TitleFont}" FontSize="13"
-                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                        </DockPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                            <!-- Pinned -->
+                            <Border Padding="14,4" Background="Transparent">
+                                <StackPanel>
+                                    <TextBlock Text="📌 Pinned" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
+                                    <WrapPanel x:Name="PinnedFilterPills" Orientation="Horizontal" />
+                                </StackPanel>
+                            </Border>
 
-            <Rectangle x:Name="PreviewSplit" Grid.Column="1" Fill="{StaticResource Line}" />
+                            <!-- Date -->
+                            <Border Padding="14,4" Background="Transparent">
+                                <StackPanel>
+                                    <TextBlock Text="📅 Date" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
+                                    <WrapPanel x:Name="DateFilterPills" Orientation="Horizontal" />
+                                </StackPanel>
+                            </Border>
 
-            <Grid x:Name="PreviewPane" Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <TextBox x:Name="PreviewText" Grid.Row="0" IsReadOnly="True" BorderThickness="0" Background="Transparent"
-                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="14,14"
-                         FontFamily="Cascadia Mono, Consolas" FontSize="13" IsReadOnlyCaretVisible="True">
-                    <TextBox.ContextMenu>
-                        <ContextMenu x:Name="PreviewContextMenu" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="12.5">
-                            <MenuItem x:Name="MenuPasteSelection" Header="Paste selection" InputGestureText="Enter" FontWeight="SemiBold" />
-                            <MenuItem x:Name="MenuCopySelection" Header="Copy" InputGestureText="Ctrl+C" />
-                            <MenuItem x:Name="MenuCopyAll" Header="Copy all" />
-                            <Separator />
-                            <MenuItem x:Name="MenuSelectAll" Header="Select all" InputGestureText="Ctrl+A" />
-                        </ContextMenu>
-                    </TextBox.ContextMenu>
-                </TextBox>
-                <Image x:Name="PreviewImage" Grid.Row="0" Stretch="Uniform" Margin="18" Visibility="Collapsed"
-                       RenderOptions.BitmapScalingMode="HighQuality" />
-                <TextBlock x:Name="EmptyText" Grid.Row="0" Text="Nothing copied yet. Copy something and it will appear here."
-                           Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="24" VerticalAlignment="Center"
-                           HorizontalAlignment="Center" TextAlignment="Center" Visibility="Collapsed" />
-
-                <Border Grid.Row="1" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="18,12">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="22" />
-                            <RowDefinition Height="22" />
-                            <RowDefinition Height="22" />
-                            <RowDefinition Height="22" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="Type" Style="{StaticResource MetaLabel}" />
-                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="MetaType" Style="{StaticResource MetaValue}" />
-                        <TextBlock Grid.Row="1" Text="Source → workspace" Style="{StaticResource MetaLabel}" />
-                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MetaSource" Style="{StaticResource MetaValue}" />
-                        <TextBlock Grid.Row="2" Text="Copied" Style="{StaticResource MetaLabel}" />
-                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="MetaCopied" Style="{StaticResource MetaValue}" />
-                        <TextBlock Grid.Row="3" Text="Expires" Style="{StaticResource MetaLabel}" />
-                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="MetaExpires" Style="{StaticResource MetaValue}" />
-                    </Grid>
+                            <!-- Sensitive -->
+                            <Border Padding="14,4,14,8" Background="Transparent">
+                                <StackPanel>
+                                    <TextBlock Text="🔒 Sensitive" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
+                                    <WrapPanel x:Name="SensitiveFilterPills" Orientation="Horizontal" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Border>
-            </Grid>
-        </Grid>
+            </Popup>
 
-        <!-- Footer -->
-        <Border x:Name="Footer" Grid.Row="2" Background="#F8F9FA" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
-            <DockPanel Margin="18,0,4,0">
-                <ResizeGrip x:Name="ResizeGripIndicator" DockPanel.Dock="Right" VerticalAlignment="Bottom" HorizontalAlignment="Right"
-                            Margin="0,0,1,1" IsTabStop="False" Opacity="0.4" ToolTip="Drag to resize" />
-                <TextBlock x:Name="StatusText" DockPanel.Dock="Left" Foreground="#4A505C" FontSize="12.5" VerticalAlignment="Center" />
-                <StackPanel x:Name="FooterHints" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="Paste" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <Border Style="{StaticResource Kbd}"><TextBlock Text="Enter" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
-                    <TextBlock Text="Plain" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
-                    <Border Style="{StaticResource Kbd}"><TextBlock Text="Ctrl Shift Enter" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
-                    <TextBlock Text="Pin" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
-                    <Border Style="{StaticResource Kbd}"><TextBlock Text="Ctrl P" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
-                    <TextBlock Text="Select" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
-                    <Border Style="{StaticResource Kbd}"><TextBlock Text="Ctrl Space" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
-                    <TextBlock Text="All keys" FontSize="12.5" Foreground="#4A505C" VerticalAlignment="Center" />
-                    <Border Style="{StaticResource Kbd}"><TextBlock Text="F1" FontFamily="Cascadia Mono, Consolas" FontSize="11" /></Border>
-                </StackPanel>
-            </DockPanel>
-        </Border>
-    </Grid>
+            <!-- Row 2: Filter chips & Paste Stack Banner -->
+            <StackPanel Grid.Row="2">
+                <!-- Filter Chips (Item 18 & 20) -->
+                <Border x:Name="FilterBar" Background="Transparent" Padding="14,2,14,4">
+                    <DockPanel LastChildFill="False">
+                        <Button x:Name="ChipAll" Content="All" Style="{StaticResource ChipButton}" Tag="active" />
+                        <Button x:Name="ChipCode" Content="💻 Code" Style="{StaticResource ChipButton}" />
+                        <Button x:Name="ChipImage" Content="📷 Images" Style="{StaticResource ChipButton}" />
+                        <Button x:Name="ChipPinned" Content="📌 Pinned" Style="{StaticResource ChipButton}" />
+                        <Button x:Name="ChipSnippet" Content="🏷 Snippets" Style="{StaticResource ChipButton}" />
+                    </DockPanel>
+                </Border>
+
+                <!-- Dedicated Paste Stack Banner (Item 8) -->
+                <Border x:Name="PasteStackBanner" Background="#180E6B68" BorderBrush="#300E6B68"
+                        BorderThickness="0,1,0,1" Padding="14,6" Visibility="Collapsed">
+                    <DockPanel LastChildFill="True">
+                        <Button x:Name="StopPasteStackButton" DockPanel.Dock="Right" Content="Stop Stack"
+                                Padding="8,2" FontSize="11" Margin="8,0,0,0" Focusable="False" Cursor="Hand"
+                                Style="{StaticResource HeaderActionButton}" ToolTip="Stop paste stack (Esc)" />
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <TextBlock Text="📚 Paste Stack" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <Border Background="#250E6B68" CornerRadius="4" Padding="5,1">
+                                <TextBlock x:Name="PasteStackStepText" Text="1 / 5" FontWeight="Bold" FontSize="11" Foreground="{StaticResource Accent}" />
+                            </Border>
+                        </StackPanel>
+                        <ProgressBar x:Name="PasteStackProgressBar" DockPanel.Dock="Right" Width="80" Height="6"
+                                     Margin="10,0" Minimum="0" Maximum="100" VerticalAlignment="Center" Foreground="{StaticResource Accent}" />
+                        <TextBlock x:Name="PasteStackNextTitle" Text="Next: item" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Foreground="#15171C" />
+                    </DockPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Row 3: List + preview -->
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="ListColumn" Width="40*" MinWidth="180" />
+                    <ColumnDefinition x:Name="SplitColumn" Width="5" />
+                    <ColumnDefinition x:Name="PreviewColumn" Width="60*" MinWidth="180" />
+                </Grid.ColumnDefinitions>
+
+                <ListBox x:Name="ItemsList" Grid.Column="0" BorderThickness="0" Background="Transparent" Padding="6,6"
+                         ItemContainerStyle="{StaticResource ItemStyle}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         AutomationProperties.Name="Clipboard items">
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <Border Background="Transparent" Padding="8,8,8,4" Margin="0,4,0,2">
+                                        <DockPanel LastChildFill="True">
+                                            <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Accent}" />
+                                            <Rectangle Height="1" Fill="#20000000" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Tầng 1: PRIMARY (Nội dung) + Tầng 2: TYPE (Icon & Badge) + Shortcut / Checkbox -->
+                                <DockPanel Grid.Row="0" LastChildFill="True">
+                                    <!-- Shortcut (1..9 for Ctrl+1..9) -->
+                                    <TextBlock DockPanel.Dock="Left" Text="{Binding Shortcut}" Width="12" FontSize="11" Opacity="0.5"
+                                               FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" Margin="0,0,4,0"
+                                               ToolTip="Ctrl + phím này để dán nhanh" />
+
+                                    <!-- Multi-select / paste stack checkbox if active -->
+                                    <Border DockPanel.Dock="Left" x:Name="CheckboxContainer" Margin="0,0,4,0" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock x:Name="SelectGlyphText" Text="{Binding SelectGlyph}"
+                                                       FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource Accent}"
+                                                       ToolTip="Đánh dấu item (Ctrl+Space)" />
+                                            <TextBlock x:Name="MarkOrderLabel" Text="{Binding MarkOrderText}" FontSize="9.5" FontWeight="Bold" Margin="1,0,0,0"
+                                                       VerticalAlignment="Center" Foreground="{StaticResource Accent}" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Type Icon on the leading edge (🖼, T, 🗄, {}, 🌐, 🔒...) -->
+                                    <Border DockPanel.Dock="Left" Width="18" Height="18" Margin="0,0,6,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="ItemTypeIcon" Text="{Binding TypeIcon}"
+                                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Variable Text, Segoe UI"
+                                                   FontSize="12" FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{StaticResource Muted}" />
+                                    </Border>
+
+                                    <!-- Type Badge (PNG, Plain, SQL, JSON, URL...) on the trailing edge -->
+                                    <Border DockPanel.Dock="Right" x:Name="TypeBadgeBorder"
+                                            CornerRadius="4" Padding="5,1,5,1" Margin="6,0,0,0"
+                                            Background="#10000000" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TypeBadgeText" Text="{Binding TypeBadge}"
+                                                   FontSize="10" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                    </Border>
+
+                                    <!-- Focus indicator on selection -->
+                                    <TextBlock x:Name="FocusIndicator" DockPanel.Dock="Left" Text="▸ " FontSize="11"
+                                               FontWeight="Bold" Foreground="#FFFFFF" Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,2,0" />
+
+                                    <!-- Primary Content (Title) - Prominent, high visual weight -->
+                                    <TextBlock x:Name="ItemTitleText" Text="{Binding Title}"
+                                               FontFamily="{Binding TitleFont}" FontSize="13" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                               Foreground="#15171C" />
+                                </DockPanel>
+
+                                <!-- Tầng 3: METADATA (Time, Copy count) + Tầng 4: STATE (📌 pinned / 🔒 sensitive / ⏱ expiration) -->
+                                <!-- Aligned with primary content (indented past shortcut + icon) -->
+                                <DockPanel Grid.Row="1" Margin="34,2,0,0" LastChildFill="False">
+                                    <!-- Metadata: Relative time (1 min ago, 2 min ago...) - Muted -->
+                                    <TextBlock DockPanel.Dock="Left" x:Name="ItemTimeAgoText" Text="{Binding TimeAgo}"
+                                               FontSize="11" Foreground="{StaticResource Muted}" Opacity="0.7"
+                                               VerticalAlignment="Center" />
+
+                                    <!-- Metadata: Copy count (e.g. 2×) - Only shown if CopyCount > 1 -->
+                                    <Border DockPanel.Dock="Right" x:Name="CopyCountPill"
+                                            CornerRadius="3" Padding="4,0" Margin="6,0,0,0"
+                                            Background="#12000000" VerticalAlignment="Center"
+                                            Visibility="{Binding HasCopyCount, Converter={StaticResource BoolToVis}}"
+                                            ToolTip="Số lần đã copy">
+                                        <TextBlock x:Name="CopyCountText" Text="{Binding CopyCountText}"
+                                                   FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
+
+                                    <!-- State: Pinned indicator (📌) -->
+                                    <TextBlock DockPanel.Dock="Right" x:Name="PinIndicator" Text="&#xE840;"
+                                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                               FontSize="10.5" Foreground="{StaticResource Accent}"
+                                               Margin="6,0,0,0" VerticalAlignment="Center"
+                                               ToolTip="Đã ghim (Ctrl+P)"
+                                               Visibility="{Binding HasPin, Converter={StaticResource BoolToVis}}" />
+
+                                    <!-- State: Sensitive indicator (🔒 sensitive) -->
+                                    <Border DockPanel.Dock="Right" x:Name="SensitiveIndicator"
+                                            Background="#20D97706" CornerRadius="3" Padding="4,1" Margin="6,0,0,0"
+                                            VerticalAlignment="Center" ToolTip="Dữ liệu nhạy cảm (Ctrl+R để mở)"
+                                            Visibility="{Binding HasSensitiveBadge, Converter={StaticResource BoolToVis}}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="9.5" Foreground="#D97706" Margin="0,0,2,0" />
+                                            <TextBlock Text="Sensitive" FontSize="9.5" FontWeight="SemiBold" Foreground="#D97706" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- State: Expiration indicator (⏱ 45s) -->
+                                    <Border DockPanel.Dock="Right" x:Name="ExpiryIndicator"
+                                            Background="#15D97706" CornerRadius="3" Padding="4,1" Margin="6,0,0,0"
+                                            VerticalAlignment="Center" ToolTip="{Binding ExpirationTooltip}"
+                                            Visibility="{Binding HasExpiration, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock x:Name="ExpiryText" Text="{Binding ExpirationBadgeText}"
+                                                   FontSize="9.5" FontWeight="SemiBold" Foreground="#D97706"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
+                                </DockPanel>
+                            </Grid>
+
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                    <Setter TargetName="FocusIndicator" Property="Visibility" Value="Visible" />
+                                    <Setter TargetName="ItemTitleText" Property="Foreground" Value="#FFFFFF" />
+                                    <Setter TargetName="ItemTypeIcon" Property="Foreground" Value="#FFFFFF" />
+                                    <Setter TargetName="TypeBadgeBorder" Property="Background" Value="#25FFFFFF" />
+                                    <Setter TargetName="TypeBadgeText" Property="Foreground" Value="#FFFFFF" />
+                                    <Setter TargetName="ItemTimeAgoText" Property="Foreground" Value="#E0F2F1" />
+                                    <Setter TargetName="ItemTimeAgoText" Property="Opacity" Value="0.9" />
+                                    <Setter TargetName="CopyCountPill" Property="Background" Value="#25FFFFFF" />
+                                    <Setter TargetName="CopyCountText" Property="Foreground" Value="#FFFFFF" />
+                                    <Setter TargetName="PinIndicator" Property="Foreground" Value="#FFFFFF" />
+                                    <Setter TargetName="SelectGlyphText" Property="Foreground" Value="#FFFFFF" />
+                                    <Setter TargetName="MarkOrderLabel" Property="Foreground" Value="#FFFFFF" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <GridSplitter x:Name="PreviewSplit" Grid.Column="1"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                              ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                              ShowsPreview="False" Cursor="SizeWE" Background="Transparent" Focusable="False"
+                              ToolTip="Kéo để chia tỷ lệ List / Preview • Nhấp đúp: đổi nhanh • Chuột phải: menu">
+                    <GridSplitter.Template>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Border Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <Border x:Name="SplitLine" Width="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{StaticResource Line}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="SplitLine" Property="Background" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="SplitLine" Property="Width" Value="3" />
+                                    <Setter TargetName="SplitLine" Property="CornerRadius" Value="1.5" />
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                    <Setter TargetName="SplitLine" Property="Background" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="SplitLine" Property="Width" Value="3" />
+                                    <Setter TargetName="SplitLine" Property="CornerRadius" Value="1.5" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </GridSplitter.Template>
+                </GridSplitter>
+
+                <Grid x:Name="PreviewPane" Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: Content Header Bar (Badge, Stats, Actions) -->
+                    <Border x:Name="PreviewHeaderBar" Grid.Row="0" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1"
+                            Padding="14,8" Background="#06000000" Visibility="Collapsed">
+                        <DockPanel LastChildFill="False">
+                            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border x:Name="PreviewBadgeBorder" Background="#E8F2FF" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
+                                    <TextBlock x:Name="PreviewBadgeText" Text="SQL" FontSize="11" FontWeight="SemiBold" Foreground="#0969DA" />
+                                </Border>
+                                <TextBlock x:Name="PreviewStatsText" Text="SQL · 182 characters" FontSize="12" Foreground="{StaticResource Muted}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="FormatButton" Content="Format" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0"
+                                        ToolTip="Format / Prettify code" Visibility="Collapsed" />
+                                <Button x:Name="OpenUrlButton" Content="Open URL" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0"
+                                        ToolTip="Open link in default browser" Visibility="Collapsed" />
+                                <Button x:Name="ToggleRevealButton" Content="Reveal (Ctrl+R)" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0"
+                                        ToolTip="Reveal / Hide sensitive content (Ctrl+R)" Visibility="Collapsed" />
+                                <Button x:Name="CopyPreviewButton" Content="Copy" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0"
+                                        ToolTip="Copy content (Ctrl+C)" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Row 1: Content Viewport Area -->
+                    <Grid Grid.Row="1">
+                        <!-- Empty States (Item 15) -->
+                        <TextBlock x:Name="EmptyText" Visibility="Collapsed" />
+                        <StackPanel x:Name="EmptyClipboardContainer" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" Visibility="Collapsed">
+                            <TextBlock Text="📋" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" Opacity="0.8" />
+                            <TextBlock Text="Your clipboard is empty" FontSize="15" FontWeight="SemiBold" Foreground="#15171C" HorizontalAlignment="Center" Margin="0,0,0,4" />
+                            <TextBlock Text="Copy something and it will appear here." FontSize="12.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,0,0,12" />
+                            <Border Style="{StaticResource Keycap}" HorizontalAlignment="Center" Padding="8,3">
+                                <TextBlock Text="Ctrl+Shift+V" Style="{StaticResource KeycapText}" />
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel x:Name="EmptySearchContainer" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" Visibility="Collapsed">
+                            <TextBlock Text="🔍" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" Opacity="0.8" />
+                            <TextBlock Text="No clipboard found" FontSize="15" FontWeight="SemiBold" Foreground="#15171C" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                            <TextBlock Text="Try:" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="0,0,0,3" />
+                            <TextBlock Text="• Another keyword&#x0a;• Remove or change a filter&#x0a;• F1 for search syntax"
+                                       FontSize="12" Foreground="{StaticResource Muted}" LineHeight="18" Margin="0,0,0,0" />
+                        </StackPanel>
+
+                        <!-- Sensitive Hidden State (when !Revealed) -->
+                        <Border x:Name="SensitiveHiddenContainer" Background="#05000000" Margin="14" CornerRadius="8"
+                                BorderBrush="#FED7AA" BorderThickness="1" Padding="20" VerticalAlignment="Center"
+                                Visibility="Collapsed">
+                            <StackPanel HorizontalAlignment="Center" MaxWidth="380">
+                                <Border Background="#FEF3C7" CornerRadius="22" Width="44" Height="44" HorizontalAlignment="Center" Margin="0,0,0,10">
+                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20"
+                                               Foreground="#D97706" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="Sensitive content" FontSize="15" FontWeight="SemiBold" Foreground="#92400E"
+                                           HorizontalAlignment="Center" Margin="0,0,0,3" />
+                                <TextBlock x:Name="SensitiveSubtypeText" Text="API Key detected" FontSize="11.5" Foreground="#B45309"
+                                           HorizontalAlignment="Center" Margin="0,0,0,12" />
+
+                                <Border Background="#FFFFFF" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="6"
+                                        Padding="14,9" Margin="0,0,0,14" HorizontalAlignment="Stretch">
+                                    <TextBlock x:Name="SensitiveMaskedText" Text="••••••••••••••••••••••••••••••••"
+                                               FontFamily="Cascadia Mono, Consolas" FontSize="14" Foreground="#78350F"
+                                               HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                </Border>
+
+                                <Button x:Name="SensitiveRevealButton" HorizontalAlignment="Center" Cursor="Hand" Margin="0,0,0,10">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" Background="{StaticResource Accent}" CornerRadius="6" Padding="14,6">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xE785;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"
+                                                               Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                                    <TextBlock Text="Reveal content" FontWeight="SemiBold" FontSize="12" Foreground="#FFFFFF"
+                                                               VerticalAlignment="Center" />
+                                                    <Border Background="#25FFFFFF" CornerRadius="3" Padding="4,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="Ctrl+R" FontFamily="Cascadia Mono, Consolas" FontSize="10" Foreground="#FFFFFF" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Opacity" Value="0.9" /></Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+
+                                <TextBlock Text="Hidden to protect credentials. Auto-wipes when expired."
+                                           FontSize="11" Foreground="#92400E" HorizontalAlignment="Center" TextAlignment="Center" />
+                                <TextBlock x:Name="SensitiveExpiryText" Text="Auto-wipes in 5 minutes"
+                                           FontSize="10.5" Foreground="#B45309" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Image Viewer & OCR Info -->
+                        <Grid x:Name="ImageContainer" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#05000000" Margin="14" CornerRadius="8" BorderBrush="{StaticResource Line}"
+                                    BorderThickness="1" ClipToBounds="True">
+                                <Image x:Name="PreviewImage" Stretch="Uniform" Margin="10"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                            </Border>
+
+                            <Border Grid.Row="1" Background="#04000000" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"
+                                    Padding="14,8">
+                                <StackPanel>
+                                    <DockPanel LastChildFill="False">
+                                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock x:Name="ImageDimensionsText" Text="PNG · 1103 × 593" FontWeight="SemiBold"
+                                                       FontSize="12" Foreground="#15171C" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                            <Border x:Name="OcrBadgeBorder" Background="#E6F4F1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                <TextBlock x:Name="OcrBadgeText" Text="OCR: Available" FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource Accent}" />
+                                            </Border>
+                                        </StackPanel>
+
+                                        <Button x:Name="ToggleOcrButton" DockPanel.Dock="Right" Content="View OCR text"
+                                                Style="{StaticResource HeaderActionButton}" Visibility="Collapsed" />
+                                    </DockPanel>
+
+                                    <Border x:Name="OcrTextPanel" Background="#FFFFFF" BorderBrush="{StaticResource Line}"
+                                            BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,4,0,0" Visibility="Collapsed">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="65" />
+                                            </Grid.RowDefinitions>
+                                            <DockPanel Grid.Row="0" Margin="0,0,0,4">
+                                                <TextBlock Text="Recognized text (Ctrl+Shift+Enter pastes):" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                                <Button x:Name="CopyOcrButton" DockPanel.Dock="Right" Content="Copy OCR" Style="{StaticResource HeaderActionButton}" FontSize="10.5" Padding="6,1" />
+                                            </DockPanel>
+                                            <TextBox x:Name="OcrTextBox" Grid.Row="1" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontSize="11.5" FontFamily="Cascadia Mono, Consolas" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- URL Rich Card -->
+                        <ScrollViewer x:Name="UrlContainer" VerticalScrollBarVisibility="Auto" Padding="16,14" Visibility="Collapsed">
+                            <StackPanel>
+                                <Border Background="#0816A34A" BorderBrush="#3016A34A" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,0,0,12">
+                                    <DockPanel LastChildFill="True">
+                                        <Border DockPanel.Dock="Left" Background="#1516A34A" CornerRadius="8" Width="40" Height="40" Margin="0,0,12,0">
+                                            <TextBlock x:Name="UrlGlyph" Text="&#xE71B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                       FontSize="18" Foreground="#16A34A" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock x:Name="UrlSiteName" Text="GitHub" FontSize="15" FontWeight="SemiBold" Foreground="#15171C" />
+                                            <TextBlock x:Name="UrlHostText" Text="github.com" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+
+                                <Border Background="#05000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,12">
+                                    <TextBox x:Name="UrlFullText" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                             TextWrapping="Wrap" FontSize="12.5" Foreground="#0969DA" FontFamily="Cascadia Mono, Consolas" />
+                                </Border>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <Button x:Name="UrlLaunchButton" Cursor="Hand" Margin="0,0,8,0">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Bd" Background="{StaticResource Accent}" CornerRadius="6" Padding="12,5">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="&#xE8A7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11.5"
+                                                                   Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                                        <TextBlock Text="Open in browser" FontWeight="SemiBold" FontSize="11.5" Foreground="#FFFFFF" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Opacity" Value="0.9" /></Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                    <Button x:Name="UrlCopyButton" Content="Copy link" Style="{StaticResource HeaderActionButton}" />
+                                </StackPanel>
+
+                                <Border Background="#04000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="12">
+                                    <StackPanel>
+                                        <TextBlock Text="URL Breakdown" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="0,0,0,6" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="55" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="18" />
+                                                <RowDefinition Height="18" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Text="Scheme" FontSize="11" Foreground="{StaticResource Muted}" />
+                                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="UrlSchemeVal" FontSize="11" FontFamily="Cascadia Mono, Consolas" />
+                                            <TextBlock Grid.Row="1" Text="Host" FontSize="11" Foreground="{StaticResource Muted}" />
+                                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="UrlHostVal" FontSize="11" FontFamily="Cascadia Mono, Consolas" />
+                                            <TextBlock Grid.Row="2" Text="Path" FontSize="11" Foreground="{StaticResource Muted}" />
+                                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="UrlPathVal" FontSize="11" FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Code Viewer (Syntax Highlighting) -->
+                        <Grid x:Name="CodeContainer" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Revealed secret banner -->
+                            <Border x:Name="SensitiveRevealedBanner" Grid.Row="0" Background="#FEF3C7" BorderBrush="#FDE68A"
+                                    BorderThickness="0,0,0,1" Padding="14,6" Visibility="Collapsed">
+                                <DockPanel LastChildFill="False">
+                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE785;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"
+                                                   Foreground="#D97706" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBlock Text="Sensitive content revealed" FontWeight="SemiBold" FontSize="11.5"
+                                                   Foreground="#92400E" VerticalAlignment="Center" />
+                                        <TextBlock Text=" · Press Ctrl+R to hide" FontSize="11" Foreground="#B45309"
+                                                   VerticalAlignment="Center" Margin="4,0,0,0" />
+                                    </StackPanel>
+                                    <Button x:Name="SensitiveHideButton" DockPanel.Dock="Right" Content="Hide (Ctrl+R)"
+                                            Style="{StaticResource HeaderActionButton}" Background="#FED7AA" Foreground="#78350F" />
+                                </DockPanel>
+                            </Border>
+
+                            <RichTextBox x:Name="PreviewCode" Grid.Row="1" IsReadOnly="True" IsDocumentEnabled="True"
+                                         BorderThickness="0" Background="Transparent"
+                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="14,12"
+                                         FontFamily="Cascadia Mono, Consolas" FontSize="13" IsReadOnlyCaretVisible="True">
+                            </RichTextBox>
+                        </Grid>
+
+                        <!-- Plain Text Viewer -->
+                        <Grid x:Name="TextContainer" Visibility="Visible">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border x:Name="SensitiveRevealedTextBanner" Grid.Row="0" Background="#FEF3C7" BorderBrush="#FDE68A"
+                                    BorderThickness="0,0,0,1" Padding="14,6" Visibility="Collapsed">
+                                <DockPanel LastChildFill="False">
+                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE785;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"
+                                                   Foreground="#D97706" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBlock Text="Sensitive content revealed" FontWeight="SemiBold" FontSize="11.5"
+                                                   Foreground="#92400E" VerticalAlignment="Center" />
+                                        <TextBlock Text=" · Press Ctrl+R to hide" FontSize="11" Foreground="#B45309"
+                                                   VerticalAlignment="Center" Margin="4,0,0,0" />
+                                    </StackPanel>
+                                    <Button x:Name="SensitiveHideTextButton" DockPanel.Dock="Right" Content="Hide (Ctrl+R)"
+                                            Style="{StaticResource HeaderActionButton}" Background="#FED7AA" Foreground="#78350F" />
+                                </DockPanel>
+                            </Border>
+
+                            <TextBox x:Name="PreviewText" Grid.Row="1" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="14,14"
+                                     FontFamily="Cascadia Mono, Consolas" FontSize="13" IsReadOnlyCaretVisible="True">
+                                <TextBox.ContextMenu>
+                                    <ContextMenu x:Name="PreviewContextMenu" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="12.5">
+                                        <MenuItem x:Name="MenuPasteSelection" Header="Paste selection" InputGestureText="Enter" FontWeight="SemiBold" />
+                                        <MenuItem x:Name="MenuCopySelection" Header="Copy" InputGestureText="Ctrl+C" />
+                                        <MenuItem x:Name="MenuCopyAll" Header="Copy all" />
+                                        <Separator />
+                                        <MenuItem x:Name="MenuSelectAll" Header="Select all" InputGestureText="Ctrl+A" />
+                                    </ContextMenu>
+                                </TextBox.ContextMenu>
+                            </TextBox>
+                        </Grid>
+                    </Grid>
+
+                    <!-- Row 2: Bottom Metadata Table -->
+                    <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="18,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="22" />
+                                <RowDefinition Height="22" />
+                                <RowDefinition Height="22" />
+                                <RowDefinition Height="22" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="Type" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="MetaType" Style="{StaticResource MetaValue}" />
+                            <TextBlock Grid.Row="1" Text="Source → workspace" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MetaSource" Style="{StaticResource MetaValue}" />
+                            <TextBlock Grid.Row="2" Text="Copied" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="MetaCopied" Style="{StaticResource MetaValue}" />
+                            <TextBlock Grid.Row="3" Text="Expires" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="MetaExpires" Style="{StaticResource MetaValue}" />
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- Row 4: Contextual Footer Toolbar (Item 9 & 10) -->
+            <Border x:Name="Footer" Grid.Row="4" Background="Transparent" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+                <DockPanel Margin="14,0,4,0">
+                    <ResizeGrip x:Name="ResizeGripIndicator" DockPanel.Dock="Right" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                                Margin="0,0,1,1" IsTabStop="False" Opacity="0.4" ToolTip="Drag to resize" />
+                    <TextBlock x:Name="StatusText" DockPanel.Dock="Left" Foreground="#4A505C" FontSize="12.5" VerticalAlignment="Center" />
+
+                    <!-- Normal Context Toolbar -->
+                    <StackPanel x:Name="NormalToolbar" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Enter" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Paste" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="⇧Enter" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Plain" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+P" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Pin" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+Space" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Select" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="F1" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Shortcuts" Style="{StaticResource HintLabel}" />
+                    </StackPanel>
+
+                    <!-- Multi-select Context Toolbar (Item 7 & 9) -->
+                    <StackPanel x:Name="MultiSelectToolbar" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="Collapsed">
+                        <TextBlock x:Name="MultiSelectCountBadge" Text="3 selected" FontWeight="Bold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Enter" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Merge &amp; Paste" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+S" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Paste Stack" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+P" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Pin" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Del" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Delete" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Esc" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Cancel" Style="{StaticResource HintLabel}" />
+                    </StackPanel>
+
+                    <!-- Sensitive Context Toolbar (Item 9) -->
+                    <StackPanel x:Name="SensitiveToolbar" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="Collapsed">
+                        <TextBlock Text="🔒 Sensitive" FontWeight="SemiBold" Foreground="#D97706" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+R" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Reveal" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Enter" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Paste" Style="{StaticResource HintLabel}" />
+                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Esc" Style="{StaticResource KeycapText}" /></Border>
+                        <TextBlock Text="Close" Style="{StaticResource HintLabel}" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- F1 Help Overlay Modal (Item 11) -->
+            <Border x:Name="HelpOverlay" Grid.Row="0" Grid.RowSpan="5" Background="#F2F6F7F9" CornerRadius="16"
+                    BorderThickness="1" BorderBrush="#35000000" Visibility="Collapsed" Panel.ZIndex="100">
+                <Grid Margin="20,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                        <Button x:Name="HelpCloseButton" DockPanel.Dock="Right" Content="✕" Focusable="False"
+                                Width="26" Height="26" Cursor="Hand" Style="{StaticResource HeaderActionButton}"
+                                ToolTip="Close shortcuts help (Esc)" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="⌨ Keyboard shortcuts" FontSize="16" FontWeight="Bold" Foreground="#15171C" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <Border Style="{StaticResource Keycap}"><TextBlock Text="F1" Style="{StaticResource KeycapText}" /></Border>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Search Input for Shortcuts -->
+                    <Border Grid.Row="1" CornerRadius="8" Background="#14000000" Height="32" Margin="0,0,0,12" Padding="10,0">
+                        <Grid VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBox x:Name="HelpSearchBox" Grid.Column="1" BorderThickness="0" Background="Transparent"
+                                     FontSize="12.5" VerticalAlignment="Center" VerticalContentAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Scrollable Shortcuts Categorized List -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="HelpCategoriesPanel">
+                            <!-- NAVIGATION -->
+                            <Border Background="#06000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="NAVIGATION" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
+                                    <DockPanel Margin="0,2"><TextBlock Text="Navigate items" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="↑  ↓" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Paste selected item" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Enter" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Paste as plain text (or image OCR)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+Shift+Enter" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Quick paste top row 1 … 9" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+1 … 9" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Close palette / Cancel selection" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Esc" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- CLIPBOARD & ACTIONS -->
+                            <Border Background="#06000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="CLIPBOARD &amp; ACTIONS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
+                                    <DockPanel Margin="0,2"><TextBlock Text="Pin / Unpin item" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+P" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Multi-select item (mark in order)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+Space" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Start Paste Stack from marked" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+S" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Transform text (JSON, SQL, Case...)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+K" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Copy without pasting" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+C" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Delete item from history" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Del" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ADVANCED -->
+                            <Border Background="#06000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="ADVANCED &amp; WORKSPACE" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
+                                    <DockPanel Margin="0,2"><TextBlock Text="Cycle workspace filter" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+W" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Save as snippet / Edit snippet" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+N / Ctrl+E" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Reveal sensitive secret" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+R" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Pin window floating / Keep open" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+T" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Dock as sidebar (right → left → off)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+D" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Cycle split ratio (25/75, 40/60...)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+L" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Toggle widget compact mode" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+M" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Toggle frosted glass transparency" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+Shift+T" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Open Settings" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+," Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- SEARCH FILTERS -->
+                            <Border Background="#06000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="SEARCH SYNTAX FILTERS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
+                                    <DockPanel Margin="0,2"><TextBlock Text="Filter by type" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="type:sql  type:code  type:image  type:snippet" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Filter by workspace" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="workspace:dev  ws:mail" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Pinned only" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="pinned:true" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Secrets filter" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="sensitive:false" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Filter by date range" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="after:2026-09-01  before:2026-10-01" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

@@ -45,6 +45,27 @@ public sealed class AppSettings
     public bool QuickPasteKeepOpen { get; set; }
     /// <summary>Quick Paste docked as a sidebar: "None", "Left" or "Right".</summary>
     public string SidebarEdge { get; set; } = "None";
+    /// <summary>Enable iOS-style frosted glass transparency (Acrylic blur + translucent card).</summary>
+    public bool EnableTransparency { get; set; } = true;
+    /// <summary>Translucency opacity between 0.50 and 1.0. Default 0.85 (slight transparency like modern iOS).</summary>
+    public double TransparencyOpacity { get; set; } = 0.85;
+    /// <summary>Split ratio between List and Preview panes (e.g. 0.40 for 40% list / 60% preview).</summary>
+    public double? QuickPasteListRatio { get; set; }
+    /// <summary>Compact single-column widget mode.</summary>
+    public bool WidgetMode { get; set; }
+
+    /// <summary>Recent searches displayed in the search drop-down (max 10, newest first).</summary>
+    public List<string> RecentSearches { get; set; } = new();
+
+    public void AddRecentSearch(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return;
+        query = query.Trim();
+        RecentSearches.RemoveAll(s => s.Equals(query, StringComparison.OrdinalIgnoreCase));
+        RecentSearches.Insert(0, query);
+        if (RecentSearches.Count > 10)
+            RecentSearches.RemoveRange(10, RecentSearches.Count - 10);
+    }
 
     // Privacy
     public bool DetectSensitive { get; set; } = true;

@@ -72,4 +72,98 @@ public sealed class ClassifierTests
         Assert.Equal(ContentKind.Image, _c.Classify(CapturedContent.FromImage(new byte[] { 1 }, 1, 1)).Kind);
         Assert.Equal("files", _c.Classify(CapturedContent.FromFiles(new[] { "a", "b" })).Subtype);
     }
+
+    [Test]
+    public void Classification_headers_match_user_spec()
+    {
+        // SQL: \uE71D SQL
+        Assert.Equal("\uE71D SQL", ContentClassifier.GetClassificationHeader(ContentKind.Code, "sql", "SELECT * FROM users"));
+
+        // JavaScript: \uE943 JavaScript
+        Assert.Equal("\uE943 JavaScript", ContentClassifier.GetClassificationHeader(ContentKind.Code, "code", "const user = await fetchUser();"));
+
+        // GitHub URL: \uE71B GitHub URL
+        Assert.Equal("\uE71B GitHub URL", ContentClassifier.GetClassificationHeader(ContentKind.Url, "github", "https://github.com/duytiena2/clipboard"));
+
+        // JSON: \uE943 JSON
+        Assert.Equal("\uE943 JSON", ContentClassifier.GetClassificationHeader(ContentKind.Code, "json", "{\n  \"name\": \"John\"\n}"));
+
+        // Screenshot: \uEB9F Screenshot
+        Assert.Equal("\uEB9F Screenshot", ContentClassifier.GetClassificationHeader(ContentKind.Image, "png"));
+
+        // Shell: \uE756 Shell
+        Assert.Equal("\uE756 Shell", ContentClassifier.GetClassificationHeader(ContentKind.Code, "shell", "docker compose up -d"));
+
+        // Markdown: \uE8A5 Markdown
+        Assert.Equal("\uE8A5 Markdown", ContentClassifier.GetClassificationHeader(ContentKind.Text, "markdown"));
+
+        // Log: \uE9D9 Log
+        Assert.Equal("\uE9D9 Log", ContentClassifier.GetClassificationHeader(ContentKind.Text, "log"));
+
+        // Email: \uE715 Email
+        Assert.Equal("\uE715 Email", ContentClassifier.GetClassificationHeader(ContentKind.Email, "email"));
+
+        // Sensitive: \uE72E API Key
+        Assert.Equal("\uE72E API Key", ContentClassifier.GetClassificationHeader(ContentKind.Sensitive, "api-key"));
+    }
+
+    [Test]
+    public void Detect_code_languages()
+    {
+        Assert.Equal("JavaScript", ContentClassifier.DetectCodeLanguage("const user = { name: 'Alice' };"));
+        Assert.Equal("JavaScript", ContentClassifier.DetectCodeLanguage("const add = (a, b) => a + b;"));
+        Assert.Equal("Python", ContentClassifier.DetectCodeLanguage("def calculate_total(items):\n    return sum(items)"));
+        Assert.Equal("C#", ContentClassifier.DetectCodeLanguage("using System;\npublic class App {}"));
+        Assert.Equal("HTML", ContentClassifier.DetectCodeLanguage("<div class=\"container\"><span>Text</span></div>"));
+        Assert.Equal("CSS", ContentClassifier.DetectCodeLanguage(".btn { display: flex; margin: 10px; }"));
+        Assert.Equal("Go", ContentClassifier.DetectCodeLanguage("package main\nfunc main() {}"));
+        Assert.Equal("Rust", ContentClassifier.DetectCodeLanguage("fn main() {\n    let mut x = 5;\n}"));
+    }
+
+    [Test]
+    public void ClipboardItem_classification_header_property()
+    {
+        var item = new ClipboardItem
+        {
+            Kind = ContentKind.Code,
+            Subtype = "sql",
+            TextContent = "SELECT id, name FROM users",
+            Title = "SELECT id, name FROM users"
+        };
+        Assert.Equal("\uE71D SQL", item.ClassificationHeader);
+        Assert.Equal("SQL", item.ClassificationLabel);
+        Assert.Equal("\uE71D", item.ClassificationIcon);
+        Assert.Equal("SQL", item.DisplayType);
+    }
+
+    [Test]
+    public void ClipboardItem_four_layer_properties()
+    {
+        var imgItem = new ClipboardItem
+        {
+            Kind = ContentKind.Image,
+            Subtype = "png",
+            Title = "Image 1103 × 593",
+            CopyCount = 2,
+            LastCopiedAt = DateTimeOffset.UtcNow.AddMinutes(-1),
+        };
+        Assert.Equal("🖼", imgItem.TypeIcon);
+        Assert.Equal("PNG", imgItem.TypeBadge);
+        Assert.True(imgItem.HasCopyCount);
+        Assert.Equal("2×", imgItem.CopyCountText);
+
+        var txtItem = new ClipboardItem
+        {
+            Kind = ContentKind.Text,
+            Subtype = "plain",
+            Title = "khi mà kéo đủ rộng thì tự bung đầy đủ",
+            CopyCount = 1,
+            IsPinned = true,
+            LastCopiedAt = DateTimeOffset.UtcNow.AddMinutes(-2),
+        };
+        Assert.Equal("T", txtItem.TypeIcon);
+        Assert.Equal("Plain", txtItem.TypeBadge);
+        Assert.False(txtItem.HasCopyCount);
+        Assert.Equal("📌", txtItem.PinGlyph);
+    }
 }

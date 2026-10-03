@@ -13,6 +13,7 @@ A local-first, keyboard-first clipboard manager for Windows 10/11 and macOS. It 
 | Clipboard history | Every copy is saved, newest first. Supports text, images and files. Repeated copies are merged into one entry with a copy count. |
 | Quick Paste | **Ctrl+Shift+V** opens a search palette. Arrow keys move, **Enter** pastes into the app you were in. |
 | Auto-classification | Local rules, with a confidence score, detect SQL, JSON, XML, YAML, shell, code, logs, URLs (GitHub…), email, phone, numbers, IPs and markdown. |
+| Content-aware preview | Changes dynamically based on content: syntax highlighting for SQL, JSON, XML, YAML and code; image viewer with resolution (`PNG · 1103 × 593`) and OCR text inspector; rich URL card with browser launch and URL breakdown; and clear security status for sensitive content with **Ctrl+R** reveal. |
 | Search | SQLite FTS5 with prefix matching, Vietnamese without diacritics (`chao` finds `chào`, `don` finds `đơn`), and filters: `type:sql`, `type:snippet`, `type:image`, `pinned:true`, `workspace:x`, `after:2026-09-01`, `before:…`, `sensitive:true`. |
 | Formatting | Copies keep their HTML/RTF formatting, so **Enter** pastes them formatted. **Ctrl+Shift+Enter** pastes plain text instead (for an image: the text found in it). |
 | Paste by number | The first nine rows are numbered: **Ctrl+1…9** pastes one directly (**Ctrl+Shift+1…9** as plain text). |
@@ -49,7 +50,11 @@ A local-first, keyboard-first clipboard manager for Windows 10/11 and macOS. It 
 | `Ctrl+R` | Reveal sensitive content |
 | `Ctrl+T` | Pin window / keep open: compact palette that stays on screen and pastes into the app you used last |
 | `Ctrl+D` | Dock as a sidebar: right → left → off |
-| `F1` | Show all keys |
+| `Ctrl+L` | Cycle split ratio: 25/75, 30/70, 40/60, 50/50 |
+| `Ctrl+M` | Toggle compact widget / expanded window mode |
+| `Ctrl+Shift+T` | Toggle acrylic frosted glass transparency |
+| `Ctrl+,` | Open settings dialog |
+| `F1` | Show all keys / keyboard reference |
 | `Del` | Delete item (when the cursor is at the end of the search text) |
 | `Esc` | Close |
 

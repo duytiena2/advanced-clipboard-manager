@@ -59,6 +59,14 @@ public partial class SettingsWindow : Window
             ? "No OCR language is installed. Add a language with OCR support in Windows Settings › Time & language › Language."
             : $"Recognizes {ocrLanguage}. Add more languages in Windows Settings › Time & language › Language (e.g. Vietnamese).";
 
+        TransparencyBox.IsChecked = s.EnableTransparency;
+        OpacitySlider.Value = s.TransparencyOpacity;
+        OpacityValueText.Text = $"{(int)(s.TransparencyOpacity * 100)}%";
+        OpacitySlider.ValueChanged += (_, _) =>
+        {
+            OpacityValueText.Text = $"{(int)(OpacitySlider.Value * 100)}%";
+        };
+
         DetectSensitiveBox.IsChecked = s.DetectSensitive;
         NeverPasswordsBox.IsChecked = s.NeverStorePasswords;
         NeverKeysBox.IsChecked = s.NeverStorePrivateKeys;
@@ -167,6 +175,8 @@ public partial class SettingsWindow : Window
         s.MaxItems = maxItems;
         s.DefaultWorkspace = string.IsNullOrWhiteSpace(DefaultWorkspaceBox.Text) ? "Default" : DefaultWorkspaceBox.Text.Trim();
         s.OcrEnabled = OcrBox.IsChecked == true;
+        s.EnableTransparency = TransparencyBox.IsChecked == true;
+        s.TransparencyOpacity = Math.Round(OpacitySlider.Value, 2);
         s.DetectSensitive = DetectSensitiveBox.IsChecked == true;
         s.NeverStorePasswords = NeverPasswordsBox.IsChecked == true;
         s.NeverStorePrivateKeys = NeverKeysBox.IsChecked == true;

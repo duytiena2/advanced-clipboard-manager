@@ -254,12 +254,13 @@ public sealed class ServiceTests : IDisposable
     public void Settings_roundtrip()
     {
         var path = Path.Combine(_dir, "settings.json");
-        var s = new AppSettings { MaxItems = 123, QuickPasteHotkey = "Ctrl+Alt+V" };
+        var s = new AppSettings { MaxItems = 123, QuickPasteHotkey = "Ctrl+Alt+V", QuickPasteListRatio = 0.40 };
         s.ExcludedApplications.Add("BankApp");
         s.Save(path);
         var loaded = AppSettings.Load(path);
         Assert.Equal(123, loaded.MaxItems);
         Assert.Equal("Ctrl+Alt+V", loaded.QuickPasteHotkey);
+        Assert.Equal(0.40, loaded.QuickPasteListRatio);
         Assert.True(loaded.ExcludedApplications.Contains("BankApp"));
         File.WriteAllText(path, "{ broken");
         Assert.Equal(5000, AppSettings.Load(path).MaxItems);
@@ -315,6 +316,35 @@ public sealed class QueryParserTests
 
     [Test]
     public void Empty_query() => Assert.True(SearchQuery.Parse("  ").IsEmpty);
+
+    [Test]
+    public void Filter_chips_extracted_and_formatted()
+    {
+        var (chips, remaining) = SearchFilterChip.ExtractFilters("docker type:sql workspace:Dev pinned:true");
+        Assert.Equal("docker", remaining);
+        Assert.Equal(3, chips.Count);
+        Assert.Equal("SQL", chips[0].Label);
+        Assert.Equal("type:sql", chips[0].RawSyntax);
+        Assert.Equal("Dev", chips[1].Label);
+        Assert.Equal("Pinned", chips[2].Label);
+
+        string combined = SearchFilterChip.Combine(chips, remaining);
+        var q = SearchQuery.Parse(combined);
+        Assert.Equal(1, q.Terms.Count);
+        Assert.Equal("docker", q.Terms[0]);
+        Assert.Equal("sql", q.Subtype);
+        Assert.Equal("Dev", q.Workspace);
+        Assert.Equal(true, q.Pinned);
+    }
+
+    [Test]
+    public void Filter_chips_single_token_auto_converts()
+    {
+        var (chips, remaining) = SearchFilterChip.ExtractFilters("type:sql");
+        Assert.Equal("", remaining);
+        Assert.Equal(1, chips.Count);
+        Assert.Equal("SQL", chips[0].Label);
+    }
 }
 
 public sealed class HumanizeTests

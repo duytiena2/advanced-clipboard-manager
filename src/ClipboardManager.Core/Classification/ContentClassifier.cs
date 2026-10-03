@@ -30,6 +30,30 @@ public sealed class ContentClassifier
     private static readonly Regex CodeTokenRx = new(
         @"\b(?:function|const|let|var|return|class|public|private|static|void|import|from|def|fn|func|package|namespace|using|interface|async|await|=>|#include|println|console\.log|System\.out)\b|[{};]\s*$|=>",
         Opts | RegexOptions.Multiline);
+    private static readonly Regex JsRx = new(
+        @"(?:\b(?:const|let|var)\s+[A-Za-z_$]\w*\s*=|=>|\bfunction\s*[A-Za-z_$]?\w*\s*\(|\bconsole\.(?:log|error|warn|info)\b|\b(?:async\s+)?function\b|\bimport\s+.*?\s+from\s+['""]|\bexport\s+(?:default|const|let|var|function|class)\b|\btypeof\s+\w+|\bdocument\.(?:getElementById|querySelector)\b|\bprocess\.env\b|\bJSON\.(?:parse|stringify)\b)",
+        Opts);
+    private static readonly Regex PythonRx = new(
+        @"(?m)^\s*(?:def\s+[A-Za-z_]\w*\s*\(.*?\)\s*:|class\s+[A-Za-z_]\w*.*?:|import\s+[A-Za-z_]|from\s+[A-Za-z_]\w*\s+import|\bprint\s*\(|\belif\b|\b__init__\b|\bself\.[A-Za-z_])",
+        Opts);
+    private static readonly Regex CSharpRx = new(
+        @"(?m)\b(?:using\s+System(?:\.\w+)*\s*;|namespace\s+[A-Za-z_]|public\s+(?:class|record|struct|interface|enum)\s+[A-Za-z_]|Console\.WriteLine\b|Task<(?:[A-Za-z_]|void)>|async\s+Task\b|var\s+[A-Za-z_]\w*\s*=\s*new\s+[A-Za-z_])",
+        Opts);
+    private static readonly Regex HtmlRx = new(
+        @"<!DOCTYPE\s+html|<html[\s>]|<div[\s>]|<span[\s>]|<body[\s>]|<table[\s>]|<script[\s>]|<style[\s>]",
+        Opts | RegexOptions.IgnoreCase);
+    private static readonly Regex CssRx = new(
+        @"(?m)^\s*[.#]?[a-zA-Z_-][\w-]*\s*\{[^}]*?(?:display|color|margin|padding|background|font-size|border)\s*:[^}]+}",
+        Opts);
+    private static readonly Regex GoRx = new(
+        @"\b(?:func\s+(?:\([A-Za-z_]\w*\s+\*?[A-Za-z_]\w*\)\s+)?[A-Za-z_]\w*\(|package\s+(?:main|[a-z_]\w*)\b|fmt\.(?:Println|Printf|Sprintf)\b)",
+        Opts);
+    private static readonly Regex RustRx = new(
+        @"\b(?:fn\s+[a-z_]\w*\s*\(|let\s+mut\s+[a-z_]|impl\s+[A-Za-z_]|println!\s*\()",
+        Opts);
+    private static readonly Regex JavaRx = new(
+        @"\b(?:public\s+static\s+void\s+main\s*\(|System\.out\.println\s*\()",
+        Opts);
 
     public ClassificationResult Classify(CapturedContent content)
     {
@@ -158,5 +182,125 @@ public sealed class ContentClassifier
         if (s.Length <= 8) return new string('•', s.Length);
         int keepStart = Math.Min(8, s.Length / 4);
         return s[..keepStart] + new string('•', 12) + s[^4..];
+    }
+
+    /// <summary>Infers code language (JavaScript, Python, C#, etc.) from text when subtype is generic code.</summary>
+    public static string DetectCodeLanguage(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "Code";
+        var t = text.Trim();
+        if (JsRx.IsMatch(t)) return "JavaScript";
+        if (PythonRx.IsMatch(t)) return "Python";
+        if (CSharpRx.IsMatch(t)) return "C#";
+        if (HtmlRx.IsMatch(t)) return "HTML";
+        if (CssRx.IsMatch(t)) return "CSS";
+        if (GoRx.IsMatch(t)) return "Go";
+        if (RustRx.IsMatch(t)) return "Rust";
+        if (JavaRx.IsMatch(t)) return "Java";
+        return "Code";
+    }
+
+    /// <summary>Returns a friendly human-readable classification label (e.g. "SQL", "JavaScript", "GitHub URL", "Screenshot", "JSON").</summary>
+    public static string GetClassificationLabel(ContentKind kind, string subtype, string? text = null)
+    {
+        return kind switch
+        {
+            ContentKind.Code => subtype.ToLowerInvariant() switch
+            {
+                "sql" => "SQL",
+                "json" => "JSON",
+                "xml" => "XML",
+                "yaml" => "YAML",
+                "shell" => "Shell",
+                _ => DetectCodeLanguage(text),
+            },
+            ContentKind.Url => subtype.ToLowerInvariant() switch
+            {
+                "github" => "GitHub URL",
+                "youtube" => "YouTube URL",
+                "figma" => "Figma URL",
+                _ => "URL",
+            },
+            ContentKind.Image => "Screenshot",
+            ContentKind.Text => subtype.ToLowerInvariant() switch
+            {
+                "markdown" => "Markdown",
+                "log" => "Log",
+                "ip" => "IP Address",
+                _ => "Plain Text",
+            },
+            ContentKind.Email => "Email",
+            ContentKind.Phone => "Phone",
+            ContentKind.Number => "Number",
+            ContentKind.Files => subtype.Equals("file", StringComparison.OrdinalIgnoreCase) ? "File" : "Files",
+            ContentKind.Snippet => subtype.Equals("template", StringComparison.OrdinalIgnoreCase) ? "Template" : "Snippet",
+            ContentKind.Sensitive => subtype.ToLowerInvariant() switch
+            {
+                "api-key" => "API Key",
+                "aws-key" => "AWS Key",
+                "token" => "Token",
+                "jwt" => "JWT",
+                "private-key" => "Private Key",
+                "auth-header" => "Auth Header",
+                "connection-string" => "Connection String",
+                "password" => "Password",
+                _ => "Sensitive",
+            },
+            _ => !string.IsNullOrEmpty(subtype) ? char.ToUpperInvariant(subtype[0]) + subtype[1..] : kind.ToString(),
+        };
+    }
+
+    /// <summary>
+    /// Returns a Segoe Fluent Icons / MDL2 Assets Unicode codepoint for the classification.
+    /// These are monochrome vector glyphs — no color emoji — they inherit Foreground and
+    /// automatically invert (black → white) when a ListBoxItem is selected.
+    /// Reference: https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-fluent-icons-font
+    /// </summary>
+    public static string GetClassificationIcon(ContentKind kind, string subtype, string? text = null)
+    {
+        // All values are Segoe Fluent Icons / Segoe MDL2 Assets codepoints.
+        // Render with FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" in XAML.
+        return kind switch
+        {
+            ContentKind.Code => subtype.ToLowerInvariant() switch
+            {
+                "sql"          => "\uE71D",  // StorageOptical (database cylinder look)
+                "json"         => "\uE943",  // Code (curly braces glyph)
+                "xml"          => "\uE943",  // Code
+                "yaml"         => "\uE8A5",  // Document (structured text)
+                "shell"        => "\uE756",  // CommandPrompt
+                _              => "\uE943",  // Code (generic)
+            },
+            ContentKind.Url => subtype.ToLowerInvariant() switch
+            {
+                "github"       => "\uE71B",  // Link (chain link)
+                "youtube"      => "\uE714",  // Video
+                "figma"        => "\uE771",  // Design / Shapes
+                _              => "\uE71B",  // Link
+            },
+            ContentKind.Image  => "\uEB9F",  // Photo (camera/image glyph)
+            ContentKind.Text   => subtype.ToLowerInvariant() switch
+            {
+                "markdown"     => "\uE8A5",  // Document
+                "log"          => "\uE9D9",  // ClipboardList / Activity
+                "ip"           => "\uE839",  // Globe / Network
+                _              => "\uE8A5",  // Document (plain text)
+            },
+            ContentKind.Email      => "\uE715",  // Mail
+            ContentKind.Phone      => "\uE717",  // Phone
+            ContentKind.Number     => "\uE8EF",  // Calculator
+            ContentKind.Files      => "\uE8B7",  // Folder
+            ContentKind.Snippet    => "\uE8C8",  // Paste / Snippet
+            ContentKind.Sensitive  => "\uE72E",  // Lock (padlock)
+            _                      => "\uE8A5",  // Document (fallback)
+        };
+    }
+
+    /// <summary>Returns the Segoe Fluent Icons codepoint concatenated with the label, e.g. "\uE71D SQL" or "\uE943 JavaScript". Render the icon portion with FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets".</summary>
+    public static string GetClassificationHeader(ContentKind kind, string subtype, string? text = null)
+    {
+        var icon = GetClassificationIcon(kind, subtype, text);
+        var label = GetClassificationLabel(kind, subtype, text);
+        return $"{icon} {label}";
     }
 }

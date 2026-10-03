@@ -13,6 +13,7 @@ Trình quản lý clipboard ưu tiên bảo mật cục bộ (**local-first**) v
 | Lịch sử clipboard | Tự động lưu mọi nội dung sao chép, mục mới nhất nằm ở trên. Hỗ trợ văn bản (text), hình ảnh và tệp tin. Sao chép trùng lặp sẽ được gộp lại kèm số lần copy. |
 | Mở nhanh (Quick Paste) | **Ctrl+Shift+V** mở bảng tìm kiếm nhanh. Phím mũi tên điều hướng, phím **Enter** dán ngay vào ứng dụng đang mở trước đó. |
 | Tự động phân loại | Bộ quy tắc chạy cục bộ kèm điểm độ tin cậy giúp nhận diện: SQL, JSON, XML, YAML, shell, mã nguồn, nhật ký (log), URL (GitHub…), email, số điện thoại, số, địa chỉ IP và markdown. |
+| Xem trước thông minh | Tự động thay đổi giao diện theo định dạng nội dung: tô màu cú pháp (syntax highlighting) cho SQL, JSON, XML, YAML và mã nguồn; xem ảnh với kích thước/định dạng (`PNG · 1103 × 593`) kèm trình đọc chữ OCR; thẻ URL trực quan hỗ trợ mở trình duyệt và phân tích chi tiết link; giao diện bảo vệ chuyên biệt cho dữ liệu nhạy cảm kèm phím bấm **Ctrl+R** để mở khóa. |
 | Tìm kiếm thông minh | Tích hợp SQLite FTS5 tìm kiếm tiền tố (prefix matching), **hỗ trợ tiếng Việt không dấu** (`chao` tìm ra `chào`, `don` tìm ra `đơn`), kèm bộ lọc linh hoạt: `type:sql`, `type:snippet`, `type:image`, `pinned:true`, `workspace:x`, `after:2026-09-01`, `before:…`, `sensitive:true`. |
 | Giữ nguyên định dạng | Giữ nguyên định dạng HTML/RTF khi copy, nhấn **Enter** dán nguyên định dạng. **Ctrl+Shift+Enter** dán văn bản thuần plain text (với hình ảnh: dán đoạn chữ nhận diện được từ ảnh). |
 | Dán theo số thứ tự | 9 dòng đầu tiên được đánh số: **Ctrl+1…9** dán trực tiếp mục tương ứng (**Ctrl+Shift+1…9** dán văn bản thuần). |
@@ -49,6 +50,10 @@ Trình quản lý clipboard ưu tiên bảo mật cục bộ (**local-first**) v
 | `Ctrl+R` | Hiển thị nội dung nhạy cảm đang bị che |
 | `Ctrl+T` | Ghim cửa sổ palette luôn nổi trên màn hình và dán vào ứng dụng vừa kích hoạt |
 | `Ctrl+D` | Gắn cửa sổ làm sidebar: phải → trái → tắt |
+| `Ctrl+L` | Chuyển đổi tỷ lệ chia: 25/75, 30/70, 40/60, 50/50 |
+| `Ctrl+M` | Chuyển đổi chế độ Widget thu nhỏ / cửa sổ mở rộng |
+| `Ctrl+Shift+T` | Bật / tắt hiệu ứng kính mờ trong suốt (Acrylic glass) |
+| `Ctrl+,` | Mở cửa sổ Cài đặt (Settings) |
 | `F1` | Xem danh sách hướng dẫn toàn bộ phím tắt |
 | `Del` | Xóa mục khỏi lịch sử (khi con trỏ nằm ở cuối ô tìm kiếm) |
 | `Esc` | Đóng cửa sổ |

@@ -77,7 +77,9 @@ public static class TextTransforms
     private static readonly JsonWriterOptions Pretty = new() { Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
     private static readonly JsonWriterOptions Compact = new() { Indented = false, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-    private static string FormatJson(string s, bool indented)
+    public static string FormatSql(string sql) => SqlFormatter.Format(sql);
+
+    public static string FormatJson(string s, bool indented = true)
     {
         try
         {

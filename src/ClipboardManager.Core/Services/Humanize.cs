@@ -24,6 +24,9 @@ public static class Humanize
         return $"expires in {(int)Math.Ceiling(d.TotalDays)} days";
     }
 
+    /// <summary>Formats a TimeSpan retention duration into friendly words.</summary>
+    public static string Retention(TimeSpan span) => Minutes((int)span.TotalMinutes);
+
     /// <summary>A retention setting in words: 0 → "never expires", 90 → "1.5 hours", 10080 → "7 days".</summary>
     public static string Minutes(int minutes)
     {

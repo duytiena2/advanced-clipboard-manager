@@ -30,8 +30,11 @@ internal sealed class PasteStackController : IDisposable
     public event Action<string?>? StatusChanged;
     /// <summary>Something worth a notification (started, finished, cancelled, error).</summary>
     public event Action<string, bool>? Notify;
+    /// <summary>State update for the UI banner/card.</summary>
+    public event Action<PasteStackState>? StateChanged;
 
     public bool IsActive => _stack is not null;
+    public PasteStackState CurrentState => new(IsActive, _stack?.Position ?? 0, _stack?.Count ?? 0, _stack?.Current?.Title);
 
     public PasteStackController(ClipboardService svc, IClipboardWriter writer)
     {
@@ -83,6 +86,7 @@ internal sealed class PasteStackController : IDisposable
             _writer.Write(payload);
             _svc.MarkUsed(item);
             StatusChanged?.Invoke($"Paste stack {_stack!.Position}/{_stack.Count}: {Short(item.Title)}");
+            StateChanged?.Invoke(CurrentState);
             return true;
         }
         catch (Exception ex) when (ex is COMException or IOException or InvalidOperationException)
@@ -108,6 +112,7 @@ internal sealed class PasteStackController : IDisposable
         _stack = null;
         if (!wasActive) return;
         StatusChanged?.Invoke(null);
+        StateChanged?.Invoke(new PasteStackState(false, 0, 0, null));
         if (message is not null) Notify?.Invoke(message, warning);
     }
 
@@ -115,3 +120,5 @@ internal sealed class PasteStackController : IDisposable
 
     public void Dispose() => Stop(null);
 }
+
+public sealed record PasteStackState(bool IsActive, int Position, int Total, string? CurrentTitle);

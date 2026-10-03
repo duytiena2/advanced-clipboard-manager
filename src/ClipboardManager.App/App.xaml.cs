@@ -113,7 +113,10 @@ public partial class App : Application
         _pasteStack = new PasteStackController(_svc, writer);
         _pasteStack.StatusChanged += status => _tray.SetPasteStackStatus(status);
         _pasteStack.Notify += (message, warning) => _tray.ShowBalloon("Paste stack", message, warning);
+        _pasteStack.StateChanged += state => _palette.UpdatePasteStackState(state);
         _palette.PasteStackRequested += items => _pasteStack.Start(items);
+        _palette.StopPasteStackRequested += () => _pasteStack.Stop("Paste stack stopped.");
+        _palette.OpenSettingsRequested += ShowSettings;
         _tray.StopPasteStackRequested += () => _pasteStack.Stop("Paste stack stopped.");
         // Raised on the UI thread for copies made in other apps (our own writes are skipped by the monitor).
         _monitor.ContentCaptured += (_, _) => _pasteStack.OnExternalClipboardChange();
@@ -195,6 +198,7 @@ public partial class App : Application
     {
         if (_svc is null || _tray is null || _palette is null) return;
         var s = _svc.Settings;
+        _palette.ApplyTransparency(s.EnableTransparency, s.TransparencyOpacity);
         _tray.SetPaused(!s.CaptureEnabled);
         if (!string.Equals(oldHotkey, s.QuickPasteHotkey, StringComparison.OrdinalIgnoreCase))
         {

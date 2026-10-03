@@ -51,6 +51,7 @@ public sealed class SearchQuery
                 if (Enum.TryParse<ContentKind>(value, ignoreCase: true, out var kind)) Kind = kind;
                 else if (value.Equals("link", StringComparison.OrdinalIgnoreCase) || value.Equals("links", StringComparison.OrdinalIgnoreCase)) Kind = ContentKind.Url;
                 else if (value.Equals("file", StringComparison.OrdinalIgnoreCase)) Kind = ContentKind.Files;
+                else if (value.Equals("screenshot", StringComparison.OrdinalIgnoreCase) || value.Equals("screenshots", StringComparison.OrdinalIgnoreCase) || value.Equals("img", StringComparison.OrdinalIgnoreCase)) Kind = ContentKind.Image;
                 else Subtype = value.ToLowerInvariant();
                 return true;
             case "workspace":

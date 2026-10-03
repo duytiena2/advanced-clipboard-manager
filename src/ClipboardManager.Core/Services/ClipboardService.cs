@@ -224,6 +224,13 @@ public sealed class ClipboardService : IDisposable
     /// <summary>Workspace names in use, with item counts.</summary>
     public List<(string Name, int Count)> Workspaces() => _repo.Workspaces();
 
+    public void MoveToWorkspace(ClipboardItem item, string workspace)
+    {
+        _repo.MoveToWorkspace(item.Id, workspace);
+        item.Workspace = workspace;
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public bool IsExcluded(string? sourceApp)
     {
         if (string.IsNullOrWhiteSpace(sourceApp)) return false;
@@ -232,6 +239,23 @@ public sealed class ClipboardService : IDisposable
     }
 
     public List<ClipboardItem> Search(string? input, int limit = 200) => _repo.Search(SearchQuery.Parse(input), limit);
+    public List<ClipboardItem> SearchByQuery(SearchQuery query, int limit = 200) => _repo.Search(query, limit);
+
+    public void AddRecentSearch(string query)
+    {
+        Settings.AddRecentSearch(query);
+        try { Settings.Save(Path.Combine(DataFolder, "settings.json")); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    public void RemoveRecentSearch(string query)
+    {
+        Settings.RecentSearches.RemoveAll(s => s.Equals(query, StringComparison.OrdinalIgnoreCase));
+        try { Settings.Save(Path.Combine(DataFolder, "settings.json")); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
 
     public ClipboardItem? Get(long id) => _repo.Get(id);
 

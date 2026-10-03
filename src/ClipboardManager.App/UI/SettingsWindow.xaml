@@ -4,6 +4,7 @@
         Title="Clipboard Manager — Settings"
         Width="640" Height="560" MinWidth="520" MinHeight="440"
         WindowStartupLocation="CenterScreen" ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="True" Topmost="True"
         Background="#FFFFFF" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="#15171C"
         UseLayoutRounding="True">
     <Window.Resources>
@@ -74,6 +75,15 @@
 
                         <CheckBox x:Name="OcrBox" Content="Recognize text in copied images (Windows OCR, offline)" />
                         <TextBlock x:Name="OcrHint" Style="{StaticResource Hint}" />
+
+                        <TextBlock Text="Widget &amp; Transparency" Style="{StaticResource Label}" Margin="0,16,0,4" />
+                        <CheckBox x:Name="TransparencyBox" Content="Enable iOS-style frosted glass transparency (Trong suốt kiểu iOS)" />
+                        <DockPanel Margin="0,6,0,0">
+                            <TextBlock Text="Opacity" Style="{StaticResource Hint}" VerticalAlignment="Center" Width="80" />
+                            <TextBlock x:Name="OpacityValueText" Text="85%" Foreground="{StaticResource Muted}" FontSize="12" Width="45" TextAlignment="Right" DockPanel.Dock="Right" />
+                            <Slider x:Name="OpacitySlider" Minimum="0.50" Maximum="1.0" SmallChange="0.05" LargeChange="0.10" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" Margin="8,0" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Hint}" Text="Windows 11 Acrylic blur + translucent rounded widget card like modern iOS." />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

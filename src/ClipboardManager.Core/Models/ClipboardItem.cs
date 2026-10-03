@@ -1,3 +1,6 @@
+using ClipboardManager.Core.Classification;
+using ClipboardManager.Core.Services;
+
 namespace ClipboardManager.Core.Models;
 
 /// <summary>Top-level kind of a clipboard item.</summary>
@@ -46,16 +49,55 @@ public sealed class ClipboardItem
     /// <summary>Text recognized in an image. Null = not processed yet, "" = no text found.</summary>
     public string? OcrText { get; set; }
 
-    public string DisplayType => string.IsNullOrEmpty(Subtype) ? Kind.ToString() : Subtype.ToUpperInvariant() switch
+    public string ClassificationIcon => ContentClassifier.GetClassificationIcon(Kind, Subtype, TextContent);
+    public string ClassificationLabel => ContentClassifier.GetClassificationLabel(Kind, Subtype, TextContent);
+    public string ClassificationHeader => $"{ClassificationIcon} {ClassificationLabel}";
+    public string TimeAgo => Humanize.Ago(LastCopiedAt, DateTimeOffset.UtcNow);
+
+    public string DisplayType => ClassificationLabel;
+
+    public string TypeIcon => Kind switch
     {
-        "SQL" => "SQL",
-        "JSON" => "JSON",
-        "XML" => "XML",
-        "YAML" => "YAML",
-        "SHELL" => "Shell",
-        "MARKDOWN" => "Markdown",
-        _ => Kind == ContentKind.Sensitive ? "Sensitive" : char.ToUpperInvariant(Subtype[0]) + Subtype[1..],
+        ContentKind.Image => "🖼",
+        ContentKind.Text => Subtype.Equals("markdown", StringComparison.OrdinalIgnoreCase) ? "MD" : "T",
+        ContentKind.Code => Subtype.ToUpperInvariant() switch
+        {
+            "SQL" => "🗄",
+            "SHELL" => "⌨",
+            _ => "{;}",
+        },
+        ContentKind.Url => "🌐",
+        ContentKind.Sensitive => "🔒",
+        ContentKind.Email => "✉",
+        ContentKind.Phone => "📞",
+        ContentKind.Files => "📁",
+        ContentKind.Snippet => "📋",
+        _ => "T",
     };
+
+    public string TypeBadge => Kind switch
+    {
+        ContentKind.Image => string.IsNullOrEmpty(Subtype) ? "PNG" : Subtype.ToUpperInvariant(),
+        ContentKind.Code => Subtype.ToUpperInvariant() switch
+        {
+            "SQL" => "SQL",
+            "JSON" => "JSON",
+            "XML" => "XML",
+            "YAML" => "YAML",
+            "SHELL" => "Shell",
+            _ => ClassificationLabel,
+        },
+        ContentKind.Url => "URL",
+        ContentKind.Text => Subtype.Equals("markdown", StringComparison.OrdinalIgnoreCase) ? "MD" : "Plain",
+        ContentKind.Sensitive => "Secret",
+        ContentKind.Snippet => "Snippet",
+        ContentKind.Files => "Files",
+        _ => DisplayType,
+    };
+
+    public bool HasCopyCount => CopyCount > 1;
+    public string CopyCountText => CopyCount > 1 ? $"{CopyCount}×" : "";
+    public string PinGlyph => IsPinned ? "📌" : "";
 }
 
 /// <summary>Raw content as read from the OS clipboard.</summary>
