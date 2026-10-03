@@ -20,12 +20,17 @@ public partial class SnippetDialog : Window
         _svc = svc;
         _existing = existing;
         InitializeComponent();
-        Title = existing is null ? "New snippet" : "Edit snippet";
+        Title = existing is null ? LocalizationService.Get("Snippet_TitleNew") : LocalizationService.Get("Snippet_TitleEdit");
+        NameLabel.Text = LocalizationService.Get("Snippet_Name");
+        BodyLabel.Text = LocalizationService.Get("Snippet_Text");
+        SaveButton.Content = LocalizationService.Get("Snippet_Save");
+        CancelButton.Content = LocalizationService.Get("Snippet_Cancel");
         NameBox.Text = name;
         BodyBox.Text = body;
         VariablesText.Text = "Variables: " + string.Join("   ", TemplateEngine.Variables.Select(v => v.Variable)) + "   ·   {{ }} for literal braces";
 
         SaveButton.Click += (_, _) => Save();
+        CancelButton.Click += (_, _) => Close();
         PreviewKeyDown += (_, e) =>
         {
             if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control) { Save(); e.Handled = true; }

@@ -2,176 +2,799 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Clipboard Manager — Settings"
-        Width="640" Height="560" MinWidth="520" MinHeight="440"
+        Width="780" Height="640" MinWidth="700" MinHeight="520"
         WindowStartupLocation="CenterScreen" ResizeMode="CanResizeWithGrip"
         ShowInTaskbar="True" Topmost="True"
-        Background="#FFFFFF" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="#15171C"
-        UseLayoutRounding="True">
+        Background="#FFFFFF" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="#0F172A"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
+
     <Window.Resources>
         <SolidColorBrush x:Key="Accent" Color="#0E6B68" />
-        <SolidColorBrush x:Key="Muted" Color="#5A6170" />
+        <SolidColorBrush x:Key="AccentHover" Color="#115E59" />
+        <SolidColorBrush x:Key="AccentPressed" Color="#0A4845" />
+        <SolidColorBrush x:Key="AccentLight" Color="#EBF5F4" />
+        <SolidColorBrush x:Key="Muted" Color="#64748B" />
+        <SolidColorBrush x:Key="BorderLine" Color="#E2E8F0" />
+        <SolidColorBrush x:Key="SidebarBg" Color="#F8FAFC" />
+
+        <!-- Label Style -->
         <Style x:Key="Label" TargetType="TextBlock">
-            <Setter Property="Margin" Value="0,12,0,4" />
+            <Setter Property="Margin" Value="0,10,0,4" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#0F172A" />
         </Style>
+
+        <!-- Hint Style -->
         <Style x:Key="Hint" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Margin" Value="0,2,0,0" />
         </Style>
-        <Style TargetType="CheckBox">
-            <Setter Property="Margin" Value="0,10,0,0" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style TargetType="TextBox">
-            <Setter Property="Padding" Value="6,4" />
-        </Style>
+
+        <!-- Modern Button Style (Secondary / Outline) -->
         <Style TargetType="Button">
+            <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="84" />
-            <Setter Property="Height" Value="30" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="#1E293B" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F8FAFC" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#94A3B8" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F1F5F9" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
+
+        <!-- Primary Button Style -->
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentHover}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentPressed}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Danger Button Style -->
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="#DC2626" />
+            <Setter Property="BorderBrush" Value="#FECACA" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FEF2F2" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#F87171" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FEE2E2" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern TextBox Style -->
+        <Style TargetType="TextBox">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#0F172A" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ScrollViewer x:Name="PART_ContentHost" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#94A3B8" />
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="1.5" />
+                            </Trigger>
+                            <Trigger Property="IsReadOnly" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F8FAFC" />
+                                <Setter Property="Foreground" Value="#475569" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Slim ScrollBar Style -->
+        <Style x:Key="SettingsScrollThumb" TargetType="Thumb">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="Bd" Background="#33808080" CornerRadius="3" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#66808080" />
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#99808080" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Width" Value="6" />
+            <Setter Property="MinWidth" Value="6" />
+            <Setter Property="Margin" Value="0,2,2,2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource SettingsScrollThumb}" MinHeight="24" />
+                            </Track.Thumb>
+                        </Track>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Width" Value="Auto" />
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="Height" Value="6" />
+                    <Setter Property="MinHeight" Value="6" />
+                    <Setter Property="Margin" Value="2,0,2,2" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ScrollBar">
+                                <Track x:Name="PART_Track" IsDirectionReversed="False">
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource SettingsScrollThumb}" MinWidth="24" />
+                                    </Track.Thumb>
+                                </Track>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Modern ComboBox Style with Fluent Chevron -->
+        <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
+            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="6" SnapsToDevicePixels="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="28" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="10" Foreground="{StaticResource Muted}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Bd" Property="BorderBrush" Value="#94A3B8" />
+                    <Setter TargetName="Bd" Property="Background" Value="#F8FAFC" />
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Accent}" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="10,0,28,0" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#0F172A" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Template="{StaticResource ComboBoxToggleButtonTemplate}"
+                                          Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}" />
+                            <ContentPresenter IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center" HorizontalAlignment="Left" />
+                            <Popup x:Name="PART_Popup" Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Grid SnapsToDevicePixels="True" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" Margin="0,2,0,4">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270" Opacity="0.1" />
+                                        </Border.Effect>
+                                        <ScrollViewer Margin="2,4" SnapsToDevicePixels="True" CanContentScroll="True">
+                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Circular" />
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#94A3B8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="#0F172A" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}" Margin="2,1">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F1F5F9" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentLight}" />
+                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern CheckBox Style -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Margin" Value="0,8,0,4" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Foreground" Value="#1E293B" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="Box" Width="18" Height="18" CornerRadius="4"
+                                    Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5"
+                                    VerticalAlignment="Center" Margin="0,0,8,0">
+                                <TextBlock x:Name="CheckGlyph" Text="&#xE73E;"
+                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="11" FontWeight="Bold" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="Collapsed" />
+                            </Border>
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Accent}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="{StaticResource Accent}" />
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Slider Style -->
+        <Style TargetType="Slider">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        </Style>
+
+        <!-- Modern DataGrid Style -->
         <Style TargetType="DataGrid">
             <Setter Property="AutoGenerateColumns" Value="False" />
             <Setter Property="HeadersVisibility" Value="Column" />
             <Setter Property="GridLinesVisibility" Value="Horizontal" />
-            <Setter Property="HorizontalGridLinesBrush" Value="#E6E8EC" />
-            <Setter Property="BorderBrush" Value="#DADDE2" />
-            <Setter Property="Background" Value="White" />
+            <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderLine}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="#FFFFFF" />
             <Setter Property="RowHeaderWidth" Value="0" />
             <Setter Property="CanUserResizeRows" Value="False" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="RowHeight" Value="34" />
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F8FAFC" />
+                        <Setter Property="Foreground" Value="#475569" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                        <Setter Property="FontSize" Value="12" />
+                        <Setter Property="Padding" Value="12,8" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                        <Setter Property="BorderBrush" Value="{StaticResource BorderLine}" />
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="CellStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="Padding" Value="12,0" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="DataGridCell">
+                                    <Border Background="{TemplateBinding Background}" BorderThickness="0" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter VerticalAlignment="Center" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{StaticResource AccentLight}" />
+                                <Setter Property="Foreground" Value="#0F172A" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="RowStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F8FAFC" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{StaticResource AccentLight}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Sidebar Navigation TabItem Style -->
+        <Style TargetType="TabItem">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#475569" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="12,0">
+                            <Grid VerticalAlignment="Center">
+                                <!-- Accent Indicator Bar on Left -->
+                                <Border x:Name="Indicator" Width="3.5" Height="20" HorizontalAlignment="Left"
+                                        CornerRadius="1.75" Background="{StaticResource Accent}" Visibility="Collapsed" Margin="-12,0,0,0" />
+                                <!-- Content Header -->
+                                <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" Margin="4,0,0,0"
+                                                  ContentSource="Header" RecognizesAccessKey="True" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F1F5F9" />
+                                <Setter Property="Foreground" Value="#0F172A" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentLight}" />
+                                <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Sidebar TabControl Template -->
+        <Style TargetType="TabControl">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="210" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Sidebar Left Rail -->
+                            <Border Grid.Column="0" Background="{StaticResource SidebarBg}"
+                                    BorderBrush="{StaticResource BorderLine}" BorderThickness="0,0,1,0"
+                                    Padding="14,18,14,14">
+                                <DockPanel>
+                                    <!-- App & Settings Title -->
+                                    <StackPanel DockPanel.Dock="Top" Margin="8,0,8,20">
+                                        <TextBlock Text="{Binding SidebarHeading, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="18" FontWeight="Bold" Foreground="#0F172A" />
+                                        <TextBlock Text="{Binding SidebarSubtitle, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="0,2,0,0" />
+                                    </StackPanel>
+
+                                    <!-- Navigation Items -->
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+                                        <StackPanel IsItemsHost="True" />
+                                    </ScrollViewer>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- Right Content Area -->
+                            <Border Grid.Column="1" Background="#FFFFFF" Padding="24,20,24,16">
+                                <ContentPresenter ContentSource="SelectedContent" Margin="{TemplateBinding Padding}" />
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
-    <Grid Margin="16">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TabControl x:Name="Tabs" Grid.Row="0" Padding="16,8">
-            <!-- General -->
-            <TabItem Header="General">
+        <!-- Main Navigation TabControl -->
+        <TabControl x:Name="Tabs" Grid.Row="0">
+            <!-- 1. General Tab -->
+            <TabItem x:Name="TabGeneral">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TabGeneralText" Text="General" FontSize="13" VerticalAlignment="Center" />
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <TextBlock Text="Quick Paste shortcut" Style="{StaticResource Label}" />
-                        <TextBox x:Name="HotkeyBox" Width="220" HorizontalAlignment="Left" IsReadOnly="True" Cursor="Hand"
-                                 AutomationProperties.Name="Quick Paste shortcut" />
-                        <TextBlock Style="{StaticResource Hint}" Text="Click the box and press the new shortcut, e.g. Ctrl+Shift+V or Win+Alt+V." />
-
-                        <CheckBox x:Name="CaptureBox" Content="Record clipboard history" />
-
-                        <TextBlock Text="Keep at most" Style="{StaticResource Label}" />
-                        <StackPanel Orientation="Horizontal">
-                            <TextBox x:Name="MaxItemsBox" Width="90" AutomationProperties.Name="Maximum items" />
-                            <TextBlock Text="items (pinned items and snippets don't count)" Foreground="{StaticResource Muted}"
-                                       VerticalAlignment="Center" Margin="8,0,0,0" />
+                    <StackPanel Margin="0,0,10,0">
+                        <!-- Header -->
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock x:Name="GeneralHeaderTitle" Text="General" FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" />
+                            <TextBlock x:Name="GeneralHeaderSubtitle" Text="Keyboard shortcuts, history limits, and application interface" FontSize="12.5" Foreground="{StaticResource Muted}" Margin="0,2,0,0" />
                         </StackPanel>
 
-                        <TextBlock Text="Default workspace" Style="{StaticResource Label}" />
-                        <TextBox x:Name="DefaultWorkspaceBox" Width="220" HorizontalAlignment="Left" AutomationProperties.Name="Default workspace" />
+                        <!-- Card 1: Shortcut & Language -->
+                        <Border Background="#FFFFFF" BorderBrush="{StaticResource BorderLine}" BorderThickness="1" CornerRadius="10" Padding="18,16" Margin="0,0,0,14">
+                            <StackPanel>
+                                <!-- Language Setting Row -->
+                                <DockPanel Margin="0,2">
+                                    <ComboBox x:Name="LanguageCombo" Width="180" DockPanel.Dock="Right" VerticalAlignment="Center" />
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Name="LanguageLabel" Text="Language" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" />
+                                        <TextBlock x:Name="LanguageHint" Style="{StaticResource Hint}" Text="Select interface display language." />
+                                    </StackPanel>
+                                </DockPanel>
 
-                        <CheckBox x:Name="OcrBox" Content="Recognize text in copied images (Windows OCR, offline)" />
-                        <TextBlock x:Name="OcrHint" Style="{StaticResource Hint}" />
+                                <Border Height="1" Background="#F1F5F9" Margin="0,14" />
 
-                        <TextBlock Text="Widget &amp; Transparency" Style="{StaticResource Label}" Margin="0,16,0,4" />
-                        <CheckBox x:Name="TransparencyBox" Content="Enable iOS-style frosted glass transparency (Trong suốt kiểu iOS)" />
-                        <DockPanel Margin="0,6,0,0">
-                            <TextBlock Text="Opacity" Style="{StaticResource Hint}" VerticalAlignment="Center" Width="80" />
-                            <TextBlock x:Name="OpacityValueText" Text="85%" Foreground="{StaticResource Muted}" FontSize="12" Width="45" TextAlignment="Right" DockPanel.Dock="Right" />
-                            <Slider x:Name="OpacitySlider" Minimum="0.50" Maximum="1.0" SmallChange="0.05" LargeChange="0.10" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" Margin="8,0" />
-                        </DockPanel>
-                        <TextBlock Style="{StaticResource Hint}" Text="Windows 11 Acrylic blur + translucent rounded widget card like modern iOS." />
+                                <!-- Hotkey Setting Row -->
+                                <DockPanel Margin="0,2">
+                                    <TextBox x:Name="HotkeyBox" Width="180" Height="34" DockPanel.Dock="Right" VerticalAlignment="Center"
+                                             IsReadOnly="True" Cursor="Hand" TextAlignment="Center"
+                                             FontFamily="Cascadia Mono, Consolas, Segoe UI" FontWeight="SemiBold" FontSize="12.5"
+                                             Foreground="#0F172A" Background="#F8FAFC" BorderBrush="#CBD5E1"
+                                             AutomationProperties.Name="Quick Paste shortcut" />
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Name="HotkeyLabel" Text="Quick Paste shortcut" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" />
+                                        <TextBlock x:Name="HotkeyHint" Style="{StaticResource Hint}" Text="Click the box and press the new shortcut, e.g. Ctrl+Shift+V or Win+Alt+V." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 2: Clipboard History -->
+                        <Border Background="#FFFFFF" BorderBrush="{StaticResource BorderLine}" BorderThickness="1" CornerRadius="10" Padding="18,16" Margin="0,0,0,14">
+                            <StackPanel>
+                                <CheckBox x:Name="CaptureBox" Content="Record clipboard history" FontWeight="SemiBold" Margin="0,0,0,4" />
+
+                                <Border Height="1" Background="#F1F5F9" Margin="0,12" />
+
+                                <DockPanel Margin="26,0,0,0">
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                                        <TextBox x:Name="MaxItemsBox" Width="75" Height="32" TextAlignment="Center"
+                                                 FontFamily="Cascadia Mono, Consolas, Segoe UI" FontWeight="Medium" FontSize="12.5"
+                                                 AutomationProperties.Name="Maximum items" />
+                                        <TextBlock Text="items" Foreground="{StaticResource Muted}" FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    </StackPanel>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Name="KeepAtMostLabel" Text="Keep at most" FontWeight="SemiBold" FontSize="12.5" Foreground="#0F172A" />
+                                        <TextBlock x:Name="KeepAtMostHint" Text="items (pinned items and snippets don't count)" Style="{StaticResource Hint}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 3: Windows OCR -->
+                        <Border Background="#FFFFFF" BorderBrush="{StaticResource BorderLine}" BorderThickness="1" CornerRadius="10" Padding="18,16" Margin="0,0,0,14">
+                            <StackPanel>
+                                <CheckBox x:Name="OcrBox" Content="Recognize text in copied images (Windows OCR, offline)" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock x:Name="OcrHint" Style="{StaticResource Hint}" Margin="26,0,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 4: Appearance & Transparency (Disabled: always solid white background) -->
+                        <Border Background="#FFFFFF" BorderBrush="{StaticResource BorderLine}" BorderThickness="1" CornerRadius="10" Padding="18,16" Margin="0,0,0,14" Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock x:Name="TransparencyHeading" Text="Widget &amp; Transparency" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                                <CheckBox x:Name="TransparencyBox" Content="Enable iOS-style frosted glass transparency" Margin="0,0,0,8" />
+                                <DockPanel Margin="0,6,0,0">
+                                    <TextBlock x:Name="OpacityLabel" Text="Opacity" Style="{StaticResource Hint}" VerticalAlignment="Center" Width="70" />
+                                    <TextBlock x:Name="OpacityValueText" Text="85%" Foreground="{StaticResource Muted}" FontSize="12.5" Width="45" TextAlignment="Right" DockPanel.Dock="Right" />
+                                    <Slider x:Name="OpacitySlider" Minimum="0.50" Maximum="1.0" SmallChange="0.05" LargeChange="0.10" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center" Margin="8,0" />
+                                </DockPanel>
+                                <TextBlock x:Name="TransparencyHint" Style="{StaticResource Hint}" Text="Windows 11 Acrylic blur + translucent rounded widget card like modern iOS." Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
-            <!-- Privacy -->
-            <TabItem Header="Privacy">
+            <!-- 2. Privacy Tab -->
+            <TabItem x:Name="TabPrivacy">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TabPrivacyText" Text="Privacy" FontSize="13" VerticalAlignment="Center" />
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <CheckBox x:Name="DetectSensitiveBox" Content="Detect secrets (API keys, tokens, passwords) and hide them" />
-                        <CheckBox x:Name="NeverPasswordsBox" Content="Never store passwords" />
-                        <CheckBox x:Name="NeverKeysBox" Content="Never store private keys" />
+                    <StackPanel Margin="0,0,10,0">
+                        <!-- Header -->
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock x:Name="PrivacyHeaderTitle" Text="Privacy" FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" />
+                            <TextBlock x:Name="PrivacyHeaderSubtitle" Text="Data security, history encryption, and sensitive data protection" FontSize="12.5" Foreground="{StaticResource Muted}" Margin="0,2,0,0" />
+                        </StackPanel>
 
-                        <TextBlock Text="Don't record copies from these apps" Style="{StaticResource Label}" />
-                        <TextBox x:Name="ExcludedBox" Height="96" AcceptsReturn="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"
-                                 AutomationProperties.Name="Excluded applications" />
-                        <TextBlock Style="{StaticResource Hint}" Text="One app per line (process name, e.g. KeePass). Matches any app whose name contains it." />
+                        <!-- Card 1: Secrets & Sensitive Detection -->
+                        <Border Background="#FFFFFF" BorderBrush="{StaticResource BorderLine}" BorderThickness="1" CornerRadius="10" Padding="18,16" Margin="0,0,0,14">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,4">
+                                    <Border Width="28" Height="28" Background="#120E6B68" CornerRadius="6" Margin="0,0,10,0" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <CheckBox x:Name="DetectSensitiveBox" Content="Detect secrets (API keys, tokens, passwords) and hide them" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </DockPanel>
 
-                        <CheckBox x:Name="EncryptBox" Content="Encrypt the history with my Windows account (DPAPI)" Margin="0,16,0,0" />
-                        <TextBlock Style="{StaticResource Hint}"
-                                   Text="Text, formatting and images are encrypted on disk; only your Windows account on this PC can read them, without a password. The search index is kept in memory. Changing this rewrites the whole history (a few seconds)." />
+                                <Border Height="1" Background="#F1F5F9" Margin="38,8,0,10" />
+
+                                <StackPanel Margin="38,0,0,0">
+                                    <CheckBox x:Name="NeverPasswordsBox" Content="Never store passwords" Margin="0,0,0,6" />
+                                    <CheckBox x:Name="NeverKeysBox" Content="Never store private keys" Margin="0,0,0,2" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 2: Excluded Applications -->
+                        <Border Background="#FFFFFF" BorderBrush="{StaticResource BorderLine}" BorderThickness="1" CornerRadius="10" Padding="18,16" Margin="0,0,0,14">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <Border Width="28" Height="28" Background="#120E6B68" CornerRadius="6" Margin="0,0,10,0" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE71A;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="ExcludedLabel" Text="Don't record copies from these apps" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" />
+                                        <TextBlock x:Name="ExcludedHint" Style="{StaticResource Hint}" Text="One app per line (process name, e.g. KeePass). Matches any app whose name contains it." Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <Border Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="38,8,0,0">
+                                    <TextBox x:Name="ExcludedBox" Height="86" AcceptsReturn="True" TextWrapping="NoWrap"
+                                             VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent"
+                                             FontFamily="Cascadia Mono, Consolas, Segoe UI" FontSize="12.5" Foreground="#1E293B"
+                                             AutomationProperties.Name="Excluded applications" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 3: Disk Encryption -->
+                        <Border Background="#FFFFFF" BorderBrush="{StaticResource BorderLine}" BorderThickness="1" CornerRadius="10" Padding="18,16" Margin="0,0,0,14">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,4">
+                                    <Border Width="28" Height="28" Background="#120E6B68" CornerRadius="6" Margin="0,0,10,0" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE8D7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <CheckBox x:Name="EncryptBox" Content="Encrypt the history with my Windows account (DPAPI)" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBlock x:Name="EncryptHint" Style="{StaticResource Hint}" Margin="38,4,0,0"
+                                           Text="Text, formatting and images are encrypted on disk; only your Windows account on this PC can read them, without a password. The search index is kept in memory. Changing this rewrites the whole history (a few seconds)." />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
-            <!-- Retention -->
-            <TabItem Header="Retention">
+            <!-- 3. Retention Tab -->
+            <TabItem x:Name="TabRetention">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE81C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TabRetentionText" Text="Retention" FontSize="13" VerticalAlignment="Center" />
+                    </StackPanel>
+                </TabItem.Header>
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Hint}" Margin="0,8,0,8"
-                               Text="How long each kind of item is kept, in minutes. 0 = keep until deleted. Pinned items and snippets never expire." />
-                    <DataGrid x:Name="RetentionGrid" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Kind" Binding="{Binding Label}" IsReadOnly="True" Width="*" />
-                            <DataGridTextColumn Header="Minutes" Binding="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}" Width="110" />
-                            <DataGridTextColumn Header="" Binding="{Binding Human}" IsReadOnly="True" Width="130">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{StaticResource Muted}" />
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <!-- Header -->
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                        <TextBlock x:Name="RetentionHeaderTitle" Text="Retention" FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" />
+                        <TextBlock x:Name="RetentionHint" Style="{StaticResource Hint}" Margin="0,4,0,0"
+                                   Text="How long each kind of item is kept, in minutes. 0 = keep until deleted. Pinned items and snippets never expire." />
+                    </StackPanel>
+
+                    <!-- Table Card -->
+                    <Border CornerRadius="8" BorderBrush="{StaticResource BorderLine}" BorderThickness="1" ClipToBounds="True">
+                        <DataGrid x:Name="RetentionGrid" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" BorderThickness="0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Kind" Binding="{Binding Label}" IsReadOnly="True" Width="*" />
+                                <DataGridTextColumn Header="Minutes" Binding="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}" Width="120" />
+                                <DataGridTextColumn Header="" Binding="{Binding Human}" IsReadOnly="True" Width="140">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
                 </DockPanel>
             </TabItem>
 
-            <!-- Workspaces -->
-            <TabItem Header="Workspaces">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Hint}" Margin="0,8,0,8"
-                               Text="Copies from an app go to its workspace (exact process name, e.g. Code, OUTLOOK, chrome). First match wins; other copies go to the default workspace. In Quick Paste, Ctrl+W switches workspaces." />
-                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button x:Name="AddRuleButton" Content="Add rule" Margin="0" />
-                        <Button x:Name="RemoveRuleButton" Content="Remove" />
-                    </StackPanel>
-                    <DataGrid x:Name="RulesGrid" CanUserAddRows="False" CanUserDeleteRows="True" SelectionMode="Single">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="App (process name)" Binding="{Binding App, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                            <DataGridTextColumn Header="Workspace" Binding="{Binding Workspace, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </DockPanel>
-            </TabItem>
 
-            <!-- Snippets -->
-            <TabItem Header="Snippets">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" x:Name="SnippetHint" Style="{StaticResource Hint}" Margin="0,8,0,8" />
-                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button x:Name="NewSnippetButton" Content="New…" Margin="0" />
-                        <Button x:Name="EditSnippetButton" Content="Edit…" />
-                        <Button x:Name="DeleteSnippetButton" Content="Delete" />
+
+            <!-- 5. Snippets Tab -->
+            <TabItem x:Name="TabSnippets">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE8C8;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TabSnippetsText" Text="Snippets" FontSize="13" VerticalAlignment="Center" />
                     </StackPanel>
-                    <DataGrid x:Name="SnippetsGrid" IsReadOnly="True" SelectionMode="Single">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Name" Binding="{Binding Title}" Width="180" />
-                            <DataGridTextColumn Header="Text" Binding="{Binding Preview}" Width="*" />
-                        </DataGrid.Columns>
-                    </DataGrid>
+                </TabItem.Header>
+                <DockPanel>
+                    <!-- Header -->
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                        <TextBlock x:Name="SnippetsHeaderTitle" Text="Snippets" FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" />
+                        <TextBlock DockPanel.Dock="Top" x:Name="SnippetHint" Style="{StaticResource Hint}" Margin="0,4,0,0" />
+                    </StackPanel>
+
+                    <!-- Bottom Action Buttons with Fluent Icons -->
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button x:Name="NewSnippetButton" Margin="0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11.5" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <TextBlock x:Name="NewSnippetButtonText" Text="New…" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="EditSnippetButton">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11.5" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <TextBlock x:Name="EditSnippetButtonText" Text="Edit…" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="DeleteSnippetButton" Style="{StaticResource DangerButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11.5" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <TextBlock x:Name="DeleteSnippetButtonText" Text="Delete" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Table Card -->
+                    <Border CornerRadius="8" BorderBrush="{StaticResource BorderLine}" BorderThickness="1" ClipToBounds="True">
+                        <DataGrid x:Name="SnippetsGrid" IsReadOnly="True" SelectionMode="Single" BorderThickness="0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Name" Binding="{Binding Title}" Width="190" />
+                                <DataGridTextColumn Header="Text" Binding="{Binding Preview}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
                 </DockPanel>
             </TabItem>
         </TabControl>
 
-        <DockPanel Grid.Row="1" Margin="0,12,0,0">
-            <TextBlock x:Name="ErrorText" Foreground="#B42318" TextWrapping="Wrap" VerticalAlignment="Center" />
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="SaveButton" Content="Save" IsDefault="True" Background="{StaticResource Accent}" Foreground="White" BorderThickness="0" />
-                <Button x:Name="CancelButton" Content="Cancel" IsCancel="True" />
-            </StackPanel>
-        </DockPanel>
+        <!-- Bottom Footer Action Bar -->
+        <Border Grid.Row="1" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource BorderLine}" BorderThickness="0,1,0,0" Padding="20,12">
+            <DockPanel>
+                <TextBlock x:Name="ErrorText" Foreground="#DC2626" FontSize="12.5" FontWeight="Medium" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="CancelButton" Content="Cancel" Margin="0" />
+                    <Button x:Name="SaveButton" Style="{StaticResource PrimaryButton}" IsDefault="True">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock x:Name="SaveButtonText" Text="Save" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
     </Grid>
 </Window>

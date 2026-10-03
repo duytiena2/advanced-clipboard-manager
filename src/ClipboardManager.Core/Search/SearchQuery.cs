@@ -5,7 +5,7 @@ namespace ClipboardManager.Core.Search;
 
 /// <summary>
 /// Parsed search input. Supports free text plus filters:
-/// type:sql | type:code | workspace:backend | pinned:true | sensitive:false | before:2026-10-01 | after:2026-09-01
+/// type:sql | type:code | pinned:true | sensitive:false | before:2026-10-01 | after:2026-09-01
 /// Quoted phrases ("docker compose") are kept together.
 /// </summary>
 public sealed class SearchQuery
@@ -13,13 +13,12 @@ public sealed class SearchQuery
     public List<string> Terms { get; } = new();
     public ContentKind? Kind { get; set; }
     public string? Subtype { get; set; }
-    public string? Workspace { get; set; }
     public bool? Pinned { get; set; }
     public bool? Sensitive { get; set; }
     public DateTimeOffset? Before { get; set; }
     public DateTimeOffset? After { get; set; }
 
-    public bool IsEmpty => Terms.Count == 0 && Kind is null && Subtype is null && Workspace is null &&
+    public bool IsEmpty => Terms.Count == 0 && Kind is null && Subtype is null &&
                            Pinned is null && Sensitive is null && Before is null && After is null;
 
     public static SearchQuery Parse(string? input)
@@ -50,13 +49,10 @@ public sealed class SearchQuery
             case "is":
                 if (Enum.TryParse<ContentKind>(value, ignoreCase: true, out var kind)) Kind = kind;
                 else if (value.Equals("link", StringComparison.OrdinalIgnoreCase) || value.Equals("links", StringComparison.OrdinalIgnoreCase)) Kind = ContentKind.Url;
-                else if (value.Equals("file", StringComparison.OrdinalIgnoreCase)) Kind = ContentKind.Files;
-                else if (value.Equals("screenshot", StringComparison.OrdinalIgnoreCase) || value.Equals("screenshots", StringComparison.OrdinalIgnoreCase) || value.Equals("img", StringComparison.OrdinalIgnoreCase)) Kind = ContentKind.Image;
+                else if (value.Equals("file", StringComparison.OrdinalIgnoreCase) || value.Equals("files", StringComparison.OrdinalIgnoreCase)) Kind = ContentKind.Files;
+                else if (value.Equals("screenshot", StringComparison.OrdinalIgnoreCase) || value.Equals("screenshots", StringComparison.OrdinalIgnoreCase) || value.Equals("img", StringComparison.OrdinalIgnoreCase) || value.Equals("images", StringComparison.OrdinalIgnoreCase)) Kind = ContentKind.Image;
+                else if (value.Equals("snippets", StringComparison.OrdinalIgnoreCase)) Kind = ContentKind.Snippet;
                 else Subtype = value.ToLowerInvariant();
-                return true;
-            case "workspace":
-            case "ws":
-                Workspace = value;
                 return true;
             case "pinned":
                 Pinned = ParseBool(value);

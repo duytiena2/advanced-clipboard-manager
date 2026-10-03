@@ -9,7 +9,7 @@ namespace ClipboardManager.Core.Search;
 
 /// <summary>
 /// Represents a structured filter chip extracted from or applied to the search query.
-/// e.g. type:sql -> [SQL x], pinned:true -> [Pinned x], workspace:Dev -> [Dev x]
+/// e.g. type:sql -> [SQL x], pinned:true -> [Pinned x]
 /// </summary>
 public sealed class SearchFilterChip : IEquatable<SearchFilterChip>
 {
@@ -29,7 +29,6 @@ public sealed class SearchFilterChip : IEquatable<SearchFilterChip>
     public static string NormalizeKey(string key) => key.ToLowerInvariant() switch
     {
         "is" => "type",
-        "ws" => "workspace",
         _ => key.ToLowerInvariant(),
     };
 
@@ -51,14 +50,13 @@ public sealed class SearchFilterChip : IEquatable<SearchFilterChip>
                     "shell" => "Shell",
                     "markdown" => "Markdown",
                     "link" or "links" => "URL",
-                    "file" => "Files",
+                    "file" or "files" => "Files",
+                    "image" or "images" => "Images",
+                    "snippet" or "snippets" => "Snippets",
                     _ => Enum.TryParse<ContentKind>(v, ignoreCase: true, out var kind)
                         ? kind.ToString()
                         : (v.Length > 0 ? char.ToUpperInvariant(v[0]) + v[1..] : v)
                 };
-
-            case "workspace":
-                return v;
 
             case "pinned":
                 return IsTrue(v) ? "Pinned" : "Unpinned";
@@ -87,7 +85,7 @@ public sealed class SearchFilterChip : IEquatable<SearchFilterChip>
         var k = token[..colon].ToLowerInvariant();
         var v = token[(colon + 1)..].Trim('"');
 
-        if (k is "type" or "is" or "workspace" or "ws" or "pinned" or "sensitive" or "before" or "after")
+        if (k is "type" or "is" or "pinned" or "sensitive" or "before" or "after")
         {
             if (k is "pinned" or "sensitive" && !IsValidBool(v)) return false;
             if (k is "before" or "after" && !IsValidDate(v)) return false;

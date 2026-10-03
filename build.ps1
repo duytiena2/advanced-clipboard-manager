@@ -122,19 +122,30 @@ if ($Publish) {
     Write-Host "`nDone: $(Join-Path $PSScriptRoot 'publish\ClipboardManager.exe')" -ForegroundColor Green
 }
 
-if ($Installer -or $Msix) {
+if ($Msix) {
     $appDir = Join-Path $PSScriptRoot 'publish\app'
     $dist = Join-Path $PSScriptRoot 'dist'
     New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
-    # Folder (not single-file) build: Setup.exe and MSIX both ship it as-is.
-    Step "Publishing app folder for packaging v$version"
+    # Folder (not single-file) build: MSIX ships the unbundled app layout.
+    Step "Publishing app folder for MSIX packaging v$version"
     if (Test-Path $appDir) { Remove-Item $appDir -Recurse -Force }
     & dotnet publish src/ClipboardManager.App -c Release -r win-x64 --self-contained true -p:DebugType=none -p:Version=$version -o $appDir
     if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
 }
 
 if ($Installer) {
+    $installerSource = Join-Path $PSScriptRoot 'publish\installer'
+    $dist = Join-Path $PSScriptRoot 'dist'
+    New-Item -ItemType Directory -Force -Path $dist | Out-Null
+
+    # Single-file build: avoids Smart App Control blocking loose unsigned runtime DLLs.
+    Step "Publishing single-file executable for installer v$version"
+    if (Test-Path $installerSource) { Remove-Item $installerSource -Recurse -Force }
+    & dotnet publish src/ClipboardManager.App -c Release -r win-x64 --self-contained true `
+        -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -p:Version=$version -o $installerSource
+    if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
+
     Step "Building Setup.exe (Inno Setup) v$version"
     function Find-Iscc {
         $candidates = @(
@@ -157,7 +168,7 @@ if ($Installer) {
         $iscc = Find-Iscc
         if (-not $iscc) { throw "Inno Setup installation did not complete. Install it from https://jrsoftware.org/isdl.php." }
     }
-    & $iscc /Qp "/DAppVersion=$version" "/DSourceDir=$appDir" "/DOutputDir=$dist" packaging\setup.iss
+    & $iscc /Qp "/DAppVersion=$version" "/DSourceDir=$installerSource" "/DOutputDir=$dist" packaging\setup.iss
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed." }
     Write-Host "Done: $(Join-Path $dist "AdvancedClipboardManager-Setup-$version.exe")" -ForegroundColor Green
 }

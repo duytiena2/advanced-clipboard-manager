@@ -4,34 +4,15 @@ using ClipboardManager.Core.Models;
 
 namespace ClipboardManager.Core.Services;
 
-/// <summary>"Copies from <see cref="App"/> go to <see cref="Workspace"/>". App is a process name such as "Code" or "OUTLOOK" (".exe" optional).</summary>
-public sealed class WorkspaceRule
-{
-    public string App { get; set; } = "";
-    public string Workspace { get; set; } = "";
-
-    public WorkspaceRule() { }
-    public WorkspaceRule(string app, string workspace) { App = app; Workspace = workspace; }
-
-    public bool Matches(string? processName)
-    {
-        if (string.IsNullOrWhiteSpace(processName) || string.IsNullOrWhiteSpace(App) || string.IsNullOrWhiteSpace(Workspace)) return false;
-        static string Norm(string s) => s.Trim().EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? s.Trim()[..^4] : s.Trim();
-        return Norm(App).Equals(Norm(processName), StringComparison.OrdinalIgnoreCase);
-    }
-}
-
 /// <summary>User settings, persisted as JSON in the data folder (settings.json).</summary>
 public sealed class AppSettings
 {
+    public string Language { get; set; } = "en";
     public bool CaptureEnabled { get; set; } = true;
     public string QuickPasteHotkey { get; set; } = "Ctrl+Shift+V";
     public int MaxItems { get; set; } = 5000;
     public long MaxImageBytes { get; set; } = 20 * 1024 * 1024;
     public long MaxTextChars { get; set; } = 1_000_000;
-    public string DefaultWorkspace { get; set; } = "Default";
-    /// <summary>Copies from these apps go to the given workspace instead of <see cref="DefaultWorkspace"/> (first match wins).</summary>
-    public List<WorkspaceRule> WorkspaceRules { get; set; } = new();
 
     /// <summary>Last position of the Quick Paste window (null = centered).</summary>
     public double? QuickPasteLeft { get; set; }
@@ -45,10 +26,10 @@ public sealed class AppSettings
     public bool QuickPasteKeepOpen { get; set; }
     /// <summary>Quick Paste docked as a sidebar: "None", "Left" or "Right".</summary>
     public string SidebarEdge { get; set; } = "None";
-    /// <summary>Enable iOS-style frosted glass transparency (Acrylic blur + translucent card).</summary>
-    public bool EnableTransparency { get; set; } = true;
-    /// <summary>Translucency opacity between 0.50 and 1.0. Default 0.85 (slight transparency like modern iOS).</summary>
-    public double TransparencyOpacity { get; set; } = 0.85;
+    /// <summary>Enable iOS-style frosted glass transparency (disabled by default; solid white background).</summary>
+    public bool EnableTransparency { get; set; } = false;
+    /// <summary>Translucency opacity between 0.50 and 1.0. Default 1.0 (opaque).</summary>
+    public double TransparencyOpacity { get; set; } = 1.0;
     /// <summary>Split ratio between List and Preview panes (e.g. 0.40 for 40% list / 60% preview).</summary>
     public double? QuickPasteListRatio { get; set; }
     /// <summary>Compact single-column widget mode.</summary>

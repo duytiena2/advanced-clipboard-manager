@@ -19,10 +19,29 @@ public partial class SettingsWindow : Window
 {
     private readonly ClipboardService _svc;
     private readonly string _settingsPath;
+    private readonly string? _ocrLanguage;
     private readonly ObservableCollection<RetentionRow> _retention = new();
-    private readonly ObservableCollection<WorkspaceRule> _rules = new();
     private readonly ObservableCollection<SnippetRow> _snippets = new();
     private string _hotkey;
+    private bool _initializingLang;
+
+    public static readonly DependencyProperty SidebarHeadingProperty =
+        DependencyProperty.Register(nameof(SidebarHeading), typeof(string), typeof(SettingsWindow), new PropertyMetadata("Settings"));
+
+    public static readonly DependencyProperty SidebarSubtitleProperty =
+        DependencyProperty.Register(nameof(SidebarSubtitle), typeof(string), typeof(SettingsWindow), new PropertyMetadata(""));
+
+    public string SidebarHeading
+    {
+        get => (string)GetValue(SidebarHeadingProperty);
+        set => SetValue(SidebarHeadingProperty, value);
+    }
+
+    public string SidebarSubtitle
+    {
+        get => (string)GetValue(SidebarSubtitleProperty);
+        set => SetValue(SidebarSubtitleProperty, value);
+    }
 
     /// <summary>Raised after settings were saved, with the previous Quick Paste shortcut.</summary>
     internal event Action<string>? Saved;
@@ -45,6 +64,7 @@ public partial class SettingsWindow : Window
     {
         _svc = svc;
         _settingsPath = settingsPath;
+        _ocrLanguage = ocrLanguage;
         InitializeComponent();
 
         var s = svc.Settings;
@@ -53,11 +73,7 @@ public partial class SettingsWindow : Window
         HotkeyBox.PreviewKeyDown += OnHotkeyKeyDown;
         CaptureBox.IsChecked = s.CaptureEnabled;
         MaxItemsBox.Text = s.MaxItems.ToString();
-        DefaultWorkspaceBox.Text = s.DefaultWorkspace;
         OcrBox.IsChecked = s.OcrEnabled;
-        OcrHint.Text = ocrLanguage is null
-            ? "No OCR language is installed. Add a language with OCR support in Windows Settings › Time & language › Language."
-            : $"Recognizes {ocrLanguage}. Add more languages in Windows Settings › Time & language › Language (e.g. Vietnamese).";
 
         TransparencyBox.IsChecked = s.EnableTransparency;
         OpacitySlider.Value = s.TransparencyOpacity;
@@ -74,23 +90,10 @@ public partial class SettingsWindow : Window
         EncryptBox.IsChecked = svc.IsEncrypted;
 
         foreach (var (key, label) in RetentionKinds)
-            _retention.Add(new RetentionRow(key, label, s.RetentionMinutes.TryGetValue(key, out var m) ? m : 0));
+            _retention.Add(new RetentionRow(key, LocalizationService.Get("Kind_" + key, label), s.RetentionMinutes.TryGetValue(key, out var m) ? m : 0));
         RetentionGrid.ItemsSource = _retention;
 
-        foreach (var r in s.WorkspaceRules) _rules.Add(new WorkspaceRule(r.App, r.Workspace));
-        RulesGrid.ItemsSource = _rules;
-        AddRuleButton.Click += (_, _) =>
-        {
-            var rule = new WorkspaceRule("", "");
-            _rules.Add(rule);
-            RulesGrid.SelectedItem = rule;
-            RulesGrid.CurrentCell = new System.Windows.Controls.DataGridCellInfo(rule, RulesGrid.Columns[0]);
-            RulesGrid.BeginEdit();
-        };
-        RemoveRuleButton.Click += (_, _) => { if (RulesGrid.SelectedItem is WorkspaceRule r) _rules.Remove(r); };
 
-        SnippetHint.Text = "Reusable text for Quick Paste (type:snippet). Variables: " +
-                           string.Join("  ", TemplateEngine.Variables.Select(v => v.Variable)) + ". Changes here are saved immediately.";
         SnippetsGrid.ItemsSource = _snippets;
         LoadSnippets();
         NewSnippetButton.Click += (_, _) => EditSnippet(null);
@@ -98,7 +101,36 @@ public partial class SettingsWindow : Window
         SnippetsGrid.MouseDoubleClick += (_, _) => { if (SnippetsGrid.SelectedItem is SnippetRow r) EditSnippet(r.Item); };
         DeleteSnippetButton.Click += (_, _) => DeleteSnippet();
 
+        _initializingLang = true;
+        LanguageCombo.ItemsSource = LocalizationService.SupportedLanguages;
+        LanguageCombo.DisplayMemberPath = "NativeName";
+        var norm = LocalizationService.NormalizeLanguageCode(s.Language);
+        LanguageCombo.SelectedItem = LocalizationService.SupportedLanguages.FirstOrDefault(l => l.Code == norm)
+                                     ?? LocalizationService.SupportedLanguages[0];
+        _initializingLang = false;
+
+        LanguageCombo.SelectionChanged += (_, _) =>
+        {
+            if (_initializingLang) return;
+            if (LanguageCombo.SelectedItem is LanguageOption opt)
+            {
+                LocalizationService.SetLanguage(opt.Code);
+                ApplyLocalization();
+            }
+        };
+
+        ApplyLocalization();
+
         SaveButton.Click += (_, _) => Save();
+        CancelButton.Click += (_, _) => Close();
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape)
+            {
+                Close();
+                e.Handled = true;
+            }
+        };
     }
 
     /// <summary>Records the pressed combination, e.g. Ctrl+Shift+V.</summary>
@@ -142,18 +174,89 @@ public partial class SettingsWindow : Window
     private void DeleteSnippet()
     {
         if (SnippetsGrid.SelectedItem is not SnippetRow row) return;
-        var answer = MessageBox.Show(this, $"Delete the snippet \"{row.Title}\"?", "Delete snippet",
+        var answer = MessageBox.Show(this,
+            LocalizationService.Get("Dialog_DeleteSnippetConfirm", row.Title),
+            LocalizationService.Get("Dialog_DeleteSnippetTitle"),
             MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
         if (answer != MessageBoxResult.OK) return;
         _svc.Delete(row.Item);
         LoadSnippets();
     }
 
+    private void ApplyLocalization()
+    {
+        Title = LocalizationService.Get("Settings_Title");
+        SidebarHeading = LocalizationService.Get("Settings_Heading");
+        SidebarSubtitle = LocalizationService.Get("Settings_Subtitle");
+
+        TabGeneralText.Text = LocalizationService.Get("Settings_Tab_General");
+        TabPrivacyText.Text = LocalizationService.Get("Settings_Tab_Privacy");
+        TabRetentionText.Text = LocalizationService.Get("Settings_Tab_Retention");
+        TabSnippetsText.Text = LocalizationService.Get("Settings_Tab_Snippets");
+
+        GeneralHeaderTitle.Text = LocalizationService.Get("Settings_General_Title");
+        GeneralHeaderSubtitle.Text = LocalizationService.Get("Settings_General_Subtitle");
+        PrivacyHeaderTitle.Text = LocalizationService.Get("Settings_Privacy_Title");
+        PrivacyHeaderSubtitle.Text = LocalizationService.Get("Settings_Privacy_Subtitle");
+        RetentionHeaderTitle.Text = LocalizationService.Get("Settings_Retention_Title");
+        SnippetsHeaderTitle.Text = LocalizationService.Get("Settings_Snippets_Title");
+
+        LanguageLabel.Text = LocalizationService.Get("Settings_Language");
+        LanguageHint.Text = LocalizationService.Get("Settings_Language_Hint");
+        HotkeyLabel.Text = LocalizationService.Get("Settings_Hotkey");
+        HotkeyHint.Text = LocalizationService.Get("Settings_Hotkey_Hint");
+        CaptureBox.Content = LocalizationService.Get("Settings_CaptureHistory");
+        KeepAtMostLabel.Text = LocalizationService.Get("Settings_KeepAtMost");
+        KeepAtMostHint.Text = LocalizationService.Get("Settings_ItemsCountHint");
+        OcrBox.Content = LocalizationService.Get("Settings_Ocr");
+        OcrHint.Text = _ocrLanguage is null
+            ? LocalizationService.Get("Settings_OcrNoLang")
+            : LocalizationService.Get("Settings_OcrRecognizes", _ocrLanguage);
+
+        TransparencyHeading.Text = LocalizationService.Get("Settings_TransparencyHeading", "Widget & Transparency");
+        TransparencyBox.Content = LocalizationService.Get("Settings_Transparency");
+        OpacityLabel.Text = LocalizationService.Get("Settings_Opacity");
+        TransparencyHint.Text = LocalizationService.Get("Settings_TransparencyHint");
+
+        DetectSensitiveBox.Content = LocalizationService.Get("Settings_DetectSensitive");
+        NeverPasswordsBox.Content = LocalizationService.Get("Settings_NeverPasswords");
+        NeverKeysBox.Content = LocalizationService.Get("Settings_NeverKeys");
+        ExcludedLabel.Text = LocalizationService.Get("Settings_ExcludedApps");
+        ExcludedHint.Text = LocalizationService.Get("Settings_ExcludedHint");
+        EncryptBox.Content = LocalizationService.Get("Settings_Encrypt");
+        EncryptHint.Text = LocalizationService.Get("Settings_EncryptHint");
+
+        RetentionHint.Text = LocalizationService.Get("Settings_RetentionHint");
+        if (RetentionGrid.Columns.Count >= 2)
+        {
+            RetentionGrid.Columns[0].Header = LocalizationService.Get("Settings_Kind");
+            RetentionGrid.Columns[1].Header = LocalizationService.Get("Settings_Minutes");
+        }
+        foreach (var r in _retention)
+        {
+            r.Label = LocalizationService.Get("Kind_" + r.Key, r.Key);
+        }
+
+        SnippetHint.Text = LocalizationService.Get("Settings_SnippetsHint",
+            string.Join("  ", TemplateEngine.Variables.Select(v => v.Variable)));
+        NewSnippetButtonText.Text = LocalizationService.Get("Settings_NewSnippet");
+        EditSnippetButtonText.Text = LocalizationService.Get("Settings_EditSnippet");
+        DeleteSnippetButtonText.Text = LocalizationService.Get("Settings_DeleteSnippet");
+        if (SnippetsGrid.Columns.Count >= 2)
+        {
+            SnippetsGrid.Columns[0].Header = LocalizationService.Get("Settings_NameCol");
+            SnippetsGrid.Columns[1].Header = LocalizationService.Get("Settings_TextCol");
+        }
+
+        SaveButtonText.Text = LocalizationService.Get("Settings_Save");
+        CancelButton.Content = LocalizationService.Get("Settings_Cancel");
+    }
+
     private void Save()
     {
         ErrorText.Text = "";
         RetentionGrid.CommitEdit();
-        RulesGrid.CommitEdit();
+
 
         if (!WindowsHotkeyService.TryParse(_hotkey, out _, out _)) { Fail(0, "The shortcut is not valid."); return; }
         if (!int.TryParse(MaxItemsBox.Text.Trim(), out var maxItems) || maxItems < 0) { Fail(0, "\"Keep at most\" must be a whole number (0 = no limit)."); return; }
@@ -170,20 +273,22 @@ public partial class SettingsWindow : Window
 
         var s = _svc.Settings;
         string oldHotkey = s.QuickPasteHotkey;
+        if (LanguageCombo.SelectedItem is LanguageOption opt)
+        {
+            s.Language = opt.Code;
+            LocalizationService.SetLanguage(s.Language);
+        }
         s.QuickPasteHotkey = _hotkey;
         s.CaptureEnabled = CaptureBox.IsChecked == true;
         s.MaxItems = maxItems;
-        s.DefaultWorkspace = string.IsNullOrWhiteSpace(DefaultWorkspaceBox.Text) ? "Default" : DefaultWorkspaceBox.Text.Trim();
         s.OcrEnabled = OcrBox.IsChecked == true;
-        s.EnableTransparency = TransparencyBox.IsChecked == true;
-        s.TransparencyOpacity = Math.Round(OpacitySlider.Value, 2);
+        s.EnableTransparency = false;
+        s.TransparencyOpacity = 1.0;
         s.DetectSensitive = DetectSensitiveBox.IsChecked == true;
         s.NeverStorePasswords = NeverPasswordsBox.IsChecked == true;
         s.NeverStorePrivateKeys = NeverKeysBox.IsChecked == true;
         s.ExcludedApplications = ExcludedBox.Text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         foreach (var kv in retention) s.RetentionMinutes[kv.Key] = kv.Value;
-        s.WorkspaceRules = _rules.Where(r => !string.IsNullOrWhiteSpace(r.App) && !string.IsNullOrWhiteSpace(r.Workspace))
-            .Select(r => new WorkspaceRule(r.App.Trim(), r.Workspace.Trim())).ToList();
 
         try
         {
@@ -233,16 +338,21 @@ public partial class SettingsWindow : Window
     private sealed class RetentionRow : INotifyPropertyChanged
     {
         private string _minutes;
+        private string _label;
 
         public RetentionRow(string key, string label, int minutes)
         {
             Key = key;
-            Label = label;
+            _label = label;
             _minutes = minutes.ToString();
         }
 
         public string Key { get; }
-        public string Label { get; }
+        public string Label
+        {
+            get => _label;
+            set { _label = value; OnChanged(); }
+        }
 
         public string Minutes
         {

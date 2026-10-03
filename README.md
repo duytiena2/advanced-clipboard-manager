@@ -14,13 +14,12 @@ A local-first, keyboard-first clipboard manager for Windows 10/11 and macOS. It 
 | Quick Paste | **Ctrl+Shift+V** opens a search palette. Arrow keys move, **Enter** pastes into the app you were in. |
 | Auto-classification | Local rules, with a confidence score, detect SQL, JSON, XML, YAML, shell, code, logs, URLs (GitHub…), email, phone, numbers, IPs and markdown. |
 | Content-aware preview | Changes dynamically based on content: syntax highlighting for SQL, JSON, XML, YAML and code; image viewer with resolution (`PNG · 1103 × 593`) and OCR text inspector; rich URL card with browser launch and URL breakdown; and clear security status for sensitive content with **Ctrl+R** reveal. |
-| Search | SQLite FTS5 with prefix matching, Vietnamese without diacritics (`chao` finds `chào`, `don` finds `đơn`), and filters: `type:sql`, `type:snippet`, `type:image`, `pinned:true`, `workspace:x`, `after:2026-09-01`, `before:…`, `sensitive:true`. |
+| Search | SQLite FTS5 with prefix matching, Vietnamese without diacritics (`chao` finds `chào`, `don` finds `đơn`), and filters: `type:sql`, `type:snippet`, `type:image`, `pinned:true`, `after:2026-09-01`, `before:…`, `sensitive:true`. |
 | Formatting | Copies keep their HTML/RTF formatting, so **Enter** pastes them formatted. **Ctrl+Shift+Enter** pastes plain text instead (for an image: the text found in it). |
 | Paste by number | The first nine rows are numbered: **Ctrl+1…9** pastes one directly (**Ctrl+Shift+1…9** as plain text). |
 | Text transforms | **Ctrl+K** (or right-click) pastes the item converted: UPPER/lower/Title/Sentence case, trim whitespace, join lines, remove blank lines, format/minify JSON, format SQL, Base64 and URL encode/decode. |
 | Paste stack | Mark items with **Ctrl+Space** in the order you need them, press **Ctrl+S**, then each **Ctrl+V** in any app pastes the next one — handy for filling forms. It stops when used up, when you copy something else, or from the tray. |
 | Snippets & templates | Reusable text that never expires: **Ctrl+N** saves the selection as a snippet, **Ctrl+E** edits one, or manage them in Settings. Variables: `{date}`, `{time}`, `{datetime}`, `{date:dd/MM/yyyy}`, `{clipboard}`, `{uuid}`. |
-| Workspaces by app | Rules such as `Code → Dev`, `OUTLOOK → Mail` file copies into workspaces automatically. **Ctrl+W** cycles the workspace filter. |
 | OCR | Copied images go through Windows' built-in OCR (offline, Windows 10/11), so screenshots are found by the text in them and can be pasted as text. Uses the OCR languages installed in Windows (add Vietnamese in *Settings › Time & language › Language*). |
 | Sidebar | **Ctrl+D** docks Quick Paste to the right or left screen edge as an app bar (Windows, space is reserved like the taskbar). It stays open and pastes into the app you used last. |
 | Encryption | Optional: the history is encrypted with your Windows account (DPAPI), with no password needed. Text, formatting, OCR text and images are encrypted on disk, the search index lives in memory only, and duplicate detection uses a keyed hash. |
@@ -46,7 +45,6 @@ A local-first, keyboard-first clipboard manager for Windows 10/11 and macOS. It 
 | `Ctrl+Space` | Mark for multi-select (marking order is kept) |
 | `Ctrl+S` | Start a paste stack with the marked items |
 | `Ctrl+N` / `Ctrl+E` | Save as snippet / edit the selected snippet |
-| `Ctrl+W` | Next workspace |
 | `Ctrl+R` | Reveal sensitive content |
 | `Ctrl+T` | Pin window / keep open: compact palette that stays on screen and pastes into the app you used last |
 | `Ctrl+D` | Dock as a sidebar: right → left → off |
@@ -113,7 +111,7 @@ dotnet run --project tests/ClipboardManager.Core.Tests            # all tests
 dotnet run --project tests/ClipboardManager.Core.Tests -- Search  # filter by name
 ```
 
-The suite covers classification, sensitive-data detection, deduplication, FTS5 search and filters, expiration, pinning, eviction, image storage, merge, settings, rich text, transforms (including the SQL formatter), workspace rules, encryption (no plaintext on disk, toggling in place, wrong-account detection), snippets and templates, the paste stack, OCR indexing, schema upgrades, and a 10,000-item search under 100 ms.
+The suite covers classification, sensitive-data detection, deduplication, FTS5 search and filters, expiration, pinning, eviction, image storage, merge, settings, rich text, transforms (including the SQL formatter), encryption (no plaintext on disk, toggling in place, wrong-account detection), snippets and templates, the paste stack, OCR indexing, schema upgrades, and a 10,000-item search under 100 ms.
 
 ## CI (GitHub Actions)
 
@@ -121,7 +119,7 @@ The suite covers classification, sensitive-data detection, deduplication, FTS5 s
 
 ## Settings
 
-Tray → **Settings…** covers everything: shortcut (applies immediately), capture, privacy rules, excluded apps, encryption, retention per type, workspace rules, OCR and snippets.
+Tray → **Settings…** covers everything: shortcut (applies immediately), capture, privacy rules, excluded apps, encryption, retention per type, OCR and snippets.
 
 Underneath, settings live in `settings.json` in the data folder (`%LOCALAPPDATA%\ClipboardManager` on Windows, `~/Library/Application Support/ClipboardManager` on macOS; tray → *Edit settings.json (advanced)*; restart the app after editing it by hand):
 
@@ -133,7 +131,6 @@ Underneath, settings live in `settings.json` in the data folder (`%LOCALAPPDATA%
   "NeverStorePrivateKeys": true,
   "ExcludedApplications": ["1Password", "KeePass", "KeePassXC", "Bitwarden", "LastPass"],
   "RetentionMinutes": { "Sensitive": 5, "password": 1, "Text": 1440, "Code": 10080, "Url": 10080, "Image": 60 },
-  "WorkspaceRules": [ { "App": "Code", "Workspace": "Dev" }, { "App": "OUTLOOK", "Workspace": "Mail" } ],
   "EncryptDatabase": false,
   "OcrEnabled": true,
   "SidebarEdge": "None"
@@ -183,7 +180,7 @@ The macOS version runs in the menu bar with a Raycast/Spotlight-style floating p
 
 ## Roadmap
 
-- **Phase 2:** ~~settings UI~~, ~~per-app workspace rules~~, ~~snippets~~, ~~paste stack~~, ~~sidebar~~ (done); still to do: tags, history window, choosing the merge separator in the UI
+- **Phase 2:** ~~settings UI~~, ~~snippets~~, ~~paste stack~~, ~~sidebar~~ (done); still to do: tags, history window, choosing the merge separator in the UI
 - **Phase 3:** ~~database encryption~~, ~~OCR~~ (done); still to do: smart rules, optional AI (opt-in, never for sensitive items)
 - **Phase 4:** ~~macOS support~~ (done); still to do: sync with end-to-end encryption, Linux
 

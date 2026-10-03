@@ -288,11 +288,10 @@ public sealed class QueryParserTests
     [Test]
     public void Parses_terms_and_filters()
     {
-        var q = SearchQuery.Parse("docker \"compose up\" type:shell workspace:backend pinned:true after:2026-09-01 before:2026-10-01");
+        var q = SearchQuery.Parse("docker \"compose up\" type:shell pinned:true after:2026-09-01 before:2026-10-01");
         Assert.Equal(2, q.Terms.Count);
         Assert.Equal("compose up", q.Terms[1]);
         Assert.Equal("shell", q.Subtype);
-        Assert.Equal("backend", q.Workspace);
         Assert.Equal(true, q.Pinned);
         Assert.NotNull(q.After);
         Assert.NotNull(q.Before);
@@ -303,6 +302,11 @@ public sealed class QueryParserTests
     {
         Assert.Equal(ContentKind.Code, SearchQuery.Parse("type:code").Kind);
         Assert.Equal(ContentKind.Url, SearchQuery.Parse("type:link").Kind);
+        Assert.Equal(ContentKind.Image, SearchQuery.Parse("type:image").Kind);
+        Assert.Equal(ContentKind.Image, SearchQuery.Parse("type:images").Kind);
+        Assert.Equal(ContentKind.Snippet, SearchQuery.Parse("type:snippet").Kind);
+        Assert.Equal(ContentKind.Snippet, SearchQuery.Parse("type:snippets").Kind);
+        Assert.Equal(ContentKind.Files, SearchQuery.Parse("type:files").Kind);
         Assert.Equal("sql", SearchQuery.Parse("type:SQL").Subtype);
     }
 
@@ -320,20 +324,18 @@ public sealed class QueryParserTests
     [Test]
     public void Filter_chips_extracted_and_formatted()
     {
-        var (chips, remaining) = SearchFilterChip.ExtractFilters("docker type:sql workspace:Dev pinned:true");
+        var (chips, remaining) = SearchFilterChip.ExtractFilters("docker type:sql pinned:true");
         Assert.Equal("docker", remaining);
-        Assert.Equal(3, chips.Count);
+        Assert.Equal(2, chips.Count);
         Assert.Equal("SQL", chips[0].Label);
         Assert.Equal("type:sql", chips[0].RawSyntax);
-        Assert.Equal("Dev", chips[1].Label);
-        Assert.Equal("Pinned", chips[2].Label);
+        Assert.Equal("Pinned", chips[1].Label);
 
         string combined = SearchFilterChip.Combine(chips, remaining);
         var q = SearchQuery.Parse(combined);
         Assert.Equal(1, q.Terms.Count);
         Assert.Equal("docker", q.Terms[0]);
         Assert.Equal("sql", q.Subtype);
-        Assert.Equal("Dev", q.Workspace);
         Assert.Equal(true, q.Pinned);
     }
 
@@ -344,6 +346,11 @@ public sealed class QueryParserTests
         Assert.Equal("", remaining);
         Assert.Equal(1, chips.Count);
         Assert.Equal("SQL", chips[0].Label);
+
+        Assert.Equal("Images", SearchFilterChip.FormatLabel("type", "image"));
+        Assert.Equal("Images", SearchFilterChip.FormatLabel("type", "images"));
+        Assert.Equal("Snippets", SearchFilterChip.FormatLabel("type", "snippet"));
+        Assert.Equal("Snippets", SearchFilterChip.FormatLabel("type", "snippets"));
     }
 }
 

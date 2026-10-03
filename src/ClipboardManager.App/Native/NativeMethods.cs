@@ -55,6 +55,43 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool BringWindowToTop(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
+
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentThreadId();
+
+    public static void ForceForeground(IntPtr hWnd)
+    {
+        if (hWnd == IntPtr.Zero) return;
+        IntPtr foreHwnd = GetForegroundWindow();
+        uint foreThread = GetWindowThreadProcessId(foreHwnd, out _);
+        uint appThread = GetCurrentThreadId();
+        if (foreThread != 0 && foreThread != appThread)
+        {
+            AttachThreadInput(appThread, foreThread, true);
+            BringWindowToTop(hWnd);
+            ShowWindow(hWnd, 5); // SW_SHOW
+            SetForegroundWindow(hWnd);
+            AttachThreadInput(appThread, foreThread, false);
+        }
+        else
+        {
+            BringWindowToTop(hWnd);
+            ShowWindow(hWnd, 5);
+            SetForegroundWindow(hWnd);
+        }
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool IsWindow(IntPtr hWnd);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]

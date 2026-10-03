@@ -39,16 +39,15 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid RowDefinitions="Auto,Auto" Margin="4,3">
-                                <!-- Row 0: Type Icon, Primary Title, Type Badge -->
-                                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
-                                    <TextBlock Grid.Column="0" Text="{Binding TypeIcon}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" Opacity="0.8"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
-                                    <Border Grid.Column="2" Background="{DynamicResource SystemAccentColorLight2}" CornerRadius="4" Padding="5,1,5,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <!-- Row 0: Primary Title, Type Badge -->
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                                    <Border Grid.Column="1" Background="{DynamicResource SystemAccentColorLight2}" CornerRadius="4" Padding="5,1,5,1" Margin="6,0,0,0" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding TypeBadge}" FontSize="10.5" FontWeight="SemiBold"/>
                                     </Border>
                                 </Grid>
                                 <!-- Row 1: Metadata (TimeAgo) on left, States & CopyCount on right -->
-                                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="20,2,0,0">
+                                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,2,0,0">
                                     <TextBlock Grid.Column="0" Text="{Binding TimeAgo}" FontSize="11" Opacity="0.5" VerticalAlignment="Center"/>
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding CopyCountText}" FontSize="10" FontWeight="SemiBold" Opacity="0.7"/>

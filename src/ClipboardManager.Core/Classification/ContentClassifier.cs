@@ -284,7 +284,7 @@ public sealed class ContentClassifier
                 "markdown"     => "\uE8A5",  // Document
                 "log"          => "\uE9D9",  // ClipboardList / Activity
                 "ip"           => "\uE839",  // Globe / Network
-                _              => "\uE8A5",  // Document (plain text)
+                _              => "\uE8C4",  // Page with text lines (plain text)
             },
             ContentKind.Email      => "\uE715",  // Mail
             ContentKind.Phone      => "\uE717",  // Phone
@@ -292,7 +292,7 @@ public sealed class ContentClassifier
             ContentKind.Files      => "\uE8B7",  // Folder
             ContentKind.Snippet    => "\uE8C8",  // Paste / Snippet
             ContentKind.Sensitive  => "\uE72E",  // Lock (padlock)
-            _                      => "\uE8A5",  // Document (fallback)
+            _                      => "\uE8C4",  // Page with text lines (fallback)
         };
     }
 

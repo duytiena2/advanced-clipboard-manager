@@ -56,6 +56,7 @@ public partial class App : Application
 
         var settings = AppSettings.Load(_settingsPath);
         if (!File.Exists(_settingsPath)) settings.Save(_settingsPath);
+        LocalizationService.SetLanguage(settings.Language);
 
         try
         {
@@ -128,7 +129,13 @@ public partial class App : Application
         _tray.ExitRequested += () => Shutdown();
 
         _hotkeys = new WindowsHotkeyService();
-        if (!_hotkeys.Register(settings.QuickPasteHotkey, () => _palette.TogglePalette()))
+        bool regOk = _hotkeys.Register(settings.QuickPasteHotkey, () =>
+        {
+            Log(new Exception($"HOTKEY FIRED! QuickPasteHotkey={settings.QuickPasteHotkey}"));
+            _palette.TogglePalette();
+        });
+        Log(new Exception($"HOTKEY REGISTER: '{settings.QuickPasteHotkey}' Result={regOk}"));
+        if (!regOk)
         {
             _tray.ShowBalloon("Shortcut unavailable",
                 $"{settings.QuickPasteHotkey} is already used by another app. Pick another one in Settings (tray menu), " +
@@ -137,6 +144,7 @@ public partial class App : Application
         else if (!StartupRegistration.LaunchedAtStartup(e.Args))
         {
             _tray.ShowBalloon("Clipboard Manager is running", $"Press {settings.QuickPasteHotkey} to open Quick Paste.");
+            _palette.ShowPalette();
         }
 
         if (!_svc.FullTextSearchEnabled) Log(new InvalidOperationException("FTS5 not available in the loaded SQLite library; using LIKE search."));
@@ -199,6 +207,8 @@ public partial class App : Application
         if (_svc is null || _tray is null || _palette is null) return;
         var s = _svc.Settings;
         _palette.ApplyTransparency(s.EnableTransparency, s.TransparencyOpacity);
+        _palette.ApplyLocalization();
+        _tray.ApplyLocalization();
         _tray.SetPaused(!s.CaptureEnabled);
         if (!string.Equals(oldHotkey, s.QuickPasteHotkey, StringComparison.OrdinalIgnoreCase))
         {

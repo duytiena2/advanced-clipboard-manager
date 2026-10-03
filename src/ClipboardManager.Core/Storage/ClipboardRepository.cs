@@ -302,9 +302,7 @@ public sealed class ClipboardRepository : IDisposable
         }
         if (query.Kind is not null) { where.Add("i.content_type = ?"); args.Add(query.Kind.Value.ToString()); }
         if (query.Subtype is not null) { where.Add("i.subtype = ?"); args.Add(query.Subtype); }
-        if (query.Workspace is not null) { where.Add("i.workspace = ? COLLATE NOCASE"); args.Add(query.Workspace); }
         if (query.Pinned is not null) { where.Add("i.is_pinned = ?"); args.Add(query.Pinned.Value); }
-        if (query.Sensitive is not null) { where.Add("i.is_sensitive = ?"); args.Add(query.Sensitive.Value); }
         if (query.Before is not null) { where.Add("i.last_copied_at < ?"); args.Add(query.Before.Value); }
         if (query.After is not null) { where.Add("i.last_copied_at >= ?"); args.Add(query.After.Value); }
 
@@ -349,8 +347,7 @@ public sealed class ClipboardRepository : IDisposable
     public void MarkAccessed(long id, DateTimeOffset when) =>
         _db.Execute("UPDATE clipboard_items SET accessed_at = ? WHERE id = ?;", when, id);
 
-    public void MoveToWorkspace(long id, string workspace) =>
-        _db.Execute("UPDATE OR IGNORE clipboard_items SET workspace = ? WHERE id = ?;", workspace, id);
+
 
     /// <returns>Binary payload path of the deleted item (to remove from disk), if any.</returns>
     public string? Delete(long id)
@@ -442,8 +439,7 @@ public sealed class ClipboardRepository : IDisposable
 
     public long TotalSizeBytes() => _db.Scalar("SELECT COALESCE(SUM(size_bytes), 0) FROM clipboard_items;", r => r.GetInt64(0));
 
-    public List<(string Name, int Count)> Workspaces() =>
-        _db.Query("SELECT workspace, COUNT(*) FROM clipboard_items GROUP BY workspace ORDER BY workspace;", r => (r.GetString(0), r.GetInt32(1)));
+
 
     /// <summary>FTS5 expression: each term quoted (so user input can't inject operators) with prefix matching.</summary>
     internal static string BuildFtsExpression(IEnumerable<string> terms) =>

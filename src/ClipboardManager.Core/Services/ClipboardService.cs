@@ -162,7 +162,7 @@ public sealed class ClipboardService : IDisposable
             IsSensitive = result.IsSensitive,
             CreatedAt = now,
             LastCopiedAt = now,
-            Workspace = WorkspaceFor(content.SourceApplication),
+            Workspace = "Default",
             SourceApplication = content.SourceApplication,
         };
 
@@ -212,24 +212,7 @@ public sealed class ClipboardService : IDisposable
         return (isNew ? CaptureOutcome.Stored : CaptureOutcome.Duplicate, stored);
     }
 
-    /// <summary>Workspace for a copy from <paramref name="sourceApp"/>: the first matching rule, else the default workspace.</summary>
-    public string WorkspaceFor(string? sourceApp)
-    {
-        var rule = Settings.WorkspaceRules.FirstOrDefault(r => r.Matches(sourceApp));
-        var ws = rule?.Workspace.Trim();
-        if (string.IsNullOrEmpty(ws)) ws = Settings.DefaultWorkspace?.Trim();
-        return string.IsNullOrEmpty(ws) ? "Default" : ws;
-    }
 
-    /// <summary>Workspace names in use, with item counts.</summary>
-    public List<(string Name, int Count)> Workspaces() => _repo.Workspaces();
-
-    public void MoveToWorkspace(ClipboardItem item, string workspace)
-    {
-        _repo.MoveToWorkspace(item.Id, workspace);
-        item.Workspace = workspace;
-        HistoryChanged?.Invoke(this, EventArgs.Empty);
-    }
 
     public bool IsExcluded(string? sourceApp)
     {
@@ -384,7 +367,7 @@ public sealed class ClipboardService : IDisposable
         item.Subtype = TemplateEngine.HasVariables(body) ? "template" : "snippet";
         item.Title = name;
         item.TextContent = body;
-        if (existing is null) item.Workspace = WorkspaceFor(null);
+        if (existing is null) item.Workspace = "Default";
         item.SizeBytes = Encoding.UTF8.GetByteCount(body);
         item.ContentHash = HashOf(item, null);
         item.ExpiresAt = null;

@@ -14,13 +14,12 @@ Trình quản lý clipboard ưu tiên bảo mật cục bộ (**local-first**) v
 | Mở nhanh (Quick Paste) | **Ctrl+Shift+V** mở bảng tìm kiếm nhanh. Phím mũi tên điều hướng, phím **Enter** dán ngay vào ứng dụng đang mở trước đó. |
 | Tự động phân loại | Bộ quy tắc chạy cục bộ kèm điểm độ tin cậy giúp nhận diện: SQL, JSON, XML, YAML, shell, mã nguồn, nhật ký (log), URL (GitHub…), email, số điện thoại, số, địa chỉ IP và markdown. |
 | Xem trước thông minh | Tự động thay đổi giao diện theo định dạng nội dung: tô màu cú pháp (syntax highlighting) cho SQL, JSON, XML, YAML và mã nguồn; xem ảnh với kích thước/định dạng (`PNG · 1103 × 593`) kèm trình đọc chữ OCR; thẻ URL trực quan hỗ trợ mở trình duyệt và phân tích chi tiết link; giao diện bảo vệ chuyên biệt cho dữ liệu nhạy cảm kèm phím bấm **Ctrl+R** để mở khóa. |
-| Tìm kiếm thông minh | Tích hợp SQLite FTS5 tìm kiếm tiền tố (prefix matching), **hỗ trợ tiếng Việt không dấu** (`chao` tìm ra `chào`, `don` tìm ra `đơn`), kèm bộ lọc linh hoạt: `type:sql`, `type:snippet`, `type:image`, `pinned:true`, `workspace:x`, `after:2026-09-01`, `before:…`, `sensitive:true`. |
+| Tìm kiếm thông minh | Tích hợp SQLite FTS5 tìm kiếm tiền tố (prefix matching), **hỗ trợ tiếng Việt không dấu** (`chao` tìm ra `chào`, `don` tìm ra `đơn`), kèm bộ lọc linh hoạt: `type:sql`, `type:snippet`, `type:image`, `pinned:true`, `after:2026-09-01`, `before:…`, `sensitive:true`. |
 | Giữ nguyên định dạng | Giữ nguyên định dạng HTML/RTF khi copy, nhấn **Enter** dán nguyên định dạng. **Ctrl+Shift+Enter** dán văn bản thuần plain text (với hình ảnh: dán đoạn chữ nhận diện được từ ảnh). |
 | Dán theo số thứ tự | 9 dòng đầu tiên được đánh số: **Ctrl+1…9** dán trực tiếp mục tương ứng (**Ctrl+Shift+1…9** dán văn bản thuần). |
 | Biến đổi văn bản (Transforms) | **Ctrl+K** (hoặc chuột phải) chuyển đổi nội dung trước khi dán: chữ HOA/thường/Title/Sentence case, xóa khoảng trắng thừa, gộp dòng, xóa dòng trống, format/minify JSON, định dạng SQL, mã hóa & giải mã Base64 / URL. |
 | Ngăn xếp dán liên tiếp (Paste stack) | Đánh dấu các mục bằng **Ctrl+Space** theo thứ tự bạn cần, bấm **Ctrl+S**, sau đó mỗi lần bấm **Ctrl+V** trong bất kỳ ứng dụng nào sẽ dán mục kế tiếp — cực kỳ tiện khi điền form hoặc nhập liệu. Tự động dừng khi dán hết, khi copy nội dung mới hoặc bấm dừng từ khay hệ thống. |
 | Đoạn mẫu & template (Snippets) | Lưu trữ các đoạn văn bản tái sử dụng không bao giờ hết hạn: **Ctrl+N** lưu nội dung đang chọn làm snippet, **Ctrl+E** chỉnh sửa snippet, hoặc quản lý trong Cài đặt. Hỗ trợ biến động: `{date}`, `{time}`, `{datetime}`, `{date:dd/MM/yyyy}`, `{clipboard}`, `{uuid}`. |
-| Không gian làm việc theo app (Workspaces) | Thiết lập quy tắc như `Code → Dev`, `OUTLOOK → Mail` để tự động gom nhóm lịch sử copy vào workspace tương ứng. **Ctrl+W** để chuyển đổi nhanh giữa các workspace. |
 | OCR nhận diện chữ trong ảnh | Hình ảnh sao chép được quét chữ tự động bằng công cụ OCR offline của Windows (Windows 10/11), giúp tìm kiếm ảnh chụp màn hình bằng nội dung chữ bên trong và dán ảnh dưới dạng văn bản. Dùng ngôn ngữ OCR cài trong Windows (thêm Tiếng Việt tại *Settings › Time & language › Language*). |
 | Gắn cố định cạnh màn hình (Sidebar) | **Ctrl+D** gắn bảng Quick Paste cố định vào mép phải hoặc trái màn hình dạng AppBar (Windows, chiếm không gian cố định giống thanh taskbar). Cửa sổ luôn hiển thị và dán vào ứng dụng bạn dùng gần nhất. |
 | Mã hóa dữ liệu | Tùy chọn: mã hóa toàn bộ lịch sử bằng tài khoản Windows (DPAPI), không cần nhập mật khẩu. Văn bản, định dạng, chữ OCR và ảnh được mã hóa trên ổ đĩa; chỉ mục tìm kiếm chỉ lưu trong bộ nhớ RAM; phát hiện trùng lặp bằng keyed hash. |
@@ -46,7 +45,6 @@ Trình quản lý clipboard ưu tiên bảo mật cục bộ (**local-first**) v
 | `Ctrl+Space` | Đánh dấu chọn nhiều mục (giữ đúng thứ tự đánh dấu) |
 | `Ctrl+S` | Bắt đầu chuỗi dán liên tiếp (paste stack) với các mục đã đánh dấu |
 | `Ctrl+N` / `Ctrl+E` | Lưu thành snippet mới / chỉnh sửa snippet đang chọn |
-| `Ctrl+W` | Chuyển sang workspace kế tiếp |
 | `Ctrl+R` | Hiển thị nội dung nhạy cảm đang bị che |
 | `Ctrl+T` | Ghim cửa sổ palette luôn nổi trên màn hình và dán vào ứng dụng vừa kích hoạt |
 | `Ctrl+D` | Gắn cửa sổ làm sidebar: phải → trái → tắt |
@@ -113,7 +111,7 @@ dotnet run --project tests/ClipboardManager.Core.Tests            # chạy toàn
 dotnet run --project tests/ClipboardManager.Core.Tests -- Search  # lọc test theo tên
 ```
 
-Bộ test bao gồm 102 ca kiểm thử bao phủ: phân loại nội dung, phát hiện dữ liệu nhạy cảm, chống trùng lặp, tìm kiếm FTS5 và bộ lọc, hết hạn, ghim mục, loại bỏ dữ liệu cũ (eviction), lưu trữ ảnh, gộp dòng, cài đặt, văn bản đa định dạng, các phép biến đổi (kèm bộ định dạng SQL), quy tắc workspace, mã hóa (không lưu văn bản thô trên đĩa, bật/tắt mã hóa tại chỗ, phát hiện sai tài khoản), snippet & template, ngăn xếp dán, chỉ mục OCR, nâng cấp phiên bản CSDL và tìm kiếm 10.000 mục dưới 100 ms.
+Bộ test bao gồm 102 ca kiểm thử bao phủ: phân loại nội dung, phát hiện dữ liệu nhạy cảm, chống trùng lặp, tìm kiếm FTS5 và bộ lọc, hết hạn, ghim mục, loại bỏ dữ liệu cũ (eviction), lưu trữ ảnh, gộp dòng, cài đặt, văn bản đa định dạng, các phép biến đổi (kèm bộ định dạng SQL), mã hóa (không lưu văn bản thô trên đĩa, bật/tắt mã hóa tại chỗ, phát hiện sai tài khoản), snippet & template, ngăn xếp dán, chỉ mục OCR, nâng cấp phiên bản CSDL và tìm kiếm 10.000 mục dưới 100 ms.
 
 ## Tích hợp liên tục CI (GitHub Actions)
 
@@ -121,7 +119,7 @@ Workflow `.github/workflows/build.yml` thực thi chạy kiểm thử core trên
 
 ## Cài đặt (Settings)
 
-Menu khay hệ thống → **Settings…** cho phép cấu hình toàn diện: phím tắt (áp dụng tức thì), tính năng ghi nhận clipboard, quy tắc quyền riêng tư, danh sách ứng dụng loại trừ, mã hóa, thời gian lưu trữ theo loại, quy tắc workspace, OCR và danh sách snippets.
+Menu khay hệ thống → **Settings…** cho phép cấu hình toàn diện: phím tắt (áp dụng tức thì), tính năng ghi nhận clipboard, quy tắc quyền riêng tư, danh sách ứng dụng loại trừ, mã hóa, thời gian lưu trữ theo loại, OCR và danh sách snippets.
 
 Ở tầng dưới, cấu hình được lưu trong file `settings.json` tại thư mục dữ liệu (`%LOCALAPPDATA%\ClipboardManager` trên Windows, `~/Library/Application Support/ClipboardManager` trên macOS; từ khay hệ thống → *Edit settings.json (advanced)*; cần khởi động lại ứng dụng nếu sửa file thủ công):
 
@@ -133,7 +131,6 @@ Menu khay hệ thống → **Settings…** cho phép cấu hình toàn diện: p
   "NeverStorePrivateKeys": true,
   "ExcludedApplications": ["1Password", "KeePass", "KeePassXC", "Bitwarden", "LastPass"],
   "RetentionMinutes": { "Sensitive": 5, "password": 1, "Text": 1440, "Code": 10080, "Url": 10080, "Image": 60 },
-  "WorkspaceRules": [ { "App": "Code", "Workspace": "Dev" }, { "App": "OUTLOOK", "Workspace": "Mail" } ],
   "EncryptDatabase": false,
   "OcrEnabled": true,
   "SidebarEdge": "None"
@@ -183,7 +180,7 @@ Phiên bản macOS chạy thường trực trên thanh Menu bar với cửa sổ
 
 ## Lộ trình phát triển (Roadmap)
 
-- **Phase 2:** ~~giao diện settings~~, ~~quy tắc workspace theo app~~, ~~snippets~~, ~~paste stack~~, ~~sidebar~~ (đã xong); các mục tiếp theo: gắn thẻ (tags), cửa sổ xem lại toàn bộ lịch sử, tùy chọn ký tự phân cách khi gộp dòng trên UI.
+- **Phase 2:** ~~giao diện settings~~, ~~snippets~~, ~~paste stack~~, ~~sidebar~~ (đã xong); các mục tiếp theo: gắn thẻ (tags), cửa sổ xem lại toàn bộ lịch sử, tùy chọn ký tự phân cách khi gộp dòng trên UI.
 - **Phase 3:** ~~mã hóa cơ sở dữ liệu~~, ~~OCR hình ảnh~~ (đã xong); các mục tiếp theo: quy tắc thông minh (smart rules), AI tùy chọn (opt-in, tuyệt đối không dùng cho dữ liệu nhạy cảm).
 - **Phase 4:** ~~hỗ trợ macOS~~ (đã xong); các mục tiếp theo: đồng bộ đa thiết bị mã hóa đầu cuối (E2EE), hỗ trợ Linux.
 

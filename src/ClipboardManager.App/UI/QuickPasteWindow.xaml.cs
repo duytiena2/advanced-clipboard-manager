@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shell;
 using System.Windows.Threading;
+using ClipboardManager.App.Native;
 using ClipboardManager.App.Platform;
 using ClipboardManager.Core.Models;
 using ClipboardManager.Core.Platform;
@@ -36,14 +37,15 @@ public partial class QuickPasteWindow : Window
     private readonly DispatcherTimer _saveSizeDebounce;
     private bool _resizingFromCode;
     private bool _layoutIsCompact;
+    private const int WM_ENTERSIZEMOVE = 0x0231;
+    private const int WM_EXITSIZEMOVE = 0x0232;
+    private bool _isLiveResizing;
 
-    // A docked sidebar is always kept open.
-    private bool KeepOpen => KeepOpenButton.IsChecked == true || Docked;
-    private bool Docked => SidebarEdge != DockEdge.None;
-    private bool IsPinnedFloating => !Docked && KeepOpenButton.IsChecked == true;
+    private bool KeepOpen => KeepOpenButton.IsChecked == true;
+    private bool IsPinnedFloating => KeepOpenButton.IsChecked == true;
     private const double FullLayoutBreakpoint = 540;
-    private bool IsCompact => Docked || (ActualWidth > 0 ? ActualWidth : (!double.IsNaN(Width) && Width > 0 ? Width : TargetWidth)) < FullLayoutBreakpoint;
-    private const double PaletteWidth = 760, PaletteHeight = 520, SidebarWidth = 400;
+    private bool IsCompact => (ActualWidth > 0 ? ActualWidth : (!double.IsNaN(Width) && Width > 0 ? Width : TargetWidth)) < FullLayoutBreakpoint;
+    private const double PaletteWidth = 760, PaletteHeight = 520;
     private const double PinnedWidth = 360, PinnedHeight = 440;
     private const double MinPinnedWidth = 280, MinPinnedHeight = 220;
     private const double MinPaletteWidth = 540, MinPaletteHeight = 360;
@@ -56,7 +58,6 @@ public partial class QuickPasteWindow : Window
         ? (_svc.Settings.QuickPastePinnedHeight ?? PinnedHeight)
         : (_svc.Settings.QuickPasteHeight ?? PaletteHeight);
 
-    private readonly AppBar _appBar;
     private bool _hiding;
     private long _markSequence;
 
@@ -68,8 +69,6 @@ public partial class QuickPasteWindow : Window
         InitializeComponent();
 
         ItemsList.ItemsSource = _items;
-        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_items);
-        view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(ItemViewModel.SectionHeader)));
         // Keep-open mode follows the app the user works in, so Enter pastes there.
         _trackForeground = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _trackForeground.Tick += (_, _) => _paste.RememberForegroundWindow(onlyIfPasteTarget: true);
@@ -84,7 +83,7 @@ public partial class QuickPasteWindow : Window
             {
                 if (vm.Item.IsSensitive) vm.Refresh();
             }
-            if (ItemsList.SelectedItem is ItemViewModel sel) MetaExpires.Text = sel.MetaExpires;
+            if (ItemsList.SelectedItem is ItemViewModel sel && sel.IsSensitive) MetaExpires.Text = sel.MetaExpires;
         };
         IsVisibleChanged += (_, _) =>
         {
@@ -96,7 +95,6 @@ public partial class QuickPasteWindow : Window
         _activeChips.CollectionChanged += (_, _) =>
         {
             UpdateSearchChipsState();
-            UpdateWorkspaceButtonText();
         };
 
         SearchBox.TextChanged += OnSearchBoxTextChanged;
@@ -122,6 +120,33 @@ public partial class QuickPasteWindow : Window
                 }
             }
         };
+
+        PreviewMouseDown += (_, e) =>
+        {
+            if (SearchSuggestionsPopup is not null && SearchSuggestionsPopup.IsOpen)
+            {
+                var originalSource = e.OriginalSource as DependencyObject;
+                if (!IsDescendantOf(originalSource, SearchContainer) &&
+                    !IsDescendantOf(originalSource, SearchSuggestionsPopup.Child))
+                {
+                    SearchSuggestionsPopup.IsOpen = false;
+                }
+            }
+        };
+
+        PreviewMouseWheel += (_, e) =>
+        {
+            if (SearchSuggestionsPopup is not null && SearchSuggestionsPopup.IsOpen)
+            {
+                var originalSource = e.OriginalSource as DependencyObject;
+                if (!IsDescendantOf(originalSource, SearchContainer) &&
+                    !IsDescendantOf(originalSource, SearchSuggestionsPopup.Child))
+                {
+                    SearchSuggestionsPopup.IsOpen = false;
+                }
+            }
+        };
+
         ItemsList.SelectionChanged += (_, _) => UpdatePreview();
         ItemsList.MouseDoubleClick += (_, _) => PasteSelected();
         ItemsList.PreviewMouseRightButtonUp += (_, e) =>
@@ -172,13 +197,18 @@ public partial class QuickPasteWindow : Window
         FormatButton.Click += (_, _) => FormatSelectedCode();
         CopyPreviewButton.Click += (_, _) => CopyAllPreviewText();
         PreviewKeyDown += OnPreviewKeyDown;
-        Deactivated += (_, _) => { if (!KeepOpen) HidePalette(); };
+        Deactivated += (_, _) =>
+        {
+            App.Log(new Exception($"Deactivated fired. KeepOpen={KeepOpen}, IsVisible={IsVisible}, _hiding={_hiding}"));
+            if (SearchSuggestionsPopup is not null) SearchSuggestionsPopup.IsOpen = false;
+            if (!KeepOpen) HidePalette();
+        };
 
         WindowChrome.SetWindowChrome(this, new WindowChrome
         {
             CaptionHeight = 0,
             ResizeBorderThickness = new Thickness(6),
-            GlassFrameThickness = new Thickness(0),
+            GlassFrameThickness = new Thickness(-1),
             CornerRadius = new CornerRadius(0),
         });
 
@@ -194,20 +224,27 @@ public partial class QuickPasteWindow : Window
         // Borderless window: drag it by the search bar or the footer (the text box itself keeps normal mouse behavior).
         Header.MouseLeftButtonDown += OnDragAreaMouseDown;
         Footer.MouseLeftButtonDown += OnDragAreaMouseDown;
-        if (DragBar is not null) DragBar.MouseLeftButtonDown += OnDragAreaMouseDown;
 
-        // Sidebar: docked to a screen edge as an app bar (the shell keeps other windows out of that strip).
-        _appBar = new AppBar(this, SidebarWidth);
-        DockButton.Click += (_, _) => CycleDock();
         SettingsButton.Click += (_, _) => OpenSettings();
-        if (HelpButton is not null) HelpButton.Click += (_, _) => ShowKeyHelp();
-        if (WorkspaceSelectorButton is not null)
+        if (CloseButton is not null) CloseButton.Click += (_, _) => HidePalette();
+        if (ClearSearchButton is not null)
         {
-            WorkspaceSelectorButton.Click += (_, _) => ShowWorkspaceMenu(WorkspaceSelectorButton);
-            WorkspaceSelectorButton.MouseRightButtonUp += (_, e) => { e.Handled = true; CycleWorkspaceFilter(); };
+            ClearSearchButton.Click += (_, _) =>
+            {
+                SearchBox.Text = string.Empty;
+                _debounce.Stop();
+                Reload();
+                SearchBox.Focus();
+            };
         }
-        if (TransparencyButton is not null) TransparencyButton.Click += (_, _) => ToggleTransparency();
-        if (WidgetModeButton is not null) WidgetModeButton.Click += (_, _) => ToggleWidgetMode();
+        if (HelpButton is not null) HelpButton.Click += (_, _) => ShowKeyHelp();
+        // Filter bar chips (All, Code, Images, Pinned, Snippets)
+        if (ChipAll is not null) ChipAll.Click += (_, _) => SetOrToggleCategoryFilter(null, null);
+        if (ChipCode is not null) ChipCode.Click += (_, _) => SetOrToggleCategoryFilter("type", "code");
+        if (ChipImage is not null) ChipImage.Click += (_, _) => SetOrToggleCategoryFilter("type", "image");
+        if (ChipPinned is not null) ChipPinned.Click += (_, _) => SetOrToggleCategoryFilter("pinned", "true");
+        if (ChipSnippet is not null) ChipSnippet.Click += (_, _) => SetOrToggleCategoryFilter("type", "snippet");
+
         if (PreviewSplit is not null)
         {
             PreviewSplit.DragDelta += OnSplitterDragDelta;
@@ -215,9 +252,9 @@ public partial class QuickPasteWindow : Window
             PreviewSplit.MouseDoubleClick += (_, _) => CycleSplitRatio();
             PreviewSplit.MouseRightButtonUp += (s, e) => { e.Handled = true; ShowSplitContextMenu(PreviewSplit); };
         }
-        if (SplitPresetButton is not null) SplitPresetButton.Click += (_, _) => ShowSplitContextMenu(SplitPresetButton);
         if (StopPasteStackButton is not null) StopPasteStackButton.Click += (_, _) => StopPasteStackRequested?.Invoke();
         if (HelpCloseButton is not null) HelpCloseButton.Click += (_, _) => HideHelpOverlay();
+        if (HelpClearSearchButton is not null) HelpClearSearchButton.Click += (_, _) => { HelpSearchBox.Text = ""; HelpSearchBox.Focus(); };
         if (HelpSearchBox is not null) HelpSearchBox.TextChanged += (_, _) => FilterHelpShortcuts(HelpSearchBox.Text);
         UpdateSearchChipsState();
         ItemsList.SelectionChanged += (_, _) => UpdateContextualToolbar();
@@ -226,27 +263,25 @@ public partial class QuickPasteWindow : Window
         _resizingFromCode = true;
         try
         {
-            if (!Docked)
-            {
-                Width = TargetWidth;
-                Height = TargetHeight;
-            }
+            Width = TargetWidth;
+            Height = TargetHeight;
             ApplyLayout();
-            if (IsPinnedFloating)
-            {
-                KeepOpenButton.ToolTip = "Unpin window (Ctrl+T)";
-            }
-            else if (!Docked)
-            {
-                KeepOpenButton.ToolTip = "Pin window / keep open (Ctrl+T)";
-            }
+            KeepOpenButton.ToolTip = IsPinnedFloating
+                ? "Unpin window (Ctrl+T)"
+                : "Pin window / keep open (Ctrl+T)";
         }
         finally
         {
             _resizingFromCode = false;
         }
 
-        Closed += (_, _) => _appBar.Dispose();
+        ApplyLocalization();
+        LocalizationService.LanguageChanged += ApplyLocalization;
+
+        Closed += (_, _) =>
+        {
+            LocalizationService.LanguageChanged -= ApplyLocalization;
+        };
 
         _svc.HistoryChanged += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
         {
@@ -254,15 +289,80 @@ public partial class QuickPasteWindow : Window
         }));
     }
 
+    public void ApplyLocalization()
+    {
+        Placeholder.Text = LocalizationService.Get("QuickPaste_SearchPlaceholder");
+        if (ChipAll is not null) ChipAll.Content = LocalizationService.Get("QuickPaste_All");
+        if (ChipCode is not null) ChipCode.Content = "💻 " + LocalizationService.Get("QuickPaste_Code");
+        if (ChipImage is not null) ChipImage.Content = "🗃️ " + LocalizationService.Get("QuickPaste_Images");
+        if (ChipPinned is not null) ChipPinned.Content = "📌 " + LocalizationService.Get("QuickPaste_Pinned");
+        if (ChipSnippet is not null) ChipSnippet.Content = "🏷️ " + LocalizationService.Get("QuickPaste_Snippets");
+
+        KeepOpenButton.ToolTip = LocalizationService.Get("QuickPaste_PinTooltip");
+        SettingsButton.ToolTip = LocalizationService.Get("QuickPaste_SettingsTooltip");
+        if (HelpButton is not null) HelpButton.ToolTip = LocalizationService.Get("QuickPaste_HelpTooltip");
+        if (StopPasteStackButton is not null) StopPasteStackButton.Content = LocalizationService.Get("QuickPaste_StopStack");
+        if (ClearAllRecentButton is not null) ClearAllRecentButton.Content = LocalizationService.Get("QuickPaste_ClearRecent");
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        var source = System.Windows.Interop.HwndSource.FromHwnd(hwnd);
+        if (source?.CompositionTarget != null)
+        {
+            source.CompositionTarget.BackgroundColor = System.Windows.Media.Colors.Transparent;
+        }
+        source?.AddHook(WndProc);
+        WindowBackdrop.Apply(this, false);
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_ENTERSIZEMOVE)
+        {
+            _isLiveResizing = true;
+            if (PreviewImage is not null)
+            {
+                RenderOptions.SetBitmapScalingMode(PreviewImage, BitmapScalingMode.LowQuality);
+            }
+        }
+        else if (msg == WM_EXITSIZEMOVE)
+        {
+            _isLiveResizing = false;
+            if (PreviewImage is not null)
+            {
+                RenderOptions.SetBitmapScalingMode(PreviewImage, BitmapScalingMode.HighQuality);
+            }
+            if (IsPinnedFloating)
+            {
+                _svc.Settings.QuickPastePinnedWidth = ActualWidth;
+                _svc.Settings.QuickPastePinnedHeight = ActualHeight;
+            }
+            else
+            {
+                _svc.Settings.QuickPasteWidth = ActualWidth;
+                _svc.Settings.QuickPasteHeight = ActualHeight;
+            }
+            _svc.Settings.QuickPasteLeft = Left;
+            _svc.Settings.QuickPasteTop = Top;
+            SaveSettings();
+        }
+        return IntPtr.Zero;
+    }
+
     public void TogglePalette()
     {
-        if (IsVisible) HidePalette();
+        App.Log(new Exception($"TogglePalette: IsVisible={IsVisible}, IsActive={IsActive}, KeepOpen={KeepOpen}"));
+        if (IsVisible && IsActive) HidePalette();
         else ShowPalette();
     }
 
     /// <param name="keepTarget">Reopening after our own dialog: keep pasting into the app that was active before.</param>
     public void ShowPalette(bool keepTarget = false, string search = "")
     {
+        App.Log(new Exception($"ShowPalette: keepTarget={keepTarget}, search='{search}', Left={Left}, Top={Top}, Width={Width}, Height={Height}, IsVisible={IsVisible}"));
         if (!keepTarget) _paste.RememberForegroundWindow();
         _resizingFromCode = true;
         try
@@ -270,24 +370,7 @@ public partial class QuickPasteWindow : Window
             Width = TargetWidth;
             Height = TargetHeight;
             ApplyLayout();
-            if (Docked)
-            {
-                var area = SystemParameters.WorkArea;
-                if (SidebarEdge == DockEdge.Right)
-                {
-                    Left = Math.Max(area.Left, area.Right - Width - 16);
-                    Top = Math.Max(area.Top, area.Top + Math.Min(60, (area.Height - Height) / 2));
-                }
-                else if (SidebarEdge == DockEdge.Left)
-                {
-                    Left = area.Left + 16;
-                    Top = Math.Max(area.Top, area.Top + Math.Min(60, (area.Height - Height) / 2));
-                }
-            }
-            else
-            {
-                PositionOnScreen();
-            }
+            PositionOnScreen();
             if (!IsCompact) UpdatePreview();
         }
         finally
@@ -328,7 +411,11 @@ public partial class QuickPasteWindow : Window
         Reload();
         _hiding = false;
         Show();
+        Topmost = false;
+        Topmost = true;
         Activate();
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        NativeMethods.ForceForeground(hwnd);
         SearchBox.Focus();
         Keyboard.Focus(SearchBox);
     }
@@ -339,21 +426,18 @@ public partial class QuickPasteWindow : Window
         SaveSettings();
         if (on && IsVisible) _trackForeground.Start(); else if (!KeepOpen) _trackForeground.Stop();
 
-        if (!Docked)
+        _resizingFromCode = true;
+        try
         {
-            _resizingFromCode = true;
-            try
-            {
-                Width = on ? (_svc.Settings.QuickPastePinnedWidth ?? PinnedWidth) : (_svc.Settings.QuickPasteWidth ?? PaletteWidth);
-                Height = on ? (_svc.Settings.QuickPastePinnedHeight ?? PinnedHeight) : (_svc.Settings.QuickPasteHeight ?? PaletteHeight);
-                ApplyLayout();
-                ClampToWorkArea();
-                if (!IsCompact) UpdatePreview();
-            }
-            finally
-            {
-                _resizingFromCode = false;
-            }
+            Width = on ? (_svc.Settings.QuickPastePinnedWidth ?? PinnedWidth) : (_svc.Settings.QuickPasteWidth ?? PaletteWidth);
+            Height = on ? (_svc.Settings.QuickPastePinnedHeight ?? PinnedHeight) : (_svc.Settings.QuickPasteHeight ?? PaletteHeight);
+            ApplyLayout();
+            ClampToWorkArea();
+            if (!IsCompact) UpdatePreview();
+        }
+        finally
+        {
+            _resizingFromCode = false;
         }
 
         KeepOpenButton.ToolTip = on ? "Unpin window (Ctrl+T)" : "Pin window / keep open (Ctrl+T)";
@@ -369,119 +453,63 @@ public partial class QuickPasteWindow : Window
 
     public void HidePalette()
     {
+        App.Log(new Exception($"HidePalette: _hiding={_hiding}, IsVisible={IsVisible}"));
         if (_hiding || !IsVisible) return;
         _hiding = true;
         if (SearchSuggestionsPopup is not null) SearchSuggestionsPopup.IsOpen = false;
         foreach (var vm in _items) vm.IsMarked = false;
-        _appBar.Undock(); // give the reserved strip back while hidden
         Hide();
         _hiding = false;
     }
 
-    private DockEdge SidebarEdge =>
-        Enum.TryParse<DockEdge>(_svc.Settings.SidebarEdge, ignoreCase: true, out var edge) ? edge : DockEdge.None;
-
-    /// <summary>Ctrl+D / dock button: floating → right edge → left edge → floating.</summary>
-    private void CycleDock()
-    {
-        var next = SidebarEdge switch
-        {
-            DockEdge.None => DockEdge.Right,
-            DockEdge.Right => DockEdge.Left,
-            _ => DockEdge.None,
-        };
-        _svc.Settings.SidebarEdge = next.ToString();
-        SaveSettings();
-
-        // Release any desktop AppBar lock so window can move freely anytime
-        _appBar.Undock();
-
-        _resizingFromCode = true;
-        try
-        {
-            ApplyLayout();
-            Width = TargetWidth;
-            Height = TargetHeight;
-
-            var area = SystemParameters.WorkArea;
-            if (next == DockEdge.Right)
-            {
-                Left = Math.Max(area.Left, area.Right - Width - 16);
-                Top = Math.Max(area.Top, area.Top + Math.Min(60, (area.Height - Height) / 2));
-            }
-            else if (next == DockEdge.Left)
-            {
-                Left = area.Left + 16;
-                Top = Math.Max(area.Top, area.Top + Math.Min(60, (area.Height - Height) / 2));
-            }
-            else
-            {
-                PositionOnScreen();
-            }
-            if (!IsCompact) UpdatePreview();
-        }
-        finally
-        {
-            _resizingFromCode = false;
-        }
-
-        DockButton.Tag = next != DockEdge.None ? "docked" : null;
-        StatusText.Text = next == DockEdge.None
-            ? (KeepOpenButton.IsChecked == true ? "Pinned — Enter pastes into the app you used last" : "Floating")
-            : $"Snapped {next.ToString().ToLowerInvariant()} — kéo để di chuyển tự do";
-        SearchBox.Focus();
-    }
-
-
-    /// <summary>Sidebar or narrow floating (&lt; 540) = compact list only; wide floating (&gt;= 540) = full list + preview.</summary>
+    /// <summary>Narrow floating (&lt; 540) = compact list only; wide floating (&gt;= 540) = full list + preview.</summary>
     private void ApplyLayout()
     {
-        bool docked = Docked;
         bool compact = IsCompact;
         _layoutIsCompact = compact;
 
-        ResizeMode = docked ? ResizeMode.NoResize : ResizeMode.CanResize;
-        if (docked)
-        {
-            MinWidth = SidebarWidth;
-            MaxWidth = SidebarWidth;
-            MinHeight = 0;
-            MaxHeight = double.PositiveInfinity;
-        }
-        else
-        {
-            MinWidth = MinPinnedWidth;
-            MaxWidth = double.PositiveInfinity;
-            MinHeight = MinPinnedHeight;
-            MaxHeight = double.PositiveInfinity;
-        }
+        ResizeMode = ResizeMode.CanResize;
+        MinWidth = MinPinnedWidth;
+        MaxWidth = double.PositiveInfinity;
+        MinHeight = MinPinnedHeight;
+        MaxHeight = double.PositiveInfinity;
 
         if (compact)
         {
+            ListColumn.MinWidth = 0;
             ListColumn.Width = new GridLength(1, GridUnitType.Star);
+            SplitColumn.MinWidth = 0;
             SplitColumn.Width = new GridLength(0);
+            PreviewColumn.MinWidth = 0;
             PreviewColumn.Width = new GridLength(0);
             if (PreviewSplit is not null) PreviewSplit.Visibility = Visibility.Collapsed;
-            if (SplitPresetButton is not null) SplitPresetButton.Visibility = Visibility.Collapsed;
         }
         else
         {
+            ListColumn.MinWidth = 180;
+            SplitColumn.MinWidth = 0;
+            SplitColumn.Width = new GridLength(5);
+            PreviewColumn.MinWidth = 180;
+            double totalAvailable = (ActualWidth > 0 ? ActualWidth : TargetWidth) - 7;
             double ratio = _svc.Settings.QuickPasteListRatio ?? 0.40;
             ratio = Math.Clamp(ratio, 0.20, 0.80);
-            ListColumn.Width = new GridLength(ratio * 100, GridUnitType.Star);
-            SplitColumn.Width = new GridLength(5);
-            PreviewColumn.Width = new GridLength((1.0 - ratio) * 100, GridUnitType.Star);
+            double listWidth = Math.Round(totalAvailable * ratio);
+            listWidth = Math.Clamp(listWidth, 180, Math.Max(180, totalAvailable - 180));
+
+            ListColumn.Width = new GridLength(listWidth, GridUnitType.Pixel);
+            PreviewColumn.Width = new GridLength(1, GridUnitType.Star);
             if (PreviewSplit is not null) PreviewSplit.Visibility = Visibility.Visible;
-            if (SplitPresetButton is not null) SplitPresetButton.Visibility = Visibility.Visible;
+        }
+        if (RootBorder is not null)
+        {
+            RootBorder.CornerRadius = new CornerRadius(0);
         }
         PreviewPane.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         UpdateContextualToolbar();
         if (ResizeGripIndicator is not null)
-            ResizeGripIndicator.Visibility = docked ? Visibility.Collapsed : Visibility.Visible;
-        DockButton.Tag = docked ? "docked" : null;
-        if (WidgetModeButton is not null) WidgetModeButton.Tag = compact ? "compact" : null;
+            ResizeGripIndicator.Visibility = Visibility.Visible;
         Placeholder.Text = "Search clipboard…";
-        Header.ToolTip = Footer.ToolTip = docked ? null : "Drag to move";
+        Header.ToolTip = Footer.ToolTip = "Drag to move";
     }
 
     private static readonly (double ratio, string label, string description)[] SplitPresets =
@@ -497,8 +525,12 @@ public partial class QuickPasteWindow : Window
         if (IsCompact) return;
         listRatio = Math.Clamp(listRatio, 0.20, 0.80);
         _svc.Settings.QuickPasteListRatio = listRatio;
-        ListColumn.Width = new GridLength(listRatio * 100, GridUnitType.Star);
-        PreviewColumn.Width = new GridLength((1.0 - listRatio) * 100, GridUnitType.Star);
+        double total = ListColumn.ActualWidth + PreviewColumn.ActualWidth;
+        if (total <= 50) total = (ActualWidth > 0 ? ActualWidth : TargetWidth) - 7;
+        double listWidth = Math.Round(total * listRatio);
+        listWidth = Math.Clamp(listWidth, 180, Math.Max(180, total - 180));
+        ListColumn.Width = new GridLength(listWidth, GridUnitType.Pixel);
+        PreviewColumn.Width = new GridLength(1, GridUnitType.Star);
         _saveSizeDebounce.Stop();
         _saveSizeDebounce.Start();
     }
@@ -574,9 +606,9 @@ public partial class QuickPasteWindow : Window
         {
             double ratio = ListColumn.ActualWidth / total;
             ratio = Math.Clamp(ratio, 0.20, 0.80);
-            ListColumn.Width = new GridLength(ratio * 100, GridUnitType.Star);
-            PreviewColumn.Width = new GridLength((1.0 - ratio) * 100, GridUnitType.Star);
             _svc.Settings.QuickPasteListRatio = ratio;
+            ListColumn.Width = new GridLength(Math.Round(ListColumn.ActualWidth), GridUnitType.Pixel);
+            PreviewColumn.Width = new GridLength(1, GridUnitType.Star);
             _saveSizeDebounce.Stop();
             _saveSizeDebounce.Start();
             StatusText.Text = $"Tỷ lệ: {ratio:P0} / {1.0 - ratio:P0}";
@@ -585,7 +617,7 @@ public partial class QuickPasteWindow : Window
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (!IsLoaded || Docked || _resizingFromCode) return;
+        if (!IsLoaded || _resizingFromCode) return;
 
         bool compact = ActualWidth < FullLayoutBreakpoint;
         if (compact != _layoutIsCompact)
@@ -594,6 +626,15 @@ public partial class QuickPasteWindow : Window
             if (!compact)
             {
                 UpdatePreview();
+            }
+        }
+        else if (!compact && ListColumn.Width.IsAbsolute)
+        {
+            // Khi co hẹp cửa sổ, đảm bảo PreviewColumn luôn có tối thiểu 180px
+            double maxListWidth = Math.Max(180, ActualWidth - 180 - 7);
+            if (ListColumn.Width.Value > maxListWidth)
+            {
+                ListColumn.Width = new GridLength(maxListWidth, GridUnitType.Pixel);
             }
         }
 
@@ -609,34 +650,18 @@ public partial class QuickPasteWindow : Window
         }
         _svc.Settings.QuickPasteLeft = Left;
         _svc.Settings.QuickPasteTop = Top;
-        _saveSizeDebounce.Stop();
-        _saveSizeDebounce.Start();
-    }
 
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out POINT lpPoint);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT { public int X, Y; }
-
-    private Point GetCursorScreenPosition()
-    {
-        if (GetCursorPos(out var pt))
+        if (!_isLiveResizing)
         {
-            var dpi = VisualTreeHelper.GetDpi(this);
-            return new Point(pt.X / dpi.DpiScaleX, pt.Y / dpi.DpiScaleY);
+            _saveSizeDebounce.Stop();
+            _saveSizeDebounce.Start();
         }
-        return new Point(Left, Top);
     }
 
     private void OnDragAreaMouseDown(object sender, MouseButtonEventArgs e)
     {
+        if (SearchSuggestionsPopup is not null) SearchSuggestionsPopup.IsOpen = false;
         if (e.LeftButton != MouseButtonState.Pressed) return;
-        if (Docked)
-        {
-            UndockAndStartDrag();
-            return;
-        }
         try
         {
             DragMove();
@@ -646,36 +671,6 @@ public partial class QuickPasteWindow : Window
             return; // mouse already released
         }
         // Remember where the user put it (also across restarts).
-        _svc.Settings.QuickPasteLeft = Left;
-        _svc.Settings.QuickPasteTop = Top;
-        SaveSettings();
-        SearchBox.Focus();
-    }
-
-    private void UndockAndStartDrag()
-    {
-        _appBar.Undock();
-        _svc.Settings.SidebarEdge = "None";
-        DockButton.Tag = null;
-        _resizingFromCode = true;
-        try
-        {
-            ApplyLayout();
-            Width = TargetWidth;
-            Height = TargetHeight;
-            var pt = GetCursorScreenPosition();
-            Left = Math.Max(0, pt.X - Width / 2);
-            Top = Math.Max(0, pt.Y - 20);
-        }
-        finally
-        {
-            _resizingFromCode = false;
-        }
-        try
-        {
-            DragMove();
-        }
-        catch (InvalidOperationException) { }
         _svc.Settings.QuickPasteLeft = Left;
         _svc.Settings.QuickPasteTop = Top;
         SaveSettings();
@@ -720,6 +715,7 @@ public partial class QuickPasteWindow : Window
         var marks = _items.Where(i => i.IsMarked).ToDictionary(i => i.Item.Id, i => i.MarkOrder);
 
         string effectiveQuery = SearchFilterChip.Combine(_activeChips, SearchBox.Text);
+        UpdateFilterBarActiveChips();
         var results = _svc.Search(effectiveQuery, MaxResults);
         _items.Clear();
         foreach (var item in results)
@@ -773,7 +769,9 @@ public partial class QuickPasteWindow : Window
             CodeContainer.Visibility = Visibility.Collapsed;
             TextContainer.Visibility = Visibility.Collapsed;
             PreviewImage.Source = null;
-            MetaType.Text = MetaSource.Text = MetaCopied.Text = MetaExpires.Text = "";
+            MetaSource.Text = MetaCopied.Text = MetaExpires.Text = "";
+            MetaExpiresLabel.Visibility = MetaExpires.Visibility = Visibility.Collapsed;
+            HeaderOcrBadge.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -781,16 +779,27 @@ public partial class QuickPasteWindow : Window
         if (EmptySearchContainer is not null) EmptySearchContainer.Visibility = Visibility.Collapsed;
         PreviewHeaderBar.Visibility = Visibility.Visible;
 
-        // Reset action buttons
+        // Reset action buttons & badges
         FormatButton.Visibility = Visibility.Collapsed;
         OpenUrlButton.Visibility = Visibility.Collapsed;
         ToggleRevealButton.Visibility = Visibility.Collapsed;
+        HeaderOcrBadge.Visibility = Visibility.Collapsed;
 
-        // Populate bottom metadata table
-        MetaType.Text = vm.MetaType;
+        // Populate bottom metadata table (Source, Copied, và Expires nếu sensitive)
         MetaSource.Text = vm.MetaSource;
         MetaCopied.Text = vm.MetaCopied;
-        MetaExpires.Text = vm.MetaExpires;
+        if (vm.IsSensitive)
+        {
+            MetaExpiresLabel.Visibility = Visibility.Visible;
+            MetaExpires.Visibility = Visibility.Visible;
+            MetaExpires.Text = vm.MetaExpires;
+        }
+        else
+        {
+            MetaExpiresLabel.Visibility = Visibility.Collapsed;
+            MetaExpires.Visibility = Visibility.Collapsed;
+            MetaExpires.Text = "";
+        }
 
         // Hide all view containers before showing the active one
         SensitiveHiddenContainer.Visibility = Visibility.Collapsed;
@@ -846,29 +855,24 @@ public partial class QuickPasteWindow : Window
         if (vm.IsImage)
         {
             ImageContainer.Visibility = Visibility.Visible;
-            SetPreviewBadge("IMAGE", "#F3E8FF", "#7C3AED");
+            SetPreviewBadge("SCREENSHOT", "#F3E8FF", "#7C3AED");
 
             string dimStr = vm.ImageResolutionText;
             ImageDimensionsText.Text = dimStr;
-            PreviewStatsText.Text = $"{dimStr} · {vm.MetaSize}";
+            PreviewStatsText.Text = dimStr;
 
             PreviewImage.Source = vm.Image;
             PreviewImage.ToolTip = vm.Item.OcrText is { Length: > 0 } ocr ? "Text in image (Ctrl+Shift+Enter pastes it):\n" + ocr : null;
 
             if (vm.HasOcr)
             {
-                OcrBadgeBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E6F4F1"));
-                OcrBadgeText.Foreground = (Brush)FindResource("Accent");
-                OcrBadgeText.Text = "OCR: Available";
-                ToggleOcrButton.Visibility = Visibility.Visible;
+                HeaderOcrBadge.Visibility = Visibility.Visible;
+                OcrTextPanel.Visibility = Visibility.Visible;
                 OcrTextBox.Text = vm.Item.OcrText;
             }
             else
             {
-                OcrBadgeBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F3F5"));
-                OcrBadgeText.Foreground = (Brush)FindResource("Muted");
-                OcrBadgeText.Text = vm.OcrStatusText;
-                ToggleOcrButton.Visibility = Visibility.Collapsed;
+                HeaderOcrBadge.Visibility = Visibility.Collapsed;
                 OcrTextPanel.Visibility = Visibility.Collapsed;
             }
             return;
@@ -1140,10 +1144,6 @@ public partial class QuickPasteWindow : Window
                 ShowKeyHelp();
                 e.Handled = true;
                 break;
-            case Key.D when mods == ModifierKeys.Control:
-                CycleDock();
-                e.Handled = true;
-                break;
             case Key.S when mods == ModifierKeys.Control:
                 StartPasteStack();
                 e.Handled = true;
@@ -1154,10 +1154,6 @@ public partial class QuickPasteWindow : Window
                 break;
             case Key.E when mods == ModifierKeys.Control:
                 EditSnippet(createNew: false);
-                e.Handled = true;
-                break;
-            case Key.W when mods == ModifierKeys.Control:
-                CycleWorkspaceFilter();
                 e.Handled = true;
                 break;
             case Key.K when mods == ModifierKeys.Control:
@@ -1178,10 +1174,6 @@ public partial class QuickPasteWindow : Window
                 break;
             case Key.M when mods == ModifierKeys.Control:
                 ToggleWidgetMode();
-                e.Handled = true;
-                break;
-            case Key.T when mods == (ModifierKeys.Control | ModifierKeys.Shift):
-                ToggleTransparency();
                 e.Handled = true;
                 break;
             case Key.R when mods == ModifierKeys.Control:
@@ -1407,17 +1399,14 @@ public partial class QuickPasteWindow : Window
         "Ctrl+S              paste stack: each Ctrl+V pastes the next marked item\n" +
         "Ctrl+P              pin / unpin item\n" +
         "Ctrl+N / Ctrl+E     save as snippet / edit snippet\n" +
-        "Ctrl+W              next workspace\n" +
         "Ctrl+T              pin window / keep open (compact size)\n" +
-        "Ctrl+D              dock as sidebar: right → left → off\n" +
         "Ctrl+L              tỷ lệ chia: 25/75, 30/70, 40/60, 50/50\n" +
         "Ctrl+,              open settings\n" +
         "Ctrl+M              toggle compact widget mode\n" +
-        "Ctrl+Shift+T        toggle acrylic glass transparency\n" +
         "Ctrl+R              reveal a secret\n" +
         "Del                 delete item\n" +
         "Esc                 close\n\n" +
-        "Search filters: type:sql  type:snippet  type:image  pinned:true  workspace:dev  after:2026-09-01";
+        "Search filters: type:sql  type:snippet  type:image  pinned:true  after:2026-09-01";
 
     private void ShowHelpOverlay()
     {
@@ -1447,39 +1436,46 @@ public partial class QuickPasteWindow : Window
         string q = (query ?? "").Trim();
         bool filterEmpty = string.IsNullOrEmpty(q);
 
+        if (HelpSearchPlaceholder is not null)
+            HelpSearchPlaceholder.Visibility = filterEmpty ? Visibility.Visible : Visibility.Collapsed;
+        if (HelpClearSearchButton is not null)
+            HelpClearSearchButton.Visibility = filterEmpty ? Visibility.Collapsed : Visibility.Visible;
+
         foreach (UIElement catElem in HelpCategoriesPanel.Children)
         {
             if (catElem is Border catBorder && catBorder.Child is StackPanel sp)
             {
                 int matchedRows = 0;
-                foreach (UIElement rowElem in sp.Children)
+                for (int i = 0; i < sp.Children.Count; i++)
                 {
-                    if (rowElem is DockPanel dp)
-                    {
-                        bool match = filterEmpty;
-                        if (!match)
-                        {
-                            foreach (UIElement child in dp.Children)
-                            {
-                                if (child is TextBlock tb && tb.Text.Contains(q, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    match = true;
-                                    break;
-                                }
-                                if (child is Border b && b.Child is TextBlock btb && btb.Text.Contains(q, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    match = true;
-                                    break;
-                                }
-                            }
-                        }
-                        dp.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
-                        if (match) matchedRows++;
-                    }
+                    var rowElem = sp.Children[i];
+                    // Skip header row
+                    if (i == 0) continue;
+
+                    bool match = filterEmpty || ElementContainsText(rowElem, q);
+                    rowElem.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
+                    if (match) matchedRows++;
                 }
                 catBorder.Visibility = (filterEmpty || matchedRows > 0) ? Visibility.Visible : Visibility.Collapsed;
             }
         }
+    }
+
+    private static bool ElementContainsText(UIElement element, string query)
+    {
+        if (element is TextBlock tb)
+            return tb.Text.Contains(query, StringComparison.OrdinalIgnoreCase);
+        if (element is Border b && b.Child is UIElement bChild)
+            return ElementContainsText(bChild, query);
+        if (element is Panel p)
+        {
+            foreach (UIElement child in p.Children)
+            {
+                if (ElementContainsText(child, query))
+                    return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>F1: the keyboard reference, shown in the help modal or preview pane.</summary>
@@ -1492,9 +1488,7 @@ public partial class QuickPasteWindow : Window
         }
         if (IsCompact)
         {
-            StatusText.Text = Docked
-                ? "Keys: Ctrl+K transform · Ctrl+, settings · Ctrl+S stack · Ctrl+1…9 · Ctrl+D undock"
-                : "Keys: Ctrl+K transform · Ctrl+, settings · Ctrl+S stack · Ctrl+1…9 · Ctrl+T unpin";
+            StatusText.Text = "Keys: Ctrl+K transform · Ctrl+, settings · Ctrl+S stack · Ctrl+1…9 · Ctrl+T unpin";
             return;
         }
         SensitiveHiddenContainer.Visibility = Visibility.Collapsed;
@@ -1570,34 +1564,27 @@ public partial class QuickPasteWindow : Window
 
     private void ToggleTransparency()
     {
-        _svc.Settings.EnableTransparency = !_svc.Settings.EnableTransparency;
+        _svc.Settings.EnableTransparency = false;
         ApplyTransparency();
         SaveSettings();
     }
 
     internal void ApplyTransparency(bool? enableOverride = null, double? opacityOverride = null)
     {
-        bool enable = enableOverride ?? _svc.Settings.EnableTransparency;
-        double opacity = opacityOverride ?? _svc.Settings.TransparencyOpacity;
-        if (TransparencyButton is not null) TransparencyButton.Tag = enable ? "active" : null;
+        _svc.Settings.EnableTransparency = false;
         if (IsLoaded)
         {
-            WindowBackdrop.Apply(this, enable);
+            WindowBackdrop.Apply(this, false);
         }
-        byte alpha = enable ? (byte)(Math.Clamp(opacity, 0.5, 1.0) * 255) : (byte)255;
         if (RootBorder is not null)
         {
-            RootBorder.Background = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromArgb(alpha, 246, 248, 250));
-            RootBorder.BorderBrush = enable
-                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x35, 0x00, 0x00, 0x00))
-                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xCD, 0xD1, 0xD8));
+            RootBorder.Background = System.Windows.Media.Brushes.White;
+            RootBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE5, 0xE7, 0xEB));
         }
         if (SearchContainer is not null)
         {
-            SearchContainer.Background = enable
-                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x14, 0x00, 0x00, 0x00))
-                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF1, 0xF3, 0xF5));
+            SearchContainer.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF3, 0xF4, 0xF6));
+            SearchContainer.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE5, 0xE7, 0xEB));
         }
     }
 
@@ -1658,101 +1645,6 @@ public partial class QuickPasteWindow : Window
         if (saved || wasVisible) ShowPalette(keepTarget: true, search: saved ? "type:snippet " : "");
     }
 
-    private static readonly System.Text.RegularExpressions.Regex WorkspaceFilterRx =
-        new(@"(?:^|\s)(?:workspace|ws):(?:""(?<name>[^""]*)""|(?<name>\S+))", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-    private void UpdateWorkspaceButtonText()
-    {
-        if (WorkspaceButtonText is null) return;
-        var wsChip = _activeChips.FirstOrDefault(c => c.Key == "workspace");
-        if (wsChip is not null)
-        {
-            WorkspaceButtonText.Text = $"{wsChip.Value} ▾";
-        }
-        else
-        {
-            var match = WorkspaceFilterRx.Match(SearchBox.Text);
-            if (match.Success)
-            {
-                var wsName = match.Groups["name"].Value;
-                WorkspaceButtonText.Text = string.IsNullOrEmpty(wsName) ? "All ▾" : $"{wsName} ▾";
-            }
-            else
-            {
-                WorkspaceButtonText.Text = "All ▾";
-            }
-        }
-    }
-
-    private void SetWorkspaceFilter(string? ws)
-    {
-        var existing = _activeChips.FirstOrDefault(c => c.Key == "workspace");
-        if (existing is not null) _activeChips.Remove(existing);
-        if (!string.IsNullOrWhiteSpace(ws))
-        {
-            _activeChips.Add(new SearchFilterChip("workspace", ws));
-        }
-        Reload();
-    }
-
-    private void ShowWorkspaceMenu(UIElement target)
-    {
-        var menu = new ContextMenu
-        {
-            PlacementTarget = target,
-            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
-        };
-
-        var wsChip = _activeChips.FirstOrDefault(c => c.Key == "workspace");
-        string currentWs = wsChip is not null ? wsChip.Value : "";
-        if (string.IsNullOrEmpty(currentWs))
-        {
-            var match = WorkspaceFilterRx.Match(SearchBox.Text);
-            if (match.Success) currentWs = match.Groups["name"].Value;
-        }
-
-        var allItem = new MenuItem
-        {
-            Header = "Tất cả Workspaces / All Workspaces",
-            IsChecked = string.IsNullOrEmpty(currentWs),
-        };
-        allItem.Click += (_, _) => SetWorkspaceFilter(null);
-        menu.Items.Add(allItem);
-        menu.Items.Add(new Separator());
-
-        var workspaces = _svc.Workspaces().OrderBy(w => w.Name).ToList();
-        if (workspaces.Count == 0)
-        {
-            menu.Items.Add(new MenuItem { Header = "(Chưa có workspace / No workspaces)", IsEnabled = false });
-        }
-        else
-        {
-            foreach (var ws in workspaces)
-            {
-                var item = new MenuItem
-                {
-                    Header = ws.Name,
-                    IsChecked = string.Equals(ws.Name, currentWs, StringComparison.OrdinalIgnoreCase),
-                };
-                var wsName = ws.Name;
-                item.Click += (_, _) => SetWorkspaceFilter(wsName);
-                menu.Items.Add(item);
-            }
-        }
-
-        menu.IsOpen = true;
-    }
-
-    /// <summary>Ctrl+W: all workspaces → first → second → … → all, by cycling the workspace filter chip.</summary>
-    private void CycleWorkspaceFilter()
-    {
-        var names = _svc.Workspaces().Select(w => w.Name).ToList();
-        var wsChip = _activeChips.FirstOrDefault(c => c.Key == "workspace");
-        int index = wsChip is not null ? names.FindIndex(n => n.Equals(wsChip.Value, StringComparison.OrdinalIgnoreCase)) : -1;
-        string? next = index + 1 < names.Count ? names[index + 1] : null;
-
-        SetWorkspaceFilter(next);
-    }
 
     // ==========================================
     // Filter Chips & Search Suggestions System
@@ -1761,7 +1653,58 @@ public partial class QuickPasteWindow : Window
     private void UpdateSearchChipsState()
     {
         Placeholder.Visibility = (SearchBox.Text.Length == 0 && _activeChips.Count == 0) ? Visibility.Visible : Visibility.Collapsed;
+        if (ClearSearchButton is not null)
+            ClearSearchButton.Visibility = string.IsNullOrEmpty(SearchBox.Text) ? Visibility.Collapsed : Visibility.Visible;
         UpdatePillActiveStates();
+        UpdateFilterBarActiveChips();
+    }
+
+    private void SetOrToggleCategoryFilter(string? key, string? val)
+    {
+        if (SearchSuggestionsPopup is not null) SearchSuggestionsPopup.IsOpen = false;
+
+        if (key is null || val is null)
+        {
+            var toRemove = _activeChips.Where(c => c.Key is "type" or "pinned").ToList();
+            foreach (var c in toRemove) _activeChips.Remove(c);
+        }
+        else
+        {
+            bool alreadyActive = _activeChips.Any(c => c.Key == key && (c.Value.Equals(val, StringComparison.OrdinalIgnoreCase) ||
+                (key == "type" && val == "image" && c.Value.Equals("images", StringComparison.OrdinalIgnoreCase)) ||
+                (key == "type" && val == "snippet" && c.Value.Equals("snippets", StringComparison.OrdinalIgnoreCase))));
+
+            var toRemove = _activeChips.Where(c => c.Key is "type" or "pinned").ToList();
+            foreach (var c in toRemove) _activeChips.Remove(c);
+
+            if (!alreadyActive)
+            {
+                _activeChips.Add(new SearchFilterChip(key, val));
+            }
+        }
+
+        SearchBox.Focus();
+        Reload();
+    }
+
+    private void UpdateFilterBarActiveChips()
+    {
+        if (ChipAll is null || ChipCode is null || ChipImage is null || ChipPinned is null || ChipSnippet is null)
+            return;
+
+        bool isCode = _activeChips.Any(c => c.Key == "type" && c.Value.Equals("code", StringComparison.OrdinalIgnoreCase));
+        bool isImage = _activeChips.Any(c => c.Key == "type" && (c.Value.Equals("image", StringComparison.OrdinalIgnoreCase) || c.Value.Equals("images", StringComparison.OrdinalIgnoreCase)));
+        bool isSnippet = _activeChips.Any(c => c.Key == "type" && (c.Value.Equals("snippet", StringComparison.OrdinalIgnoreCase) || c.Value.Equals("snippets", StringComparison.OrdinalIgnoreCase)));
+        bool isPinned = _activeChips.Any(c => c.Key == "pinned" && (c.Value.Equals("true", StringComparison.OrdinalIgnoreCase) || c.Value.Equals("yes", StringComparison.OrdinalIgnoreCase) || c.Value == "1"));
+
+        bool hasCategoryOrPinned = isCode || isImage || isSnippet || isPinned;
+        bool isAll = !hasCategoryOrPinned;
+
+        ChipAll.Tag = isAll ? "active" : null;
+        ChipCode.Tag = isCode ? "active" : null;
+        ChipImage.Tag = isImage ? "active" : null;
+        ChipPinned.Tag = isPinned ? "active" : null;
+        ChipSnippet.Tag = isSnippet ? "active" : null;
     }
 
     private void OnSearchBoxTextChanged(object sender, TextChangedEventArgs e)
@@ -1770,7 +1713,8 @@ public partial class QuickPasteWindow : Window
 
         var text = SearchBox.Text;
         Placeholder.Visibility = (text.Length == 0 && _activeChips.Count == 0) ? Visibility.Visible : Visibility.Collapsed;
-        UpdateWorkspaceButtonText();
+        if (ClearSearchButton is not null)
+            ClearSearchButton.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
 
         // 1. If text contains whitespace (e.g. "type:sql " or user pasted multiple tokens), extract completed filters
         if (text.Contains(' '))
@@ -1837,14 +1781,9 @@ public partial class QuickPasteWindow : Window
         if (k is "type" or "is")
         {
             return v is "sql" or "json" or "xml" or "yaml" or "shell" or "markdown"
-                or "code" or "url" or "link" or "links" or "image" or "files" or "file"
-                or "text" or "snippet" or "template" or "sensitive" or "email" or "phone"
+                or "code" or "url" or "link" or "links" or "image" or "images" or "files" or "file"
+                or "text" or "snippet" or "snippets" or "template" or "sensitive" or "email" or "phone"
                 or "number" or "ip" or "log";
-        }
-
-        if (k is "workspace" or "ws")
-        {
-            return _svc.Workspaces().Any(w => w.Name.Equals(val, StringComparison.OrdinalIgnoreCase));
         }
 
         return false;
@@ -1960,13 +1899,6 @@ public partial class QuickPasteWindow : Window
             TypeFilterPills.Children.Add(CreateFilterPillButton("type", t.val, t.label));
         }
 
-        // Workspace pills
-        WorkspaceFilterPills.Children.Clear();
-        foreach (var w in _svc.Workspaces())
-        {
-            WorkspaceFilterPills.Children.Add(CreateFilterPillButton("workspace", w.Name, w.Name));
-        }
-
         // Pinned pills
         PinnedFilterPills.Children.Clear();
         PinnedFilterPills.Children.Add(CreateFilterPillButton("pinned", "true", "📌 Pinned"));
@@ -2017,7 +1949,6 @@ public partial class QuickPasteWindow : Window
             }
         }
         CheckPanel(TypeFilterPills);
-        CheckPanel(WorkspaceFilterPills);
         CheckPanel(PinnedFilterPills);
         CheckPanel(DateFilterPills);
         CheckPanel(SensitiveFilterPills);
@@ -2040,6 +1971,23 @@ public partial class QuickPasteWindow : Window
             SearchBox.Focus();
             Reload();
         }
+    }
+
+    private static bool IsDescendantOf(DependencyObject? child, DependencyObject? parent)
+    {
+        if (child is null || parent is null) return false;
+        var current = child;
+        while (current is not null)
+        {
+            if (ReferenceEquals(current, parent)) return true;
+            if (current is Visual or System.Windows.Media.Media3D.Visual3D)
+                current = VisualTreeHelper.GetParent(current);
+            else if (current is FrameworkContentElement fce)
+                current = fce.Parent;
+            else
+                break;
+        }
+        return false;
     }
 
     /// <summary>Ctrl+K / right-click: paste the selection (or the marked items) converted by a text transform.</summary>
@@ -2092,34 +2040,6 @@ public partial class QuickPasteWindow : Window
         };
         pinItem.Click += (_, _) => TogglePinSelected();
         menu.Items.Add(pinItem);
-
-        // 4. Move to Workspace Submenu
-        var wsSubmenu = new MenuItem { Header = "Move to workspace →" };
-        var workspaces = _svc.Workspaces().OrderBy(w => w.Name).ToList();
-        if (workspaces.Count == 0)
-        {
-            wsSubmenu.Items.Add(new MenuItem { Header = "(No workspaces configured)", IsEnabled = false });
-        }
-        else
-        {
-            foreach (var ws in workspaces)
-            {
-                var wsItem = new MenuItem
-                {
-                    Header = ws.Name,
-                    IsChecked = string.Equals(ws.Name, vm.Item.Workspace, StringComparison.OrdinalIgnoreCase),
-                };
-                var targetWs = ws.Name;
-                wsItem.Click += (_, _) =>
-                {
-                    _svc.MoveToWorkspace(vm.Item, targetWs);
-                    Reload(keepSelection: true);
-                    StatusText.Text = $"Moved item to {targetWs}";
-                };
-                wsSubmenu.Items.Add(wsItem);
-            }
-        }
-        menu.Items.Add(wsSubmenu);
 
         // 5. Snippet and Stack
         if (!vm.IsImage && !vm.IsSensitive)

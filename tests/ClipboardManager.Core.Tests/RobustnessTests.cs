@@ -131,17 +131,7 @@ public sealed class RobustnessTests : IDisposable
         Assert.Equal(1, svc.Count(), "still alive 6 min after first copy");
     }
 
-    [Test]
-    public void Workspace_filter()
-    {
-        var settings = new AppSettings { DefaultWorkspace = "Backend" };
-        var svc = NewService(settings: settings);
-        svc.Capture(CapturedContent.FromText("in backend"));
-        settings.DefaultWorkspace = "Website";
-        svc.Capture(CapturedContent.FromText("in website"));
-        Assert.Equal(1, svc.Search("workspace:backend").Count);
-        Assert.Equal("in website", svc.Search("workspace:Website")[0].TextContent);
-    }
+
 
     [Test]
     public void Data_survives_restart()

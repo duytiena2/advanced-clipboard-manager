@@ -41,26 +41,8 @@ public sealed class ItemViewModel : INotifyPropertyChanged
         ? Humanize.ExpiresIn(Item.ExpiresAt, DateTimeOffset.UtcNow).Replace("expires in ", "exp ")
         : Item.TimeAgo;
 
-    /// <summary>Visual Type Icon on leading edge (e.g. 🖼 for Image, T for plain text, 🗄 for SQL, {} for code/json, 🌐 for url).</summary>
-    public string TypeIcon => Item.Kind switch
-    {
-        ContentKind.Image => "\uEB9F",
-        ContentKind.Text => Item.Subtype.Equals("markdown", StringComparison.OrdinalIgnoreCase) ? "\uE8A5" : "T",
-        ContentKind.Code => Item.Subtype.ToLowerInvariant() switch
-        {
-            "sql" => "\uE71D",
-            "shell" => "\uE756",
-            _ => "\uE943",
-        },
-        ContentKind.Url => "\uE71B",
-        ContentKind.Sensitive => "\uE72E",
-        ContentKind.Email => "\uE715",
-        ContentKind.Phone => "\uE717",
-        ContentKind.Number => "\uE8EF",
-        ContentKind.Files => "\uE8B7",
-        ContentKind.Snippet => "\uE8C8",
-        _ => "\uE8A5",
-    };
+    /// <summary>Visual Type Icon on leading edge (using Segoe Fluent Icons / Segoe MDL2 Assets glyphs).</summary>
+    public string TypeIcon => ClassificationIcon;
 
     /// <summary>Type badge text displayed on top-right (e.g. PNG, Plain, SQL, JSON, URL).</summary>
     public string TypeBadge
@@ -103,7 +85,7 @@ public sealed class ItemViewModel : INotifyPropertyChanged
     public string CopyCountText => Item.CopyCount > 1 ? $"{Item.CopyCount}×" : "";
 
     public bool HasPin => Item.IsPinned;
-    public bool HasExpiration => !Item.IsPinned && Item.ExpiresAt != null;
+    public bool HasExpiration => IsExpiringSoon;
     public string ExpirationBadgeText
     {
         get
@@ -382,26 +364,9 @@ public sealed class ItemViewModel : INotifyPropertyChanged
         : Item.HasRichText ? $"{Item.ClassificationHeader} · formatted"
         : Item.OcrText is { Length: > 0 } ? $"{Item.ClassificationHeader} · contains text" : Item.ClassificationHeader;
 
-    public string MetaSource
-    {
-        get
-        {
-            string source = Item.Kind == ContentKind.Snippet ? "Snippet" : (Item.SourceApplication ?? "Unknown");
-            bool isAuto = !string.IsNullOrEmpty(Item.SourceApplication) &&
-                          _svc.WorkspaceFor(Item.SourceApplication).Equals(Item.Workspace, StringComparison.OrdinalIgnoreCase);
-            string autoTag = isAuto ? " · Auto" : "";
-            return $"{source} → {Item.Workspace}{autoTag}";
-        }
-    }
+    public string MetaSource => Item.Kind == ContentKind.Snippet ? "Snippet" : (Item.SourceApplication ?? "Unknown");
 
-    public string MetaCopied
-    {
-        get
-        {
-            var ago = Humanize.Ago(Item.LastCopiedAt, DateTimeOffset.UtcNow);
-            return Item.CopyCount > 1 ? $"{ago} · {Item.CopyCount}×" : ago;
-        }
-    }
+    public string MetaCopied => Humanize.Ago(Item.LastCopiedAt, DateTimeOffset.UtcNow);
     public string MetaExpires => Item.IsPinned ? "📌 Never expires" : ExpirationDisplay;
     public string MetaSize => Humanize.Bytes(Item.SizeBytes);
 

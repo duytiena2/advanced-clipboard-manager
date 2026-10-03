@@ -9,42 +9,40 @@
         WindowStartupLocation="Manual"
         Background="Transparent" BorderThickness="0"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="#15171C"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
 
     <Window.Resources>
         <SolidColorBrush x:Key="Accent" Color="#0E6B68" />
-        <SolidColorBrush x:Key="Line" Color="#22000000" />
+        <SolidColorBrush x:Key="Line" Color="#E5E7EB" />
         <SolidColorBrush x:Key="Muted" Color="#5A6170" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
         <Style x:Key="ItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Height" Value="52" />
-            <Setter Property="Padding" Value="8,4" />
-            <Setter Property="Margin" Value="0,0,0,1" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Margin" Value="2,1,2,1" />
             <Setter Property="Foreground" Value="#15171C" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="ToolTip" Value="{Binding HoverToolTip}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
                             <Grid>
-                                <!-- Focus indicator on left edge (Item 6) -->
-                                <Border x:Name="FocusBar" Width="3" HorizontalAlignment="Left" VerticalAlignment="Stretch"
-                                        CornerRadius="1.5" Background="{StaticResource Accent}" Visibility="Collapsed" Margin="-6,2,0,2" />
+                                <!-- Fluent focus indicator pill on left edge -->
+                                <Border x:Name="FocusBar" Width="3" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                        CornerRadius="1.5" Background="{StaticResource Accent}" Visibility="Collapsed" Margin="-6,0,0,0" />
                                 <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Stretch" />
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                <Setter TargetName="Bd" Property="Background" Value="#F3F4F6" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
-                                <Setter Property="Foreground" Value="#FFFFFF" />
+                                <Setter TargetName="Bd" Property="Background" Value="#EBF5F4" />
                                 <Setter TargetName="FocusBar" Property="Visibility" Value="Visible" />
-                                <Setter TargetName="FocusBar" Property="Background" Value="#FFFFFF" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -54,16 +52,16 @@
 
         <Style x:Key="MetaLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
-            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontSize" Value="12" />
         </Style>
         <Style x:Key="MetaValue" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="HorizontalAlignment" Value="Right" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
         <Style x:Key="Kbd" TargetType="Border">
-            <Setter Property="Background" Value="#40FFFFFF" />
-            <Setter Property="BorderBrush" Value="#25000000" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#E5E7EB" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="5,0" />
@@ -72,34 +70,99 @@
         </Style>
 
         <Style x:Key="Keycap" TargetType="Border">
-            <Setter Property="Background" Value="#1C000000" />
-            <Setter Property="BorderBrush" Value="#25000000" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="#F8FAFC" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="BorderThickness" Value="1,1,1,2" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="5,1" />
             <Setter Property="Margin" Value="0,0,4,0" />
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
         </Style>
         <Style x:Key="KeycapText" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Segoe UI" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#334155" />
+        </Style>
+
+        <!-- Keyboard shortcuts help dialog styles -->
+        <Style x:Key="ShortcutCard" TargetType="Border">
+            <Setter Property="Background" Value="#F8FAFC" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style x:Key="ShortcutRow" TargetType="Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Margin" Value="0,1" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#EEF2F6" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="ModalKeycap" TargetType="Border">
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="BorderThickness" Value="1,1,1,2" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+        <Style x:Key="ModalKeycapText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Segoe UI" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#15171C" />
+            <Setter Property="Foreground" Value="#1E293B" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
+        <Style x:Key="KeycapPlus" TargetType="TextBlock">
+            <Setter Property="Text" Value="+" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="1,0" />
+        </Style>
+        <Style x:Key="SyntaxChip" TargetType="Border">
+            <Setter Property="Background" Value="#F0FDFA" />
+            <Setter Property="BorderBrush" Value="#CCFBF1" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Margin" Value="3,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="SyntaxChipText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="#0F766E" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
         <Style x:Key="HintLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="#4A505C" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="#5A6170" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,0,10,0" />
         </Style>
         <Style x:Key="ChipButton" TargetType="Button">
-            <Setter Property="Background" Value="#10000000" />
+            <Setter Property="Background" Value="#12000000" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="#4A505C" />
+            <Setter Property="Foreground" Value="#374151" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="FontWeight" Value="Medium" />
-            <Setter Property="Padding" Value="8,2" />
-            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Padding" Value="9,3" />
+            <Setter Property="Margin" Value="0,0,5,0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Template">
@@ -110,13 +173,22 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#20000000" />
-                                <Setter Property="Foreground" Value="#15171C" />
+                                <Setter TargetName="Bd" Property="Background" Value="#22000000" />
+                                <Setter Property="Foreground" Value="#111827" />
                             </Trigger>
                             <Trigger Property="Tag" Value="active">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
                             </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Tag" Value="active" />
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Bd" Property="Background" Value="#128380" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -124,9 +196,9 @@
         </Style>
 
         <Style x:Key="PillButton" TargetType="Button">
-            <Setter Property="Background" Value="#0D000000" />
+            <Setter Property="Background" Value="#08000000" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#15000000" />
+            <Setter Property="BorderBrush" Value="#12000000" />
             <Setter Property="Foreground" Value="#2D3139" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="FontWeight" Value="Normal" />
@@ -138,18 +210,18 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#18000000" />
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#28000000" />
+                                <Setter TargetName="Bd" Property="Background" Value="#12000000" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#20000000" />
                                 <Setter Property="Foreground" Value="#15171C" />
                             </Trigger>
                             <Trigger Property="Tag" Value="active">
-                                <Setter TargetName="Bd" Property="Background" Value="#200E6B68" />
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#500E6B68" />
+                                <Setter TargetName="Bd" Property="Background" Value="#140E6B68" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#400E6B68" />
                                 <Setter Property="Foreground" Value="{StaticResource Accent}" />
                                 <Setter Property="FontWeight" Value="SemiBold" />
                             </Trigger>
@@ -167,12 +239,12 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="#10000000" CornerRadius="4" Padding="8,3" BorderBrush="{StaticResource Line}" BorderThickness="1">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="6,4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#20000000" />
+                                <Setter TargetName="Bd" Property="Background" Value="#0E000000" />
                                 <Setter Property="Foreground" Value="#15171C" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -263,45 +335,60 @@
         </Style>
     </Window.Resources>
 
-    <!-- Main Widget Container with iOS-style rounded corners and frosted glass border -->
-    <Border x:Name="RootBorder" CornerRadius="16" BorderThickness="1" BorderBrush="#35000000"
-            Background="#D8F6F7F9" SnapsToDevicePixels="True">
+    <!-- Main Window Container with modern Windows 11 Fluent style -->
+    <Border x:Name="RootBorder" CornerRadius="0" BorderThickness="1" BorderBrush="{StaticResource Line}"
+            Background="#FFFFFF" SnapsToDevicePixels="True">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="16" /> <!-- Drag handle bar (Row 0) -->
-                <RowDefinition Height="48" /> <!-- Search and buttons (Row 1) -->
-                <RowDefinition Height="Auto" /> <!-- Filter chips & Paste Stack banner (Row 2) -->
-                <RowDefinition Height="*" />  <!-- List + Preview (Row 3) -->
-                <RowDefinition Height="36" /> <!-- Footer (Row 4) -->
+                <RowDefinition Height="50" /> <!-- Header: Search and buttons (Row 0) -->
+                <RowDefinition Height="Auto" /> <!-- Filter chips & Paste Stack banner (Row 1) -->
+                <RowDefinition Height="*" />  <!-- List + Preview (Row 2) -->
+                <RowDefinition Height="34" /> <!-- Footer (Row 3) -->
             </Grid.RowDefinitions>
 
-            <!-- Row 0: iOS style drag handle pill -->
-            <Border x:Name="DragBar" Grid.Row="0" Background="Transparent" Cursor="SizeAll"
-                    ToolTip="Kéo để di chuyển widget / Drag to move widget">
-                <Border x:Name="DragPill" Width="38" Height="4" CornerRadius="2"
-                        Background="#4D808080" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-
-            <!-- Row 1: Search and Header Controls -->
-            <Border x:Name="Header" Grid.Row="1" Background="Transparent" BorderBrush="{StaticResource Line}"
+            <!-- Row 0: Search and Header Controls -->
+            <Border x:Name="Header" Grid.Row="0" Background="Transparent" BorderBrush="{StaticResource Line}"
                     BorderThickness="0,0,0,1" ToolTip="Drag to move">
                 <DockPanel Margin="14,0,14,0">
-                    <ToggleButton x:Name="KeepOpenButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
-                                  Focusable="False" Cursor="Hand" ToolTip="Ghim widget / Pin window (Ctrl+T)"
-                                  AutomationProperties.Name="Keep Quick Paste open">
-                        <ToggleButton.Template>
-                            <ControlTemplate TargetType="ToggleButton">
-                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
-                                    <TextBlock x:Name="Glyph" Text="&#xE718;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                    <Button x:Name="CloseButton" DockPanel.Dock="Right" Width="28" Height="28" Margin="3,0,0,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Close (Esc)"
+                            AutomationProperties.Name="Close Quick Paste">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                                    <TextBlock x:Name="CloseGlyph" Text="&#xE8BB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10.5"
                                                Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                        <Setter TargetName="Bd" Property="Background" Value="#C42B1C" />
+                                        <Setter TargetName="CloseGlyph" Property="Foreground" Value="#FFFFFF" />
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#A82315" />
+                                        <Setter TargetName="CloseGlyph" Property="Foreground" Value="#FFFFFF" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <ToggleButton x:Name="KeepOpenButton" DockPanel.Dock="Right" Width="28" Height="28" Margin="3,0,0,0"
+                                  Focusable="False" Cursor="Hand" ToolTip="Pin window (Ctrl+T)"
+                                  AutomationProperties.Name="Keep Quick Paste open">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                                    <TextBlock x:Name="Glyph" Text="&#xE718;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"
+                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#10000000" />
                                     </Trigger>
                                     <Trigger Property="IsChecked" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
-                                        <Setter TargetName="Glyph" Property="Foreground" Value="#FFFFFF" />
+                                        <Setter TargetName="Bd" Property="Background" Value="#180E6B68" />
+                                        <Setter TargetName="Glyph" Property="Foreground" Value="{StaticResource Accent}" />
                                         <Setter TargetName="Glyph" Property="Text" Value="&#xE840;" />
                                     </Trigger>
                                 </ControlTemplate.Triggers>
@@ -309,123 +396,38 @@
                         </ToggleButton.Template>
                     </ToggleButton>
 
-                    <Button x:Name="DockButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
-                            Focusable="False" Cursor="Hand" ToolTip="Snap widget: Phải → Trái → Tự do (Ctrl+D)"
-                            AutomationProperties.Name="Snap widget to screen edge">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
-                                    <TextBlock x:Name="DockGlyph" Text="&#xE90D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
-                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
-                                    </Trigger>
-                                    <Trigger Property="Tag" Value="docked">
-                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}" />
-                                        <Setter TargetName="DockGlyph" Property="Foreground" Value="#FFFFFF" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
 
-                    <Button x:Name="WidgetModeButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
-                            Focusable="False" Cursor="Hand" ToolTip="Chuyển chế độ Widget / Mở rộng (Ctrl+M)"
-                            AutomationProperties.Name="Toggle widget or expanded mode">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
-                                    <TextBlock x:Name="WidgetGlyph" Text="&#xE7C4;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
-                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
-                                    </Trigger>
-                                    <Trigger Property="Tag" Value="compact">
-                                        <Setter TargetName="Bd" Property="Background" Value="#20000000" />
-                                        <Setter TargetName="WidgetGlyph" Property="Foreground" Value="{StaticResource Accent}" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-
-                    <Button x:Name="SplitPresetButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
-                            Focusable="False" Cursor="Hand" ToolTip="Tỷ lệ List / Preview: 25/75, 30/70, 40/60, 50/50 (Ctrl+L)"
-                            AutomationProperties.Name="Chia tỷ lệ danh sách và xem trước">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
-                                    <TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
-                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-
-                    <Button x:Name="TransparencyButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
-                            Focusable="False" Cursor="Hand" ToolTip="Bật / tắt trong suốt kiểu iOS (Ctrl+Shift+T)"
-                            AutomationProperties.Name="Toggle iOS glass transparency">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
-                                    <TextBlock x:Name="TransGlyph" Text="&#xE790;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
-                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
-                                    </Trigger>
-                                    <Trigger Property="Tag" Value="active">
-                                        <Setter TargetName="Bd" Property="Background" Value="#20000000" />
-                                        <Setter TargetName="TransGlyph" Property="Foreground" Value="{StaticResource Accent}" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-
-                    <Button x:Name="SettingsButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
-                            Focusable="False" Cursor="Hand" ToolTip="Cài đặt / Settings (Ctrl+,)"
+                    <Button x:Name="SettingsButton" DockPanel.Dock="Right" Width="28" Height="28" Margin="3,0,0,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Settings (Ctrl+,)"
                             AutomationProperties.Name="Open settings">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
-                                    <TextBlock x:Name="SettingsGlyph" Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                                    <TextBlock x:Name="SettingsGlyph" Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"
                                                Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                        <Setter TargetName="Bd" Property="Background" Value="#10000000" />
                                         <Setter TargetName="SettingsGlyph" Property="Foreground" Value="#15171C" />
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#25000000" />
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
-                    <Button x:Name="HelpButton" DockPanel.Dock="Right" Width="30" Height="30" Margin="4,0,0,0"
-                            Focusable="False" Cursor="Hand" ToolTip="Phím tắt / Shortcuts (F1)"
+
+                    <Button x:Name="HelpButton" DockPanel.Dock="Right" Width="28" Height="28" Margin="3,0,6,0"
+                            Focusable="False" Cursor="Hand" ToolTip="Shortcuts (F1)"
                             AutomationProperties.Name="Show keyboard shortcuts">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
-                                    <TextBlock x:Name="HelpGlyph" Text="&#xE897;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                                    <TextBlock x:Name="HelpGlyph" Text="&#xE897;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"
                                                Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                        <Setter TargetName="Bd" Property="Background" Value="#10000000" />
                                         <Setter TargetName="HelpGlyph" Property="Foreground" Value="#15171C" />
                                     </Trigger>
                                 </ControlTemplate.Triggers>
@@ -433,37 +435,19 @@
                         </Button.Template>
                     </Button>
 
-                    <Button x:Name="WorkspaceSelectorButton" DockPanel.Dock="Right" Height="30" Margin="4,0,6,0" Padding="8,0"
-                            Focusable="False" Cursor="Hand" ToolTip="Chọn Workspace / Switch workspace (Ctrl+W)">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bd" Background="#12000000" CornerRadius="8" Padding="{TemplateBinding Padding}">
-                                    <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#22000000" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                       FontSize="11" Margin="0,0,4,0" VerticalAlignment="Center" Opacity="0.7" />
-                            <TextBlock x:Name="WorkspaceButtonText" Text="All ▾" FontSize="12" FontWeight="SemiBold" Foreground="#15171C" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
 
-                    <TextBlock x:Name="CountText" DockPanel.Dock="Right" Foreground="{StaticResource Muted}" FontSize="12"
-                               VerticalAlignment="Center" Margin="8,0,0,0" />
+
+                    <TextBlock x:Name="CountText" DockPanel.Dock="Right" Foreground="#8A909C" FontSize="11.5"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
 
                     <!-- Search box with inline Filter Chips -->
-                    <Border x:Name="SearchContainer" CornerRadius="10" Background="#12000000"
+                    <Border x:Name="SearchContainer" CornerRadius="8" Background="#F3F4F6" BorderBrush="{StaticResource Line}" BorderThickness="1"
                             Height="34" Margin="0,0,8,0" Padding="10,0">
                         <Grid VerticalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
@@ -475,8 +459,27 @@
                                          VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="0"
                                          AutomationProperties.Name="Search clipboard" />
                             </Grid>
+                            <Button x:Name="ClearSearchButton" Grid.Column="2" Width="18" Height="18" Margin="4,0,4,0"
+                                    Background="Transparent" BorderThickness="0" Cursor="Hand" Focusable="False"
+                                    VerticalAlignment="Center" Visibility="Collapsed" ToolTip="Clear search text"
+                                    AutomationProperties.Name="Clear search text">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="#14000000" CornerRadius="9" Width="18" Height="18">
+                                            <TextBlock Text="✕" FontSize="8.5" FontWeight="Bold"
+                                                       Foreground="#5A6170" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#25000000" />
+                                                <Setter Property="Foreground" Value="#15171C" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
                             <!-- Filter Chips: [SQL x] [Pinned x] [Dev x] -->
-                            <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                            <ScrollViewer Grid.Column="3" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
                                           Focusable="False" VerticalAlignment="Center">
                                 <ItemsControl x:Name="FilterChipsItemsControl" VerticalAlignment="Center">
                                     <ItemsControl.ItemsPanel>
@@ -527,7 +530,7 @@
                    PlacementTarget="{Binding ElementName=SearchContainer}"
                    Placement="Bottom"
                    AllowsTransparency="True"
-                   StaysOpen="False"
+                   StaysOpen="True"
                    PopupAnimation="Fade"
                    VerticalOffset="4">
                 <Border x:Name="SuggestionsCard"
@@ -612,13 +615,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <!-- Workspace -->
-                            <Border Padding="14,4" Background="Transparent">
-                                <StackPanel>
-                                    <TextBlock Text="📁 Workspace" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
-                                    <WrapPanel x:Name="WorkspaceFilterPills" Orientation="Horizontal" />
-                                </StackPanel>
-                            </Border>
+
 
                             <!-- Pinned -->
                             <Border Padding="14,4" Background="Transparent">
@@ -648,16 +645,21 @@
                 </Border>
             </Popup>
 
-            <!-- Row 2: Filter chips & Paste Stack Banner -->
-            <StackPanel Grid.Row="2">
-                <!-- Filter Chips (Item 18 & 20) -->
+            <!-- Row 1: Filter chips & Paste Stack Banner -->
+            <StackPanel Grid.Row="1">
+                <!-- Filter Chips -->
                 <Border x:Name="FilterBar" Background="Transparent" Padding="14,2,14,4">
                     <DockPanel LastChildFill="False">
-                        <Button x:Name="ChipAll" Content="All" Style="{StaticResource ChipButton}" Tag="active" />
-                        <Button x:Name="ChipCode" Content="💻 Code" Style="{StaticResource ChipButton}" />
-                        <Button x:Name="ChipImage" Content="📷 Images" Style="{StaticResource ChipButton}" />
-                        <Button x:Name="ChipPinned" Content="📌 Pinned" Style="{StaticResource ChipButton}" />
-                        <Button x:Name="ChipSnippet" Content="🏷 Snippets" Style="{StaticResource ChipButton}" />
+                        <Button x:Name="ChipAll" Content="All" Style="{StaticResource ChipButton}" Tag="active"
+                                ToolTip="All items" />
+                        <Button x:Name="ChipCode" Content="💻 Code" Style="{StaticResource ChipButton}"
+                                ToolTip="Filter code (type:code)" />
+                        <Button x:Name="ChipImage" Content="🗃️ Images" Style="{StaticResource ChipButton}"
+                                ToolTip="Filter images (type:image)" />
+                        <Button x:Name="ChipPinned" Content="📌 Pinned" Style="{StaticResource ChipButton}"
+                                ToolTip="Filter pinned (pinned:true)" />
+                        <Button x:Name="ChipSnippet" Content="🏷️ Snippets" Style="{StaticResource ChipButton}"
+                                ToolTip="Filter snippets (type:snippet)" />
                     </DockPanel>
                 </Border>
 
@@ -681,119 +683,86 @@
                 </Border>
             </StackPanel>
 
-            <!-- Row 3: List + preview -->
-            <Grid Grid.Row="3">
+            <!-- Row 2: List + preview -->
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Name="ListColumn" Width="40*" MinWidth="180" />
-                    <ColumnDefinition x:Name="SplitColumn" Width="5" />
-                    <ColumnDefinition x:Name="PreviewColumn" Width="60*" MinWidth="180" />
+                    <ColumnDefinition x:Name="ListColumn" Width="300" MinWidth="0" />
+                    <ColumnDefinition x:Name="SplitColumn" Width="5" MinWidth="0" />
+                    <ColumnDefinition x:Name="PreviewColumn" Width="*" MinWidth="0" />
                 </Grid.ColumnDefinitions>
 
-                <ListBox x:Name="ItemsList" Grid.Column="0" BorderThickness="0" Background="Transparent" Padding="6,6"
+                <ListBox x:Name="ItemsList" Grid.Column="0" BorderThickness="0" Background="Transparent" Padding="6,4"
                          ItemContainerStyle="{StaticResource ItemStyle}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         ScrollViewer.CanContentScroll="True"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         VirtualizingPanel.ScrollUnit="Pixel"
+                         VirtualizingPanel.CacheLength="2"
+                         VirtualizingPanel.CacheLengthUnit="Page"
                          AutomationProperties.Name="Clipboard items">
-                    <ListBox.GroupStyle>
-                        <GroupStyle>
-                            <GroupStyle.HeaderTemplate>
-                                <DataTemplate>
-                                    <Border Background="Transparent" Padding="8,8,8,4" Margin="0,4,0,2">
-                                        <DockPanel LastChildFill="True">
-                                            <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Accent}" />
-                                            <Rectangle Height="1" Fill="#20000000" VerticalAlignment="Center" Margin="8,0,0,0" />
-                                        </DockPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </GroupStyle.HeaderTemplate>
-                        </GroupStyle>
-                    </ListBox.GroupStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="0,2">
+                            <Grid Margin="0,1">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <!-- Tầng 1: PRIMARY (Nội dung) + Tầng 2: TYPE (Icon & Badge) + Shortcut / Checkbox -->
+                                <!-- Row 0: Shortcut + Title + Type Badge -->
                                 <DockPanel Grid.Row="0" LastChildFill="True">
                                     <!-- Shortcut (1..9 for Ctrl+1..9) -->
-                                    <TextBlock DockPanel.Dock="Left" Text="{Binding Shortcut}" Width="12" FontSize="11" Opacity="0.5"
-                                               FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" Margin="0,0,4,0"
-                                               ToolTip="Ctrl + phím này để dán nhanh" />
+                                    <TextBlock DockPanel.Dock="Left" Text="{Binding Shortcut}" Width="14" FontSize="11" Opacity="0.45"
+                                               FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" Margin="0,0,6,0"
+                                               ToolTip="Ctrl + number to quick paste" />
 
                                     <!-- Multi-select / paste stack checkbox if active -->
-                                    <Border DockPanel.Dock="Left" x:Name="CheckboxContainer" Margin="0,0,4,0" VerticalAlignment="Center">
+                                    <Border DockPanel.Dock="Left" x:Name="CheckboxContainer" Margin="0,0,4,0" VerticalAlignment="Center"
+                                            Visibility="{Binding MultiSelectActive, Converter={StaticResource BoolToVis}}">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock x:Name="SelectGlyphText" Text="{Binding SelectGlyph}"
                                                        FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource Accent}"
-                                                       ToolTip="Đánh dấu item (Ctrl+Space)" />
+                                                       ToolTip="Select item (Ctrl+Space)" />
                                             <TextBlock x:Name="MarkOrderLabel" Text="{Binding MarkOrderText}" FontSize="9.5" FontWeight="Bold" Margin="1,0,0,0"
                                                        VerticalAlignment="Center" Foreground="{StaticResource Accent}" />
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Type Icon on the leading edge (🖼, T, 🗄, {}, 🌐, 🔒...) -->
-                                    <Border DockPanel.Dock="Left" Width="18" Height="18" Margin="0,0,6,0" VerticalAlignment="Center">
-                                        <TextBlock x:Name="ItemTypeIcon" Text="{Binding TypeIcon}"
-                                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Variable Text, Segoe UI"
-                                                   FontSize="12" FontWeight="SemiBold"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   Foreground="{StaticResource Muted}" />
-                                    </Border>
-
-                                    <!-- Type Badge (PNG, Plain, SQL, JSON, URL...) on the trailing edge -->
+                                    <!-- Type Badge on trailing edge -->
                                     <Border DockPanel.Dock="Right" x:Name="TypeBadgeBorder"
-                                            CornerRadius="4" Padding="5,1,5,1" Margin="6,0,0,0"
-                                            Background="#10000000" VerticalAlignment="Center">
+                                            CornerRadius="4" Padding="5,1" Margin="6,0,0,0"
+                                            Background="#08000000" VerticalAlignment="Center">
                                         <TextBlock x:Name="TypeBadgeText" Text="{Binding TypeBadge}"
                                                    FontSize="10" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                                   Foreground="#5A6170" VerticalAlignment="Center" />
                                     </Border>
 
-                                    <!-- Focus indicator on selection -->
-                                    <TextBlock x:Name="FocusIndicator" DockPanel.Dock="Left" Text="▸ " FontSize="11"
-                                               FontWeight="Bold" Foreground="#FFFFFF" Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,2,0" />
-
-                                    <!-- Primary Content (Title) - Prominent, high visual weight -->
+                                    <!-- Primary Content (Title) -->
                                     <TextBlock x:Name="ItemTitleText" Text="{Binding Title}"
-                                               FontFamily="{Binding TitleFont}" FontSize="13" FontWeight="SemiBold"
+                                               FontFamily="{Binding TitleFont}" FontSize="12.5" FontWeight="SemiBold"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                                                Foreground="#15171C" />
                                 </DockPanel>
 
-                                <!-- Tầng 3: METADATA (Time, Copy count) + Tầng 4: STATE (📌 pinned / 🔒 sensitive / ⏱ expiration) -->
-                                <!-- Aligned with primary content (indented past shortcut + icon) -->
-                                <DockPanel Grid.Row="1" Margin="34,2,0,0" LastChildFill="False">
-                                    <!-- Metadata: Relative time (1 min ago, 2 min ago...) - Muted -->
+                                <!-- Row 1: TimeAgo + CopyCount + Pin + Sensitive + Expiry -->
+                                <DockPanel Grid.Row="1" Margin="20,2,0,0" LastChildFill="False">
+                                    <!-- Relative time -->
                                     <TextBlock DockPanel.Dock="Left" x:Name="ItemTimeAgoText" Text="{Binding TimeAgo}"
-                                               FontSize="11" Foreground="{StaticResource Muted}" Opacity="0.7"
+                                               FontSize="10.5" Foreground="#8A909C"
                                                VerticalAlignment="Center" />
 
-                                    <!-- Metadata: Copy count (e.g. 2×) - Only shown if CopyCount > 1 -->
-                                    <Border DockPanel.Dock="Right" x:Name="CopyCountPill"
-                                            CornerRadius="3" Padding="4,0" Margin="6,0,0,0"
-                                            Background="#12000000" VerticalAlignment="Center"
-                                            Visibility="{Binding HasCopyCount, Converter={StaticResource BoolToVis}}"
-                                            ToolTip="Số lần đã copy">
-                                        <TextBlock x:Name="CopyCountText" Text="{Binding CopyCountText}"
-                                                   FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
-                                                   VerticalAlignment="Center" />
-                                    </Border>
-
-                                    <!-- State: Pinned indicator (📌) -->
+                                    <!-- Pinned indicator -->
                                     <TextBlock DockPanel.Dock="Right" x:Name="PinIndicator" Text="&#xE840;"
                                                FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                               FontSize="10.5" Foreground="{StaticResource Accent}"
+                                               FontSize="10" Foreground="{StaticResource Accent}"
                                                Margin="6,0,0,0" VerticalAlignment="Center"
-                                               ToolTip="Đã ghim (Ctrl+P)"
+                                               ToolTip="Pinned (Ctrl+P)"
                                                Visibility="{Binding HasPin, Converter={StaticResource BoolToVis}}" />
 
-                                    <!-- State: Sensitive indicator (🔒 sensitive) -->
+                                    <!-- Sensitive indicator -->
                                     <Border DockPanel.Dock="Right" x:Name="SensitiveIndicator"
-                                            Background="#20D97706" CornerRadius="3" Padding="4,1" Margin="6,0,0,0"
-                                            VerticalAlignment="Center" ToolTip="Dữ liệu nhạy cảm (Ctrl+R để mở)"
+                                            Background="#18D97706" CornerRadius="3" Padding="4,0" Margin="6,0,0,0"
+                                            VerticalAlignment="Center" ToolTip="Sensitive data (Ctrl+R to reveal)"
                                             Visibility="{Binding HasSensitiveBadge, Converter={StaticResource BoolToVis}}">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="9.5" Foreground="#D97706" Margin="0,0,2,0" />
@@ -801,9 +770,9 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- State: Expiration indicator (⏱ 45s) -->
+                                    <!-- Expiration indicator (chỉ hiện khi sắp hết hạn) -->
                                     <Border DockPanel.Dock="Right" x:Name="ExpiryIndicator"
-                                            Background="#15D97706" CornerRadius="3" Padding="4,1" Margin="6,0,0,0"
+                                            Background="#18D97706" CornerRadius="3" Padding="4,0" Margin="6,0,0,0"
                                             VerticalAlignment="Center" ToolTip="{Binding ExpirationTooltip}"
                                             Visibility="{Binding HasExpiration, Converter={StaticResource BoolToVis}}">
                                         <TextBlock x:Name="ExpiryText" Text="{Binding ExpirationBadgeText}"
@@ -815,18 +784,8 @@
 
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
-                                    <Setter TargetName="FocusIndicator" Property="Visibility" Value="Visible" />
-                                    <Setter TargetName="ItemTitleText" Property="Foreground" Value="#FFFFFF" />
-                                    <Setter TargetName="ItemTypeIcon" Property="Foreground" Value="#FFFFFF" />
-                                    <Setter TargetName="TypeBadgeBorder" Property="Background" Value="#25FFFFFF" />
-                                    <Setter TargetName="TypeBadgeText" Property="Foreground" Value="#FFFFFF" />
-                                    <Setter TargetName="ItemTimeAgoText" Property="Foreground" Value="#E0F2F1" />
-                                    <Setter TargetName="ItemTimeAgoText" Property="Opacity" Value="0.9" />
-                                    <Setter TargetName="CopyCountPill" Property="Background" Value="#25FFFFFF" />
-                                    <Setter TargetName="CopyCountText" Property="Foreground" Value="#FFFFFF" />
-                                    <Setter TargetName="PinIndicator" Property="Foreground" Value="#FFFFFF" />
-                                    <Setter TargetName="SelectGlyphText" Property="Foreground" Value="#FFFFFF" />
-                                    <Setter TargetName="MarkOrderLabel" Property="Foreground" Value="#FFFFFF" />
+                                    <Setter TargetName="ItemTitleText" Property="Foreground" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="ItemTitleText" Property="FontWeight" Value="Bold" />
                                 </DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>
@@ -837,7 +796,7 @@
                               HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                               ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                               ShowsPreview="False" Cursor="SizeWE" Background="Transparent" Focusable="False"
-                              ToolTip="Kéo để chia tỷ lệ List / Preview • Nhấp đúp: đổi nhanh • Chuột phải: menu">
+                              ToolTip="Drag to resize List / Preview • Double click: reset • Right click: menu">
                     <GridSplitter.Template>
                         <ControlTemplate TargetType="GridSplitter">
                             <Border Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
@@ -868,7 +827,7 @@
 
                     <!-- Row 0: Content Header Bar (Badge, Stats, Actions) -->
                     <Border x:Name="PreviewHeaderBar" Grid.Row="0" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1"
-                            Padding="14,8" Background="#06000000" Visibility="Collapsed">
+                            Padding="14,8" Background="#F9FAFB" Visibility="Collapsed">
                         <DockPanel LastChildFill="False">
                             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border x:Name="PreviewBadgeBorder" Background="#E8F2FF" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
@@ -876,6 +835,9 @@
                                 </Border>
                                 <TextBlock x:Name="PreviewStatsText" Text="SQL · 182 characters" FontSize="12" Foreground="{StaticResource Muted}"
                                            VerticalAlignment="Center" />
+                                <Border x:Name="HeaderOcrBadge" Background="#E6F4F1" CornerRadius="4" Padding="6,2" Margin="8,0,0,0" Visibility="Collapsed">
+                                    <TextBlock x:Name="HeaderOcrBadgeText" Text="OCR Text" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" />
+                                </Border>
                             </StackPanel>
 
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -974,40 +936,31 @@
                                        RenderOptions.BitmapScalingMode="HighQuality" />
                             </Border>
 
-                            <Border Grid.Row="1" Background="#04000000" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"
-                                    Padding="14,8">
+                            <!-- OCR Recognized Text: Hiển thị trực tiếp khi có text nhận diện được -->
+                            <Border x:Name="OcrTextPanel" Grid.Row="1" Background="#F9FAFB" BorderBrush="{StaticResource Line}"
+                                    BorderThickness="0,1,0,0" Padding="14,8" Visibility="Collapsed">
                                 <StackPanel>
-                                    <DockPanel LastChildFill="False">
+                                    <DockPanel Margin="0,0,0,6">
                                         <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock x:Name="ImageDimensionsText" Text="PNG · 1103 × 593" FontWeight="SemiBold"
-                                                       FontSize="12" Foreground="#15171C" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                            <Border x:Name="OcrBadgeBorder" Background="#E6F4F1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                                <TextBlock x:Name="OcrBadgeText" Text="OCR: Available" FontSize="11" FontWeight="SemiBold"
-                                                           Foreground="{StaticResource Accent}" />
+                                            <Border Background="#180E6B68" CornerRadius="4" Padding="5,1" Margin="0,0,8,0">
+                                                <TextBlock Text="OCR TEXT" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Accent}" />
                                             </Border>
+                                            <TextBlock Text="Recognized text (⇧Enter pastes):" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
                                         </StackPanel>
-
-                                        <Button x:Name="ToggleOcrButton" DockPanel.Dock="Right" Content="View OCR text"
-                                                Style="{StaticResource HeaderActionButton}" Visibility="Collapsed" />
+                                        <Button x:Name="CopyOcrButton" DockPanel.Dock="Right" Content="Copy OCR" Style="{StaticResource HeaderActionButton}" FontSize="11" Padding="8,2" />
                                     </DockPanel>
-
-                                    <Border x:Name="OcrTextPanel" Background="#FFFFFF" BorderBrush="{StaticResource Line}"
-                                            BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,4,0,0" Visibility="Collapsed">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="65" />
-                                            </Grid.RowDefinitions>
-                                            <DockPanel Grid.Row="0" Margin="0,0,0,4">
-                                                <TextBlock Text="Recognized text (Ctrl+Shift+Enter pastes):" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                                                <Button x:Name="CopyOcrButton" DockPanel.Dock="Right" Content="Copy OCR" Style="{StaticResource HeaderActionButton}" FontSize="10.5" Padding="6,1" />
-                                            </DockPanel>
-                                            <TextBox x:Name="OcrTextBox" Grid.Row="1" IsReadOnly="True" BorderThickness="0" Background="Transparent"
-                                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontSize="11.5" FontFamily="Cascadia Mono, Consolas" />
-                                        </Grid>
+                                    <Border Background="#FFFFFF" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                        <TextBox x:Name="OcrTextBox" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                                 MaxHeight="100" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                                 FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#15171C" />
                                     </Border>
                                 </StackPanel>
                             </Border>
+
+                            <!-- Hidden elements to preserve bindings / references without nulls -->
+                            <TextBlock x:Name="ImageDimensionsText" Visibility="Collapsed" />
+                            <Border x:Name="OcrBadgeBorder" Visibility="Collapsed"><TextBlock x:Name="OcrBadgeText" /></Border>
+                            <Button x:Name="ToggleOcrButton" Visibility="Collapsed" />
                         </Grid>
 
                         <!-- URL Rich Card -->
@@ -1147,37 +1100,34 @@
                     </Grid>
 
                     <!-- Row 2: Bottom Metadata Table -->
-                    <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="18,12">
+                    <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="16,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="22" />
-                                <RowDefinition Height="22" />
-                                <RowDefinition Height="22" />
-                                <RowDefinition Height="22" />
+                                <RowDefinition Height="20" />
+                                <RowDefinition Height="20" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="Type" Style="{StaticResource MetaLabel}" />
-                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="MetaType" Style="{StaticResource MetaValue}" />
-                            <TextBlock Grid.Row="1" Text="Source → workspace" Style="{StaticResource MetaLabel}" />
-                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MetaSource" Style="{StaticResource MetaValue}" />
-                            <TextBlock Grid.Row="2" Text="Copied" Style="{StaticResource MetaLabel}" />
-                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="MetaCopied" Style="{StaticResource MetaValue}" />
-                            <TextBlock Grid.Row="3" Text="Expires" Style="{StaticResource MetaLabel}" />
-                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="MetaExpires" Style="{StaticResource MetaValue}" />
+                            <TextBlock Grid.Row="0" Text="Source" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="MetaSource" Style="{StaticResource MetaValue}" />
+                            <TextBlock Grid.Row="1" Text="Copied" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MetaCopied" Style="{StaticResource MetaValue}" />
+                            <TextBlock Grid.Row="2" x:Name="MetaExpiresLabel" Text="Expires" Style="{StaticResource MetaLabel}" Visibility="Collapsed" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="MetaExpires" Style="{StaticResource MetaValue}" Visibility="Collapsed" />
                         </Grid>
                     </Border>
                 </Grid>
             </Grid>
 
-            <!-- Row 4: Contextual Footer Toolbar (Item 9 & 10) -->
-            <Border x:Name="Footer" Grid.Row="4" Background="Transparent" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+            <!-- Row 3: Contextual Footer Toolbar (Item 9 & 10) -->
+            <Border x:Name="Footer" Grid.Row="3" Background="Transparent" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
                 <DockPanel Margin="14,0,4,0">
                     <ResizeGrip x:Name="ResizeGripIndicator" DockPanel.Dock="Right" VerticalAlignment="Bottom" HorizontalAlignment="Right"
                                 Margin="0,0,1,1" IsTabStop="False" Opacity="0.4" ToolTip="Drag to resize" />
-                    <TextBlock x:Name="StatusText" DockPanel.Dock="Left" Foreground="#4A505C" FontSize="12.5" VerticalAlignment="Center" />
+                    <TextBlock x:Name="StatusText" DockPanel.Dock="Left" Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
 
                     <!-- Normal Context Toolbar -->
                     <StackPanel x:Name="NormalToolbar" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -1222,9 +1172,9 @@
             </Border>
 
             <!-- F1 Help Overlay Modal (Item 11) -->
-            <Border x:Name="HelpOverlay" Grid.Row="0" Grid.RowSpan="5" Background="#F2F6F7F9" CornerRadius="16"
-                    BorderThickness="1" BorderBrush="#35000000" Visibility="Collapsed" Panel.ZIndex="100">
-                <Grid Margin="20,16">
+            <Border x:Name="HelpOverlay" Grid.Row="0" Grid.RowSpan="4" Background="#FFFFFF" CornerRadius="0"
+                    BorderThickness="0" Visibility="Collapsed" Panel.ZIndex="100">
+                <Grid Margin="22,16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -1233,82 +1183,325 @@
 
                     <!-- Header -->
                     <DockPanel Grid.Row="0" Margin="0,0,0,12">
-                        <Button x:Name="HelpCloseButton" DockPanel.Dock="Right" Content="✕" Focusable="False"
-                                Width="26" Height="26" Cursor="Hand" Style="{StaticResource HeaderActionButton}"
-                                ToolTip="Close shortcuts help (Esc)" />
+                        <Button x:Name="HelpCloseButton" DockPanel.Dock="Right" Focusable="False"
+                                Width="28" Height="28" Cursor="Hand" ToolTip="Close shortcuts help (Esc)"
+                                AutomationProperties.Name="Close shortcuts">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                                        <TextBlock x:Name="Glyph" Text="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                   FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#14000000" />
+                                            <Setter TargetName="Glyph" Property="Foreground" Value="#0F172A" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="⌨ Keyboard shortcuts" FontSize="16" FontWeight="Bold" Foreground="#15171C" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <Border Style="{StaticResource Keycap}"><TextBlock Text="F1" Style="{StaticResource KeycapText}" /></Border>
+                            <Border Width="28" Height="28" Background="#120E6B68" CornerRadius="6" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE765;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="Keyboard Shortcuts" FontSize="16" FontWeight="SemiBold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <Border Style="{StaticResource ModalKeycap}" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="F1" Style="{StaticResource ModalKeycapText}" FontSize="10.5" Foreground="{StaticResource Muted}" />
+                            </Border>
                         </StackPanel>
                     </DockPanel>
 
                     <!-- Search Input for Shortcuts -->
-                    <Border Grid.Row="1" CornerRadius="8" Background="#14000000" Height="32" Margin="0,0,0,12" Padding="10,0">
+                    <Border Grid.Row="1" CornerRadius="8" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" Height="36" Margin="0,0,0,12" Padding="12,0">
                         <Grid VerticalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                       FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBox x:Name="HelpSearchBox" Grid.Column="1" BorderThickness="0" Background="Transparent"
-                                     FontSize="12.5" VerticalAlignment="Center" VerticalContentAlignment="Center" />
+                                       FontSize="13" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <Grid Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="HelpSearchPlaceholder" Text="Search shortcuts or commands…"
+                                           Foreground="#94A3B8" FontSize="12.5" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                <TextBox x:Name="HelpSearchBox" BorderThickness="0" Background="Transparent"
+                                         FontSize="12.5" VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="0"
+                                         AutomationProperties.Name="Search keyboard shortcuts" />
+                            </Grid>
+                            <Button x:Name="HelpClearSearchButton" Grid.Column="2" Width="18" Height="18" Margin="4,0,0,0"
+                                    Background="Transparent" BorderThickness="0" Cursor="Hand" Focusable="False"
+                                    VerticalAlignment="Center" Visibility="Collapsed" ToolTip="Clear search text">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="#14000000" CornerRadius="9" Width="18" Height="18">
+                                            <TextBlock Text="✕" FontSize="8.5" FontWeight="Bold"
+                                                       Foreground="#5A6170" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#25000000" />
+                                                <Setter Property="Foreground" Value="#15171C" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
                         </Grid>
                     </Border>
 
                     <!-- Scrollable Shortcuts Categorized List -->
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="HelpCategoriesPanel">
+                        <StackPanel x:Name="HelpCategoriesPanel" Margin="0,0,6,0">
                             <!-- NAVIGATION -->
-                            <Border Background="#06000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                            <Border Style="{StaticResource ShortcutCard}">
                                 <StackPanel>
-                                    <TextBlock Text="NAVIGATION" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
-                                    <DockPanel Margin="0,2"><TextBlock Text="Navigate items" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="↑  ↓" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Paste selected item" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Enter" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Paste as plain text (or image OCR)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+Shift+Enter" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Quick paste top row 1 … 9" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+1 … 9" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Close palette / Cancel selection" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Esc" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="4,0,4,8">
+                                        <TextBlock Text="&#xE895;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBlock Text="NAVIGATION" FontSize="11" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="↑" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="↓" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Navigate items" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Style="{StaticResource ModalKeycap}"><TextBlock Text="Enter" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            <TextBlock Text="Paste selected item" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Shift" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Enter" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Paste as plain text (or image OCR)" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="1 … 9" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Quick paste top row 1 … 9" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Style="{StaticResource ModalKeycap}"><TextBlock Text="Esc" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            <TextBlock Text="Close palette / Cancel selection" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
                                 </StackPanel>
                             </Border>
 
                             <!-- CLIPBOARD & ACTIONS -->
-                            <Border Background="#06000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                            <Border Style="{StaticResource ShortcutCard}">
                                 <StackPanel>
-                                    <TextBlock Text="CLIPBOARD &amp; ACTIONS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
-                                    <DockPanel Margin="0,2"><TextBlock Text="Pin / Unpin item" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+P" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Multi-select item (mark in order)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+Space" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Start Paste Stack from marked" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+S" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Transform text (JSON, SQL, Case...)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+K" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Copy without pasting" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+C" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Delete item from history" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Del" Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="4,0,4,8">
+                                        <TextBlock Text="&#xE8C8;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBlock Text="CLIPBOARD &amp; ACTIONS" FontSize="11" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="P" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Pin / Unpin item" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Space" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Multi-select item (mark in order)" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="S" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Start Paste Stack from marked" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="K" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Transform text (JSON, SQL, Case...)" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="C" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Copy without pasting" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Style="{StaticResource ModalKeycap}"><TextBlock Text="Del" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            <TextBlock Text="Delete item from history" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
                                 </StackPanel>
                             </Border>
 
                             <!-- ADVANCED -->
-                            <Border Background="#06000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                            <Border Style="{StaticResource ShortcutCard}">
                                 <StackPanel>
-                                    <TextBlock Text="ADVANCED &amp; WORKSPACE" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
-                                    <DockPanel Margin="0,2"><TextBlock Text="Cycle workspace filter" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+W" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Save as snippet / Edit snippet" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+N / Ctrl+E" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Reveal sensitive secret" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+R" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Pin window floating / Keep open" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+T" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Dock as sidebar (right → left → off)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+D" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Cycle split ratio (25/75, 40/60...)" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+L" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Toggle widget compact mode" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+M" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Toggle frosted glass transparency" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+Shift+T" Style="{StaticResource KeycapText}" /></Border></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Open Settings" FontSize="12.5" /><Border DockPanel.Dock="Right" Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+," Style="{StaticResource KeycapText}" /></Border></DockPanel>
+                                    <DockPanel Margin="4,0,4,8">
+                                        <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBlock Text="ADVANCED" FontSize="11" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="N" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Text="/" Foreground="#94A3B8" Margin="4,0" VerticalAlignment="Center" FontSize="11" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="E" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Save as snippet / Edit snippet" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="R" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Reveal sensitive secret" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="T" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Pin window floating / Keep open" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="L" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Cycle split ratio (25/75, 40/60...)" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="M" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Toggle widget compact mode" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Shift" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="T" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Toggle frosted glass transparency" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="Ctrl" Style="{StaticResource ModalKeycapText}" /></Border>
+                                                <TextBlock Style="{StaticResource KeycapPlus}" />
+                                                <Border Style="{StaticResource ModalKeycap}"><TextBlock Text="," Style="{StaticResource ModalKeycapText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Open Settings" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
                                 </StackPanel>
                             </Border>
 
                             <!-- SEARCH FILTERS -->
-                            <Border Background="#06000000" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                            <Border Style="{StaticResource ShortcutCard}">
                                 <StackPanel>
-                                    <TextBlock Text="SEARCH SYNTAX FILTERS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
-                                    <DockPanel Margin="0,2"><TextBlock Text="Filter by type" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="type:sql  type:code  type:image  type:snippet" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Filter by workspace" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="workspace:dev  ws:mail" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Pinned only" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="pinned:true" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Secrets filter" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="sensitive:false" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Filter by date range" FontSize="12.5" /><TextBlock DockPanel.Dock="Right" Text="after:2026-09-01  before:2026-10-01" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="{StaticResource Accent}" /></DockPanel>
+                                    <DockPanel Margin="4,0,4,8">
+                                        <TextBlock Text="&#xE71C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBlock Text="SEARCH SYNTAX FILTERS" FontSize="11" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource SyntaxChip}"><TextBlock Text="type:sql" Style="{StaticResource SyntaxChipText}" /></Border>
+                                                <Border Style="{StaticResource SyntaxChip}"><TextBlock Text="type:code" Style="{StaticResource SyntaxChipText}" /></Border>
+                                                <Border Style="{StaticResource SyntaxChip}"><TextBlock Text="type:image" Style="{StaticResource SyntaxChipText}" /></Border>
+                                                <Border Style="{StaticResource SyntaxChip}"><TextBlock Text="type:snippet" Style="{StaticResource SyntaxChipText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Filter by item type" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Style="{StaticResource SyntaxChip}">
+                                                <TextBlock Text="pinned:true" Style="{StaticResource SyntaxChipText}" />
+                                            </Border>
+                                            <TextBlock Text="Pinned items only" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Style="{StaticResource SyntaxChip}">
+                                                <TextBlock Text="sensitive:false" Style="{StaticResource SyntaxChipText}" />
+                                            </Border>
+                                            <TextBlock Text="Secrets filter" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Style="{StaticResource SyntaxChip}"><TextBlock Text="after:2026-09-01" Style="{StaticResource SyntaxChipText}" /></Border>
+                                                <Border Style="{StaticResource SyntaxChip}"><TextBlock Text="before:2026-10-01" Style="{StaticResource SyntaxChipText}" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="Filter by date range" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
