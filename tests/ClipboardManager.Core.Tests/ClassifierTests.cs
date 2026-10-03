@@ -17,7 +17,7 @@ public sealed class ClassifierTests
     [Test] public void Sql_select() => Expect("SELECT id, name\nFROM users\nWHERE id = 10;", ContentKind.Code, "sql");
     [Test] public void Sql_lowercase_update() => Expect("update users set status = 'active' where id = 3", ContentKind.Code, "sql");
     [Test] public void Url_github() => Expect("https://github.com/example/project", ContentKind.Url, "github");
-    [Test] public void Url_plain() => Expect("https://southtelecom.vn/worldfone", ContentKind.Url, "url");
+    [Test] public void Url_plain() => Expect("https://example.org/docs/quickstart", ContentKind.Url, "url");
     [Test] public void Url_www() => Expect("www.example.com/path", ContentKind.Url, "url");
     [Test] public void Email() => Expect("hello@example.com", ContentKind.Email, "email");
     [Test] public void Phone_vn() => Expect("+84 28 7300 1234", ContentKind.Phone, "phone");

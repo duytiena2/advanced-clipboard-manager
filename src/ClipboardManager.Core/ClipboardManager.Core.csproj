@@ -7,6 +7,9 @@
     <LangVersion>12</LangVersion>
     <RootNamespace>ClipboardManager.Core</RootNamespace>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Version>0.1.0</Version>
+    <Authors>duytiena2</Authors>
+    <Company>duytiena2</Company>
   </PropertyGroup>
 
   <!-- Intentionally zero NuGet dependencies: SQLite is accessed through P/Invoke

@@ -18,6 +18,8 @@
     <ApplicationIcon>..\..\packaging\Assets\app.ico</ApplicationIcon>
     <Version>0.1.0</Version>
     <Product>Advanced Clipboard Manager</Product>
+    <Authors>duytiena2</Authors>
+    <Company>duytiena2</Company>
   </PropertyGroup>
 
   <ItemGroup>

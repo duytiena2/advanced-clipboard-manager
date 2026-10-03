@@ -20,9 +20,9 @@ param(
     [string]$SqliteUrl = 'https://www.sqlite.org/2025/sqlite-dll-win-x64-3500400.zip',
     # MSIX identity. For the Store, use the values from Partner Center > Product identity
     # (CI reads them from the MSIX_* repository variables). The defaults only suit local testing.
-    [string]$MsixIdentityName = $(if ($env:MSIX_IDENTITY_NAME) { $env:MSIX_IDENTITY_NAME } else { 'SouthTelecom.AdvancedClipboardManager' }),
-    [string]$MsixPublisher = $(if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=SouthTelecom' }),
-    [string]$MsixPublisherDisplayName = $(if ($env:MSIX_PUBLISHER_DISPLAY_NAME) { $env:MSIX_PUBLISHER_DISPLAY_NAME } else { 'SouthTelecom' }),
+    [string]$MsixIdentityName = $(if ($env:MSIX_IDENTITY_NAME) { $env:MSIX_IDENTITY_NAME } else { 'duytiena2.AdvancedClipboardManager' }),
+    [string]$MsixPublisher = $(if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=duytiena2' }),
+    [string]$MsixPublisherDisplayName = $(if ($env:MSIX_PUBLISHER_DISPLAY_NAME) { $env:MSIX_PUBLISHER_DISPLAY_NAME } else { 'duytiena2' }),
     [string]$MsixDisplayName = $(if ($env:MSIX_DISPLAY_NAME) { $env:MSIX_DISPLAY_NAME } else { 'Advanced Clipboard Manager' })
 )
 

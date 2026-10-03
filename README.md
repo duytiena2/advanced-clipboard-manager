@@ -150,3 +150,7 @@ packaging/                      AppxManifest.xml (MSIX), setup.iss (Inno Setup),
 - **Phase 2:** ~~settings UI~~, ~~per-app workspace rules~~, ~~snippets~~, ~~paste stack~~, ~~sidebar~~ (done); still to do: tags, history window, choosing the merge separator in the UI
 - **Phase 3:** ~~database encryption~~, ~~OCR~~ (done); still to do: smart rules, optional AI (opt-in, never for sensitive items)
 - **Phase 4:** sync with end-to-end encryption, macOS/Linux
+
+## License
+
+[MIT](LICENSE) © [duytiena2](https://github.com/duytiena2)
