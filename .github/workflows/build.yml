@@ -20,7 +20,7 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Install SQLite
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev libsqlite3-0 sqlite3
       - name: Core tests
         run: dotnet run --project tests/ClipboardManager.Core.Tests -c Release
 

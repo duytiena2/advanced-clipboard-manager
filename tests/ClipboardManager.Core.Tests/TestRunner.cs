@@ -60,11 +60,13 @@ public static class Program
             {
                 failed++;
                 Console.WriteLine($"  FAIL  {name}\n        {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+                if (ex.InnerException.StackTrace != null) Console.WriteLine(ex.InnerException.StackTrace);
             }
             catch (Exception ex)
             {
                 failed++;
                 Console.WriteLine($"  FAIL  {name}\n        {ex.GetType().Name}: {ex.Message}");
+                if (ex.StackTrace != null) Console.WriteLine(ex.StackTrace);
             }
             finally
             {

@@ -35,7 +35,7 @@ internal static class SqliteNative
             ? new[] { "sqlite3", "e_sqlite3", "winsqlite3" }
             : OperatingSystem.IsMacOS()
                 ? new[] { "libsqlite3.dylib", "/usr/lib/libsqlite3.dylib", "sqlite3" }
-                : new[] { "libsqlite3.so.0", "libsqlite3.so", "sqlite3" };
+                : new[] { "libsqlite3.so.0", "libsqlite3.so", "/usr/lib/x86_64-linux-gnu/libsqlite3.so.0", "/usr/lib/x86_64-linux-gnu/libsqlite3.so", "/usr/lib/aarch64-linux-gnu/libsqlite3.so.0", "/usr/lib/aarch64-linux-gnu/libsqlite3.so", "sqlite3" };
         foreach (var c in candidates)
         {
             if (NativeLibrary.TryLoad(c, assembly, DllImportSearchPath.SafeDirectories | DllImportSearchPath.ApplicationDirectory, out var h)) return h;
