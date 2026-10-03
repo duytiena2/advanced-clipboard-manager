@@ -20,12 +20,12 @@ public sealed class ClassifierTests
     [Test] public void Url_plain() => Expect("https://example.org/docs/quickstart", ContentKind.Url, "url");
     [Test] public void Url_www() => Expect("www.example.com/path", ContentKind.Url, "url");
     [Test] public void Email() => Expect("hello@example.com", ContentKind.Email, "email");
-    [Test] public void Phone_vn() => Expect("+84 28 7300 1234", ContentKind.Phone, "phone");
+    [Test] public void Phone_vn() => Expect("+84 90 123 4567", ContentKind.Phone, "phone");
     [Test] public void Number() => Expect("1,234,567.89", ContentKind.Number, "number");
     [Test] public void Ip() => Expect("192.168.1.10:8080", ContentKind.Text, "ip");
     [Test] public void Json() => Expect("{ \"users\": [ { \"id\": 10 } ] }", ContentKind.Code, "json");
     [Test] public void Json_invalid_is_not_json() => Assert.True(_c.ClassifyText("{ not json }").Subtype != "json");
-    [Test] public void Xml() => Expect("<note><to>Tien</to></note>", ContentKind.Code, "xml");
+    [Test] public void Xml() => Expect("<note><to>User</to></note>", ContentKind.Code, "xml");
     [Test] public void Shell_docker() => Expect("docker compose up -d", ContentKind.Code, "shell");
     [Test] public void Shell_git() => Expect("git checkout -b feature/name", ContentKind.Code, "shell");
     [Test] public void Yaml() => Expect("services:\n  app:\n    image: example/app:1.4\n    ports:\n      - \"80:80\"", ContentKind.Code, "yaml");
