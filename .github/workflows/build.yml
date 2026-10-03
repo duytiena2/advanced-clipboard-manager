@@ -22,23 +22,7 @@ jobs:
       - name: Install SQLite
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev libsqlite3-0 sqlite3
       - name: Core tests
-        run: |
-          dotnet run --project tests/ClipboardManager.Core.Tests -c Release > test_out.txt 2>&1 || true
-          cat test_out.txt
-      - name: Upload test log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-test-results
-          path: test_out.txt
-      - name: Check test results
-        run: |
-          if grep -q "FAIL" test_out.txt; then
-            while IFS= read -r line; do
-              echo "::error title=Test Failure::$line"
-            done < <(grep "FAIL" test_out.txt)
-            exit 1
-          fi
+        run: dotnet run --project tests/ClipboardManager.Core.Tests -c Release
 
   windows:
     runs-on: windows-latest

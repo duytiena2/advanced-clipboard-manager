@@ -321,10 +321,13 @@ public sealed class FeatureTests : IDisposable
     [Test]
     public void Template_variables_expand()
     {
+        var culture = (System.Globalization.CultureInfo)System.Globalization.CultureInfo.GetCultureInfo("vi-VN").Clone();
+        culture.DateTimeFormat.ShortDatePattern = "dd/MM/yyyy";
+        culture.DateTimeFormat.ShortTimePattern = "HH:mm";
         var ctx = new TemplateContext
         {
             Now = new DateTime(2026, 10, 3, 14, 5, 9),
-            Culture = System.Globalization.CultureInfo.GetCultureInfo("vi-VN"),
+            Culture = culture,
             Clipboard = () => "ORDER-42",
         };
         Assert.Equal("Ngày 03/10/2026 lúc 14:05", TemplateEngine.Expand("Ngày {date} lúc {time}", ctx));
