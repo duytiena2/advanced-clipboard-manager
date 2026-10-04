@@ -22,7 +22,7 @@ param(
     # MSIX identity. For the Store, use the values from Partner Center > Product identity
     # (CI reads them from the MSIX_* repository variables). The defaults only suit local testing.
     [string]$MsixIdentityName = $(if ($env:MSIX_IDENTITY_NAME) { $env:MSIX_IDENTITY_NAME } else { 'duytiena2.AdvancedClipboardManager' }),
-    [string]$MsixPublisher = $(if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=duytiena2' }),
+    [string]$MsixPublisher = $(if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=A524D558-6059-4A68-B81A-B8E8782556BB' }),
     [string]$MsixPublisherDisplayName = $(if ($env:MSIX_PUBLISHER_DISPLAY_NAME) { $env:MSIX_PUBLISHER_DISPLAY_NAME } else { 'duytiena2' }),
     [string]$MsixDisplayName = $(if ($env:MSIX_DISPLAY_NAME) { $env:MSIX_DISPLAY_NAME } else { 'Advanced Clipboard Manager' })
 )
@@ -117,7 +117,7 @@ if ($AppVersion) {
 if ($Publish) {
     Step "Publishing self-contained single-file exe v$version"
     & dotnet publish src/ClipboardManager.App -c Release -r win-x64 --self-contained true `
-        -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$version -o publish
+        -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$version -o publish
     if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
     Write-Host "`nDone: $(Join-Path $PSScriptRoot 'publish\ClipboardManager.exe')" -ForegroundColor Green
 }
@@ -143,7 +143,7 @@ if ($Installer) {
     Step "Publishing single-file executable for installer v$version"
     if (Test-Path $installerSource) { Remove-Item $installerSource -Recurse -Force }
     & dotnet publish src/ClipboardManager.App -c Release -r win-x64 --self-contained true `
-        -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -p:Version=$version -o $installerSource
+        -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -p:Version=$version -o $installerSource
     if ($LASTEXITCODE -ne 0) { throw "Publish failed." }
 
     Step "Building Setup.exe (Inno Setup) v$version"

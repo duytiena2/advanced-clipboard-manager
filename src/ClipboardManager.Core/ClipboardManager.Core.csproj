@@ -7,7 +7,7 @@
     <LangVersion>12</LangVersion>
     <RootNamespace>ClipboardManager.Core</RootNamespace>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <Authors>duytiena2</Authors>
     <Company>duytiena2</Company>
   </PropertyGroup>
