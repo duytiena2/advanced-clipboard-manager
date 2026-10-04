@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input.Platform;
@@ -28,11 +29,13 @@ internal sealed class MacClipboardWriter : IClipboardWriter
         }
         else if (payload.Text is not null)
         {
-            WriteText(payload.Text);
+            WriteTextWithFormatting(payload.Text, payload.Html, payload.Rtf);
         }
     }
 
-    public void WriteText(string text)
+    public void WriteText(string text) => WriteTextWithFormatting(text, null, null);
+
+    public void WriteTextWithFormatting(string text, string? html, string? rtf)
     {
         try
         {
@@ -49,10 +52,38 @@ internal sealed class MacClipboardWriter : IClipboardWriter
                         var selClear = MacNative.sel_registerName("clearContents");
                         MacNative.objc_msgSend(pb, selClear);
 
+                        var selSetString = MacNative.sel_registerName("setString:forType:");
+                        var selSetData = MacNative.sel_registerName("setData:forType:");
+
+                        // 1. Plain text
                         var typeStr = MacNative.CreateNSString("public.utf8-plain-text");
                         var nsStr = MacNative.CreateNSString(text);
-                        var selSetString = MacNative.sel_registerName("setString:forType:");
                         MacNative.objc_msgSend(pb, selSetString, nsStr, typeStr);
+
+                        // 2. HTML if available
+                        if (!string.IsNullOrEmpty(html))
+                        {
+                            var htmlBytes = Encoding.UTF8.GetBytes(html);
+                            var nsHtmlData = CreateNSData(htmlBytes);
+                            if (nsHtmlData != IntPtr.Zero)
+                            {
+                                var typeHtml = MacNative.CreateNSString("public.html");
+                                MacNative.objc_msgSend(pb, selSetData, nsHtmlData, typeHtml);
+                            }
+                        }
+
+                        // 3. RTF if available
+                        if (!string.IsNullOrEmpty(rtf))
+                        {
+                            var rtfBytes = Encoding.UTF8.GetBytes(rtf);
+                            var nsRtfData = CreateNSData(rtfBytes);
+                            if (nsRtfData != IntPtr.Zero)
+                            {
+                                var typeRtf = MacNative.CreateNSString("public.rtf");
+                                MacNative.objc_msgSend(pb, selSetData, nsRtfData, typeRtf);
+                            }
+                        }
+
                         return;
                     }
                 }
@@ -75,7 +106,6 @@ internal sealed class MacClipboardWriter : IClipboardWriter
     {
         if (!OperatingSystem.IsMacOS() || png is null || png.Length == 0) return;
 
-        GCHandle handle = default;
         var pool = MacNative.objc_autoreleasePoolPush();
         try
         {
@@ -87,13 +117,7 @@ internal sealed class MacClipboardWriter : IClipboardWriter
             var selClear = MacNative.sel_registerName("clearContents");
             MacNative.objc_msgSend(pb, selClear);
 
-            handle = GCHandle.Alloc(png, GCHandleType.Pinned);
-            IntPtr pBytes = handle.AddrOfPinnedObject();
-
-            var clsData = MacNative.objc_getClass("NSData");
-            var selDataWithBytes = MacNative.sel_registerName("dataWithBytes:length:");
-            var nsData = MacNative.objc_msgSend(clsData, selDataWithBytes, pBytes, (IntPtr)png.Length);
-
+            var nsData = CreateNSData(png);
             if (nsData != IntPtr.Zero)
             {
                 var typePng = MacNative.CreateNSString("public.png");
@@ -107,8 +131,25 @@ internal sealed class MacClipboardWriter : IClipboardWriter
         }
         finally
         {
-            if (handle.IsAllocated) handle.Free();
             MacNative.objc_autoreleasePoolPop(pool);
+        }
+    }
+
+    private static IntPtr CreateNSData(byte[] bytes)
+    {
+        if (bytes.Length == 0) return IntPtr.Zero;
+        GCHandle handle = default;
+        try
+        {
+            handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            IntPtr pBytes = handle.AddrOfPinnedObject();
+            var clsData = MacNative.objc_getClass("NSData");
+            var selDataWithBytes = MacNative.sel_registerName("dataWithBytes:length:");
+            return MacNative.objc_msgSend(clsData, selDataWithBytes, pBytes, (IntPtr)bytes.Length);
+        }
+        finally
+        {
+            if (handle.IsAllocated) handle.Free();
         }
     }
 }

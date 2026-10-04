@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -23,18 +25,41 @@ public partial class App : Application
             _mainWindow = new MainWindow();
             desktop.MainWindow = _mainWindow;
 
+            var dataFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Library", "Application Support", "ClipboardManager");
+
             var menu = new NativeMenu();
+
             var openItem = new NativeMenuItem("Quick Paste");
-            openItem.Click += (_, _) =>
+            openItem.Click += (_, _) => _mainWindow.ToggleWindow();
+
+            var clearItem = new NativeMenuItem("Clear History (Keep Pinned)");
+            clearItem.Click += (_, _) => _mainWindow.ClearHistory();
+
+            var folderItem = new NativeMenuItem("Open Data Folder…");
+            folderItem.Click += (_, _) =>
             {
-                _mainWindow.Show();
-                _mainWindow.Activate();
+                try
+                {
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        Process.Start("open", dataFolder);
+                    }
+                    else
+                    {
+                        Process.Start(new ProcessStartInfo(dataFolder) { UseShellExecute = true });
+                    }
+                }
+                catch { }
             };
 
             var quitItem = new NativeMenuItem("Quit");
             quitItem.Click += (_, _) => desktop.Shutdown();
 
             menu.Items.Add(openItem);
+            menu.Items.Add(clearItem);
+            menu.Items.Add(folderItem);
             menu.Items.Add(new NativeMenuItemSeparator());
             menu.Items.Add(quitItem);
 
@@ -44,11 +69,7 @@ public partial class App : Application
                 IsVisible = true,
                 Menu = menu
             };
-            trayIcon.Clicked += (_, _) =>
-            {
-                _mainWindow.Show();
-                _mainWindow.Activate();
-            };
+            trayIcon.Clicked += (_, _) => _mainWindow.ToggleWindow();
 
             var trayIcons = new TrayIcons { trayIcon };
             TrayIcon.SetIcons(this, trayIcons);

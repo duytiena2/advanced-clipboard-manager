@@ -8,7 +8,7 @@ internal static class MacNative
     private const string ObjCLib = "/usr/lib/libobjc.A.dylib";
     private const string CGLib = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
     private const string CFLib = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
-
+    private const string CarbonLib = "/System/Library/Frameworks/Carbon.framework/Carbon";
     private const string SystemLib = "/usr/lib/libSystem.B.dylib";
 
     [DllImport(SystemLib, CharSet = CharSet.Ansi)]
@@ -62,6 +62,37 @@ internal static class MacNative
     [DllImport(CFLib)]
     public static extern void CFRelease(IntPtr cf);
 
+    // Carbon Event Manager for global system hotkeys
+    [StructLayout(LayoutKind.Sequential)]
+    public struct EventHotKeyID
+    {
+        public uint signature;
+        public uint id;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct EventTypeSpec
+    {
+        public uint eventClass;
+        public uint eventKind;
+    }
+
+    public delegate int EventHandlerDelegate(IntPtr nextHandler, IntPtr theEvent, IntPtr userData);
+
+    [DllImport(CarbonLib)]
+    public static extern IntPtr GetApplicationEventTarget();
+
+    [DllImport(CarbonLib)]
+    public static extern int InstallEventHandler(IntPtr inTarget, EventHandlerDelegate inHandler, uint inNumTypes,
+        EventTypeSpec[] inList, IntPtr inUserData, out IntPtr outHandlerRef);
+
+    [DllImport(CarbonLib)]
+    public static extern int RegisterEventHotKey(uint inHotKeyCode, uint inHotKeyModifiers, EventHotKeyID inHotKeyID,
+        IntPtr inTarget, uint inOptions, out IntPtr outRef);
+
+    [DllImport(CarbonLib)]
+    public static extern int UnregisterEventHotKey(IntPtr inHotKeyRef);
+
     // Helpers
     public static IntPtr GetClass(string name) => OperatingSystem.IsMacOS() ? objc_getClass(name) : IntPtr.Zero;
     public static IntPtr GetSelector(string name) => OperatingSystem.IsMacOS() ? sel_registerName(name) : IntPtr.Zero;
@@ -88,5 +119,34 @@ internal static class MacNative
         var sel = sel_registerName("UTF8String");
         var ptr = objc_msgSend(nsString, sel);
         return ptr == IntPtr.Zero ? null : Marshal.PtrToStringUTF8(ptr);
+    }
+
+    public static string? GetFrontmostAppName()
+    {
+        if (!OperatingSystem.IsMacOS()) return null;
+        var pool = objc_autoreleasePoolPush();
+        try
+        {
+            var clsWs = objc_getClass("NSWorkspace");
+            var selShared = sel_registerName("sharedWorkspace");
+            var ws = objc_msgSend(clsWs, selShared);
+            if (ws == IntPtr.Zero) return null;
+
+            var selFront = sel_registerName("frontmostApplication");
+            var app = objc_msgSend(ws, selFront);
+            if (app == IntPtr.Zero) return null;
+
+            var selName = sel_registerName("localizedName");
+            var nameStr = objc_msgSend(app, selName);
+            return GetStringFromNSString(nameStr);
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            objc_autoreleasePoolPop(pool);
+        }
     }
 }

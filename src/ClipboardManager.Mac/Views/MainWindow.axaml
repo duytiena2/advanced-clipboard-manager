@@ -79,6 +79,7 @@
                         <TextBlock Text="↵ Paste" FontSize="11" Opacity="0.7"/>
                         <TextBlock Text="⇧↵ Plain Text" FontSize="11" Opacity="0.7"/>
                         <TextBlock Text="⌘1-9 Quick Paste" FontSize="11" Opacity="0.7"/>
+                        <TextBlock Text="⌘K Transforms" FontSize="11" Opacity="0.7"/>
                         <TextBlock Text="⌘P Pin" FontSize="11" Opacity="0.7"/>
                         <TextBlock Text="⎋ Close" FontSize="11" Opacity="0.7"/>
                     </StackPanel>

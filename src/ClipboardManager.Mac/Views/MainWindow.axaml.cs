@@ -19,9 +19,14 @@ public partial class MainWindow : Window
     private readonly MacClipboardMonitor _monitor;
     private readonly MacClipboardWriter _writer;
     private readonly MacPasteSimulator _paste;
+    private readonly MacHotkeyService _hotkeys;
     private readonly IOcrEngine _ocrEngine;
     private readonly object _ocrGate = new();
     private Task _ocrQueue = Task.CompletedTask;
+    private readonly DispatcherTimer _cleanupTimer;
+
+    private string? _pendingSecretHash;
+    private DateTimeOffset? _pendingSecretExpiry;
 
     public MainWindow()
     {
@@ -34,7 +39,10 @@ public partial class MainWindow : Window
 
         var settingsPath = Path.Combine(dataFolder, "settings.json");
         var settings = AppSettings.Load(settingsPath);
-        _svc = new ClipboardService(dataFolder, settings);
+        if (!File.Exists(settingsPath)) settings.Save(settingsPath);
+
+        var protector = new MacDataProtector(dataFolder);
+        _svc = new ClipboardService(dataFolder, settings, protector: protector);
 
         _writer = new MacClipboardWriter();
         _paste = new MacPasteSimulator();
@@ -49,9 +57,21 @@ public partial class MainWindow : Window
             {
                 StartOcr(new[] { item });
             }
+            if (item is { IsSensitive: true } && outcome is CaptureOutcome.Stored or CaptureOutcome.Duplicate)
+            {
+                _pendingSecretHash = item.ContentHash;
+                _pendingSecretExpiry = item.ExpiresAt;
+            }
             Dispatcher.UIThread.Post(RefreshList);
         };
         _monitor.Start();
+
+        _hotkeys = new MacHotkeyService();
+        _hotkeys.Register(settings.QuickPasteHotkey, () => Dispatcher.UIThread.Post(ToggleWindow));
+
+        _cleanupTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        _cleanupTimer.Tick += (_, _) => RunCleanup();
+        _cleanupTimer.Start();
 
         SearchBox.KeyUp += OnSearchKeyUp;
         ItemsList.SelectionChanged += (_, _) => UpdatePreview();
@@ -60,6 +80,46 @@ public partial class MainWindow : Window
 
         RefreshList();
         StartOcr(_svc.ImagesWithoutOcr(200));
+    }
+
+    public void ToggleWindow()
+    {
+        if (IsVisible)
+        {
+            Hide();
+        }
+        else
+        {
+            Show();
+            Activate();
+            SearchBox.Focus();
+            SearchBox.SelectAll();
+        }
+    }
+
+    public void ClearHistory()
+    {
+        _svc?.ClearHistory();
+        RefreshList();
+    }
+
+    private void RunCleanup()
+    {
+        if (_svc is null) return;
+        try
+        {
+            _svc.CleanupExpired();
+
+            if (_pendingSecretExpiry.HasValue && DateTimeOffset.UtcNow >= _pendingSecretExpiry.Value)
+            {
+                _pendingSecretExpiry = null;
+                _pendingSecretHash = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Cleanup] {ex.Message}");
+        }
     }
 
     private void StartOcr(IReadOnlyList<ClipboardItem> images)
@@ -163,6 +223,56 @@ public partial class MainWindow : Window
         }
     }
 
+    private void TogglePinSelected()
+    {
+        if (_svc is null || ItemsList.SelectedItem is not ClipboardItem item) return;
+        _svc.TogglePin(item);
+        RefreshList();
+    }
+
+    private void DeleteSelected()
+    {
+        if (_svc is null || ItemsList.SelectedItem is not ClipboardItem item) return;
+        _svc.Delete(item);
+        RefreshList();
+    }
+
+    private void PasteIndex(int index, bool plainTextOnly)
+    {
+        if (ItemsList.ItemsSource is IReadOnlyList<ClipboardItem> list && index >= 0 && index < list.Count)
+        {
+            ItemsList.SelectedItem = list[index];
+            PasteSelected(plainTextOnly);
+        }
+    }
+
+    private void ShowTransformsMenu()
+    {
+        if (ItemsList.SelectedItem is not ClipboardItem item || string.IsNullOrEmpty(item.TextContent)) return;
+
+        var menu = new ContextMenu();
+        foreach (var t in TextTransforms.All)
+        {
+            var itemMenu = new MenuItem { Header = t.Name };
+            itemMenu.Click += (_, _) =>
+            {
+                try
+                {
+                    var converted = t.Apply(item.TextContent);
+                    _writer.WriteText(converted);
+                    Hide();
+                    _paste.PasteIntoPreviousWindow();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Transform] {ex.Message}");
+                }
+            };
+            menu.Items.Add(itemMenu);
+        }
+        menu.Open(ItemsList);
+    }
+
     private void OnSearchKeyUp(object? sender, KeyEventArgs e)
     {
         if (e.Key is Key.Up or Key.Down or Key.Enter) return;
@@ -171,6 +281,8 @@ public partial class MainWindow : Window
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
+        bool hasCmd = e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
+
         if (e.Key == Key.Escape)
         {
             Hide();
@@ -180,6 +292,27 @@ public partial class MainWindow : Window
         {
             bool plainTextOnly = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
             PasteSelected(plainTextOnly);
+            e.Handled = true;
+        }
+        else if (hasCmd && e.Key == Key.P)
+        {
+            TogglePinSelected();
+            e.Handled = true;
+        }
+        else if (hasCmd && e.Key == Key.K)
+        {
+            ShowTransformsMenu();
+            e.Handled = true;
+        }
+        else if ((hasCmd && (e.Key == Key.Back || e.Key == Key.Delete)) || e.Key == Key.Delete)
+        {
+            DeleteSelected();
+            e.Handled = true;
+        }
+        else if (hasCmd && e.Key >= Key.D1 && e.Key <= Key.D9)
+        {
+            int index = (int)e.Key - (int)Key.D1;
+            PasteIndex(index, plainTextOnly: e.KeyModifiers.HasFlag(KeyModifiers.Shift));
             e.Handled = true;
         }
         else if (e.Key == Key.Down && SearchBox.IsFocused)
@@ -200,7 +333,6 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        // Hide instead of exit when user closes palette window
         e.Cancel = true;
         Hide();
         base.OnClosing(e);

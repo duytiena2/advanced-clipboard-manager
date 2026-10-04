@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -82,6 +83,8 @@ internal sealed class MacClipboardMonitor : IClipboardMonitor
             if (changeCount == _lastChangeCount) return;
             _lastChangeCount = changeCount;
 
+            string? sourceApp = MacNative.GetFrontmostAppName();
+
             // 1. Check for Image (public.png or public.tiff)
             var selDataForType = MacNative.sel_registerName("dataForType:");
             var typePng = MacNative.CreateNSString("public.png");
@@ -133,7 +136,7 @@ internal sealed class MacClipboardMonitor : IClipboardMonitor
                         height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
                     }
 
-                    ContentCaptured?.Invoke(this, CapturedContent.FromImage(bytes, width, height));
+                    ContentCaptured?.Invoke(this, CapturedContent.FromImage(bytes, width, height, sourceApp));
                     return;
                 }
             }
@@ -146,7 +149,50 @@ internal sealed class MacClipboardMonitor : IClipboardMonitor
             if (!string.IsNullOrEmpty(text) && text != _lastText)
             {
                 _lastText = text;
-                ContentCaptured?.Invoke(this, CapturedContent.FromText(text));
+
+                // Check for HTML formatting
+                string? html = null;
+                var typeHtml = MacNative.CreateNSString("public.html");
+                var htmlData = MacNative.objc_msgSend(pb, selDataForType, typeHtml);
+                if (htmlData != IntPtr.Zero)
+                {
+                    var selLen = MacNative.sel_registerName("length");
+                    long hLen = MacNative.objc_msgSend_long(htmlData, selLen);
+                    if (hLen > 0)
+                    {
+                        var selBytes = MacNative.sel_registerName("bytes");
+                        IntPtr hBytes = MacNative.objc_msgSend(htmlData, selBytes);
+                        byte[] hArr = new byte[hLen];
+                        Marshal.Copy(hBytes, hArr, 0, (int)hLen);
+                        html = Encoding.UTF8.GetString(hArr);
+                    }
+                }
+
+                // Check for RTF formatting
+                string? rtf = null;
+                var typeRtf = MacNative.CreateNSString("public.rtf");
+                var rtfData = MacNative.objc_msgSend(pb, selDataForType, typeRtf);
+                if (rtfData != IntPtr.Zero)
+                {
+                    var selLen = MacNative.sel_registerName("length");
+                    long rLen = MacNative.objc_msgSend_long(rtfData, selLen);
+                    if (rLen > 0)
+                    {
+                        var selBytes = MacNative.sel_registerName("bytes");
+                        IntPtr rBytes = MacNative.objc_msgSend(rtfData, selBytes);
+                        byte[] rArr = new byte[rLen];
+                        Marshal.Copy(rBytes, rArr, 0, (int)rLen);
+                        rtf = Encoding.UTF8.GetString(rArr);
+                    }
+                }
+
+                ContentCaptured?.Invoke(this, new CapturedContent
+                {
+                    Text = text,
+                    Html = html,
+                    Rtf = rtf,
+                    SourceApplication = sourceApp
+                });
             }
         }
         catch (Exception ex)
