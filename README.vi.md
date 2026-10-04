@@ -1,6 +1,6 @@
 # Advanced Clipboard Manager
 
-[English](README.md) • [Tiếng Việt](README.vi.md)
+[English](README.md) • [Tiếng Việt](README.vi.md) • [简体中文](README.zh.md) • [日本語](README.ja.md) • [한국어](README.ko.md) • [Español](README.es.md) • [Français](README.fr.md) • [Deutsch](README.de.md) • [Русский](README.ru.md) • [Português](README.pt.md)
 
 Trình quản lý clipboard ưu tiên bảo mật cục bộ (**local-first**) và tối ưu thao tác nhanh qua bàn phím (**keyboard-first**) dành cho Windows 10/11 và macOS. Tự động lưu lịch sử sao chép, phân loại thông minh theo loại nội dung và tìm lại mọi thứ tức thì với **Ctrl+Shift+V** (hoặc menu bar trên macOS).
 
