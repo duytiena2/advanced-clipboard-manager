@@ -85,6 +85,7 @@ Bạn cũng có thể mở trực tiếp `AdvancedClipboardManager.sln` trong Vi
 | Portable (Windows) | `publish\ClipboardManager.exe` | Chạy trực tiếp không cần cài đặt. |
 | macOS (Apple Silicon) | `dist/AdvancedClipboardManager-osx-arm64.dmg` / `.zip` | Bộ cài file đĩa (.dmg) và gói ứng dụng `.app` độc lập dành cho chip Apple Silicon (M1/M2/M3/M4). |
 | macOS (Intel) | `dist/AdvancedClipboardManager-osx-x64.dmg` / `.zip` | Bộ cài file đĩa (.dmg) và gói ứng dụng `.app` độc lập dành cho máy Mac Intel. |
+| Homebrew Cask (macOS) | `brew install duytiena2/tap/advanced-clipboard-manager` | Cài đặt và tự động cập nhật qua Homebrew cho cả chip Apple Silicon & Intel Macs. |
 
 **Phát hành lên Microsoft Store:**
 

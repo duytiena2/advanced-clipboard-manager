@@ -85,6 +85,7 @@ You can also open `AdvancedClipboardManager.sln` in Visual Studio 2022 and press
 | Portable (Windows) | `publish\ClipboardManager.exe` | No install. |
 | macOS (Apple Silicon) | `dist/AdvancedClipboardManager-osx-arm64.dmg` / `.zip` | Disk image installer (.dmg) and standalone `.app` bundle for Apple Silicon (M1/M2/M3/M4). |
 | macOS (Intel) | `dist/AdvancedClipboardManager-osx-x64.dmg` / `.zip` | Disk image installer (.dmg) and standalone `.app` bundle for Intel Macs. |
+| Homebrew Cask (macOS) | `brew install duytiena2/tap/advanced-clipboard-manager` | Managed installation & auto-updates via Homebrew for Apple Silicon & Intel Macs. |
 
 **Publishing to the Store:**
 
