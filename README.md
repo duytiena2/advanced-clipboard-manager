@@ -6,6 +6,10 @@ A local-first, keyboard-first clipboard manager for Windows 10/11 and macOS. It 
 
 > Status: **Phases 1–3 complete, Phase 4 (macOS) in progress** (see Roadmap). Name is a working title.
 
+<p align="center">
+  <img src="docs/assets/screenshot.png" alt="Advanced Clipboard Manager UI and Settings" width="850" />
+</p>
+
 ## Features
 
 | | |

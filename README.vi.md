@@ -6,6 +6,10 @@ Trình quản lý clipboard ưu tiên bảo mật cục bộ (**local-first**) v
 
 > Trạng thái: **Đã hoàn thành Phase 1–3, Phase 4 (macOS) đang triển khai** (xem Lộ trình phát triển). Tên gọi là tiêu đề dự kiến.
 
+<p align="center">
+  <img src="docs/assets/screenshot.png" alt="Giao diện Advanced Clipboard Manager và Cài đặt" width="850" />
+</p>
+
 ## Tính năng nổi bật
 
 | Tính năng | Mô tả |
