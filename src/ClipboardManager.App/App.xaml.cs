@@ -138,6 +138,20 @@ public partial class App : Application
         _palette.PasteStackRequested += items => _pasteStack.Start(items);
         _palette.StopPasteStackRequested += () => _pasteStack.Stop("Paste stack stopped.");
         _palette.OpenSettingsRequested += ShowSettings;
+        _palette.FirstHideRequested += () =>
+        {
+            if (_svc is not null && !_svc.Settings.CloseTipShown)
+            {
+                _svc.Settings.CloseTipShown = true;
+                try { _svc.Settings.Save(_settingsPath); } catch { }
+                _tray?.ShowBalloon(
+                    LocalizationService.Get("CloseTip_Title"),
+                    LocalizationService.Get("CloseTip_Message", _svc.Settings.QuickPasteHotkey),
+                    warning: false,
+                    onClick: () => _palette?.ShowPalette()
+                );
+            }
+        };
         _tray.StopPasteStackRequested += () => _pasteStack.Stop("Paste stack stopped.");
         // Raised on the UI thread for copies made in other apps (our own writes are skipped by the monitor).
         _monitor.ContentCaptured += (_, _) => _pasteStack.OnExternalClipboardChange();
@@ -164,6 +178,22 @@ public partial class App : Application
         else if (!StartupRegistration.LaunchedAtStartup(e.Args))
         {
             _palette.ShowPalette();
+        }
+
+        // First-launch welcome notification informing the user about the hotkey and tray icon
+        if (!settings.WelcomeShown)
+        {
+            settings.WelcomeShown = true;
+            try { settings.Save(_settingsPath); } catch { }
+            Task.Delay(1200).ContinueWith(_ => Dispatcher.Invoke(() =>
+            {
+                _tray?.ShowBalloon(
+                    LocalizationService.Get("Welcome_Title"),
+                    LocalizationService.Get("Welcome_Message", settings.QuickPasteHotkey),
+                    warning: false,
+                    onClick: () => _palette?.ShowPalette()
+                );
+            }));
         }
 
         if (!_svc.FullTextSearchEnabled) Log(new InvalidOperationException("FTS5 not available in the loaded SQLite library; using LIKE search."));

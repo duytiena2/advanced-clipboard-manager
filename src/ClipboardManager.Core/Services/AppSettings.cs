@@ -35,6 +35,12 @@ public sealed class AppSettings
     /// <summary>Compact single-column widget mode.</summary>
     public bool WidgetMode { get; set; }
 
+    /// <summary>Whether the welcome balloon hint has been shown on first launch.</summary>
+    public bool WelcomeShown { get; set; } = false;
+
+    /// <summary>Whether the hint about minimizing to tray on close has been shown.</summary>
+    public bool CloseTipShown { get; set; } = false;
+
     /// <summary>Recent searches displayed in the search drop-down (max 10, newest first).</summary>
     public List<string> RecentSearches { get; set; } = new();
 

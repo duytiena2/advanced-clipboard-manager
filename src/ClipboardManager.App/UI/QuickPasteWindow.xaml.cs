@@ -303,6 +303,8 @@ public partial class QuickPasteWindow : Window
         if (HelpButton is not null) HelpButton.ToolTip = LocalizationService.Get("QuickPaste_HelpTooltip");
         if (StopPasteStackButton is not null) StopPasteStackButton.Content = LocalizationService.Get("QuickPaste_StopStack");
         if (ClearAllRecentButton is not null) ClearAllRecentButton.Content = LocalizationService.Get("QuickPaste_ClearRecent");
+        if (HeaderHotkeyText is not null) HeaderHotkeyText.Text = _svc.Settings.QuickPasteHotkey;
+        if (HeaderHotkeyContainer is not null) HeaderHotkeyContainer.ToolTip = LocalizationService.Get("Header_Hotkey_Tooltip", _svc.Settings.QuickPasteHotkey);
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -460,6 +462,7 @@ public partial class QuickPasteWindow : Window
         foreach (var vm in _items) vm.IsMarked = false;
         Hide();
         _hiding = false;
+        FirstHideRequested?.Invoke();
     }
 
     /// <summary>Narrow floating (&lt; 540) = compact list only; wide floating (&gt;= 540) = full list + preview.</summary>
@@ -733,7 +736,9 @@ public partial class QuickPasteWindow : Window
         if (ItemsList.SelectedItem is not null) ItemsList.ScrollIntoView(ItemsList.SelectedItem);
 
         CountText.Text = string.IsNullOrWhiteSpace(effectiveQuery) ? "" : $"{_items.Count} result{(_items.Count == 1 ? "" : "s")}";
-        StatusText.Text = _svc.Settings.CaptureEnabled ? $"{_svc.Count()} items" : "Capture paused";
+        StatusText.Text = _svc.Settings.CaptureEnabled
+            ? string.Format(LocalizationService.Get("Footer_Items_Hint"), _svc.Count(), _svc.Settings.QuickPasteHotkey)
+            : LocalizationService.Get("Tray_PauseCapture");
         if (_items.Count == 0)
         {
             if (string.IsNullOrWhiteSpace(effectiveQuery))
@@ -1263,7 +1268,9 @@ public partial class QuickPasteWindow : Window
             if (MultiSelectToolbar is not null) MultiSelectToolbar.Visibility = Visibility.Collapsed;
             if (SensitiveToolbar is not null) SensitiveToolbar.Visibility = Visibility.Collapsed;
             if (NormalToolbar is not null) NormalToolbar.Visibility = Visibility.Visible;
-            StatusText.Text = _svc.Settings.CaptureEnabled ? $"{_svc.Count()} items" : "Capture paused";
+            StatusText.Text = _svc.Settings.CaptureEnabled
+                ? string.Format(LocalizationService.Get("Footer_Items_Hint"), _svc.Count(), _svc.Settings.QuickPasteHotkey)
+                : LocalizationService.Get("Tray_PauseCapture");
         }
     }
 
@@ -1527,6 +1534,9 @@ public partial class QuickPasteWindow : Window
 
     /// <summary>Raised by Stop button or Esc when a paste stack is active.</summary>
     public event Action? StopPasteStackRequested;
+
+    /// <summary>Raised the first time the window is hidden, to show a tray reminder.</summary>
+    public event Action? FirstHideRequested;
 
     public void UpdatePasteStackState(PasteStackState state)
     {

@@ -198,6 +198,14 @@ public static class LocalizationService
             ["Tray_RunningTooltip"] = "Clipboard Manager (recording)\n{0} to open",
             ["Tray_PausedTooltip"] = "Clipboard Manager (paused)\n{0} to open",
 
+            // Welcome & Tips
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "App is running in the background! Press {0} anywhere to open, or click this tray icon.",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "Clipboard Manager is minimized to tray. Press {0} anytime to bring it back.",
+            ["Header_Hotkey_Tooltip"] = "Press {0} anywhere to open Quick Paste",
+            ["Footer_Items_Hint"] = "{0} items · {1} anywhere",
+
             // Dialogs
             ["Dialog_ClearHistoryTitle"] = "Clear history",
             ["Dialog_ClearHistoryConfirm"] = "Delete all clipboard history except pinned items?",
@@ -315,6 +323,14 @@ public static class LocalizationService
             ["Tray_Exit"] = "Thoát ứng dụng",
             ["Tray_RunningTooltip"] = "Trình quản lý Clipboard (đang ghi)\n{0} để mở",
             ["Tray_PausedTooltip"] = "Trình quản lý Clipboard (tạm dừng)\n{0} để mở",
+
+            // Welcome & Tips
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "Ứng dụng đang chạy nền! Bấm {0} ở bất kỳ đâu để mở, hoặc nhấp vào biểu tượng dưới khay hệ thống.",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "Ứng dụng vẫn đang chạy ở khay hệ thống. Bấm {0} để mở lại bất cứ lúc nào.",
+            ["Header_Hotkey_Tooltip"] = "Bấm {0} ở bất kỳ đâu để mở Quick Paste",
+            ["Footer_Items_Hint"] = "{0} mục · {1} ở mọi nơi",
 
             // Dialogs
             ["Dialog_ClearHistoryTitle"] = "Xóa lịch sử",
