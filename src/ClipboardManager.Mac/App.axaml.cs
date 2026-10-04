@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using ClipboardManager.Mac.Platform;
 using ClipboardManager.Mac.Views;
 
 namespace ClipboardManager.Mac;
@@ -34,6 +35,24 @@ public partial class App : Application
             var openItem = new NativeMenuItem("Quick Paste");
             openItem.Click += (_, _) => _mainWindow.ToggleWindow();
 
+            var stackItem = new NativeMenuItem("Paste Stack: (Inactive)");
+            stackItem.IsVisible = false;
+            stackItem.Click += (_, _) => _mainWindow.PasteStack.Advance();
+
+            var startupItem = new NativeMenuItem("Launch at Login")
+            {
+                ToggleType = NativeMenuItemToggleType.CheckBox,
+                IsChecked = MacStartupRegistration.IsEnabled()
+            };
+            startupItem.Click += (_, _) =>
+            {
+                bool newState = !startupItem.IsChecked;
+                if (MacStartupRegistration.SetEnabled(newState))
+                {
+                    startupItem.IsChecked = newState;
+                }
+            };
+
             var clearItem = new NativeMenuItem("Clear History (Keep Pinned)");
             clearItem.Click += (_, _) => _mainWindow.ClearHistory();
 
@@ -58,6 +77,8 @@ public partial class App : Application
             quitItem.Click += (_, _) => desktop.Shutdown();
 
             menu.Items.Add(openItem);
+            menu.Items.Add(stackItem);
+            menu.Items.Add(startupItem);
             menu.Items.Add(clearItem);
             menu.Items.Add(folderItem);
             menu.Items.Add(new NativeMenuItemSeparator());
@@ -70,6 +91,21 @@ public partial class App : Application
                 Menu = menu
             };
             trayIcon.Clicked += (_, _) => _mainWindow.ToggleWindow();
+
+            _mainWindow.PasteStack.StatusChanged += status =>
+            {
+                if (status is not null)
+                {
+                    stackItem.Header = status;
+                    stackItem.IsVisible = true;
+                    trayIcon.ToolTipText = status;
+                }
+                else
+                {
+                    stackItem.IsVisible = false;
+                    trayIcon.ToolTipText = "Advanced Clipboard Manager";
+                }
+            };
 
             var trayIcons = new TrayIcons { trayIcon };
             TrayIcon.SetIcons(this, trayIcons);

@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Threading;
 using ClipboardManager.Core.Models;
 using ClipboardManager.Core.Platform;
 using ClipboardManager.Core.Services;
 using ClipboardManager.Mac.Platform;
+using ClipboardManager.Mac.UI;
 
 namespace ClipboardManager.Mac.Views;
 
@@ -21,12 +24,15 @@ public partial class MainWindow : Window
     private readonly MacPasteSimulator _paste;
     private readonly MacHotkeyService _hotkeys;
     private readonly IOcrEngine _ocrEngine;
+    private readonly MacPasteStackController _pasteStack;
     private readonly object _ocrGate = new();
     private Task _ocrQueue = Task.CompletedTask;
     private readonly DispatcherTimer _cleanupTimer;
 
     private string? _pendingSecretHash;
     private DateTimeOffset? _pendingSecretExpiry;
+
+    internal MacPasteStackController PasteStack => _pasteStack;
 
     public MainWindow()
     {
@@ -47,6 +53,7 @@ public partial class MainWindow : Window
         _writer = new MacClipboardWriter();
         _paste = new MacPasteSimulator();
         _ocrEngine = new MacOcrEngine();
+        _pasteStack = new MacPasteStackController(_svc, _writer);
 
         _monitor = new MacClipboardMonitor();
         _monitor.ContentCaptured += (_, content) =>
@@ -166,6 +173,8 @@ public partial class MainWindow : Window
 
     private void UpdatePreview()
     {
+        PreviewContent.Inlines?.Clear();
+
         if (ItemsList.SelectedItem is ClipboardItem item)
         {
             PreviewTitle.Text = item.Title;
@@ -189,22 +198,34 @@ public partial class MainWindow : Window
                         ? "(Extracting text in background...)"
                         : "(OCR unavailable)");
                 }
-                PreviewContent.Text = sb.ToString();
+                PreviewContent.Inlines = new InlineCollection { new Run(sb.ToString()) };
             }
             else
             {
-                PreviewContent.Text = item.TextContent ?? "";
+                MacSyntaxHighlighter.Highlight(PreviewContent, item);
             }
         }
         else
         {
             PreviewTitle.Text = "";
-            PreviewContent.Text = "";
+            PreviewContent.Inlines?.Clear();
         }
     }
 
     private void PasteSelected(bool plainTextOnly = false)
     {
+        // 1. Check if multiple items are selected: merge and paste!
+        var selectedList = ItemsList.SelectedItems?.OfType<ClipboardItem>().ToList();
+        if (selectedList is { Count: > 1 })
+        {
+            var merged = MergeService.Merge(selectedList, MergeSeparator.NewLine);
+            _writer.WriteText(merged);
+            Hide();
+            _paste.PasteIntoPreviousWindow();
+            return;
+        }
+
+        // 2. Single item paste
         if (ItemsList.SelectedItem is ClipboardItem item)
         {
             var payload = _svc?.LoadPayload(item, plainText: plainTextOnly);
@@ -225,15 +246,31 @@ public partial class MainWindow : Window
 
     private void TogglePinSelected()
     {
-        if (_svc is null || ItemsList.SelectedItem is not ClipboardItem item) return;
-        _svc.TogglePin(item);
+        if (_svc is null) return;
+        var selected = ItemsList.SelectedItems?.OfType<ClipboardItem>().ToList();
+        if (selected is { Count: > 0 })
+        {
+            foreach (var it in selected) _svc.TogglePin(it);
+        }
+        else if (ItemsList.SelectedItem is ClipboardItem single)
+        {
+            _svc.TogglePin(single);
+        }
         RefreshList();
     }
 
     private void DeleteSelected()
     {
-        if (_svc is null || ItemsList.SelectedItem is not ClipboardItem item) return;
-        _svc.Delete(item);
+        if (_svc is null) return;
+        var selected = ItemsList.SelectedItems?.OfType<ClipboardItem>().ToList();
+        if (selected is { Count: > 0 })
+        {
+            foreach (var it in selected) _svc.Delete(it);
+        }
+        else if (ItemsList.SelectedItem is ClipboardItem single)
+        {
+            _svc.Delete(single);
+        }
         RefreshList();
     }
 
@@ -292,6 +329,16 @@ public partial class MainWindow : Window
         {
             bool plainTextOnly = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
             PasteSelected(plainTextOnly);
+            e.Handled = true;
+        }
+        else if (hasCmd && e.Key == Key.S)
+        {
+            var items = ItemsList.SelectedItems?.OfType<ClipboardItem>().ToList();
+            if (items is { Count: > 0 })
+            {
+                _pasteStack.Start(items);
+                Hide();
+            }
             e.Handled = true;
         }
         else if (hasCmd && e.Key == Key.P)

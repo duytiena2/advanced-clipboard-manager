@@ -34,6 +34,7 @@
             <Grid Grid.Row="1" ColumnDefinitions="*,Auto,1.2*">
                 <!-- Items list -->
                 <ListBox x:Name="ItemsList" Grid.Column="0"
+                         SelectionMode="Multiple"
                          Background="Transparent"
                          BorderThickness="0">
                     <ListBox.ItemTemplate>
@@ -66,8 +67,8 @@
                 <ScrollViewer Grid.Column="2" Padding="14">
                     <StackPanel Spacing="10">
                         <TextBlock x:Name="PreviewTitle" FontWeight="Bold" FontSize="14" TextTrimming="CharacterEllipsis"/>
-                        <TextBox x:Name="PreviewContent" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                                 Background="Transparent" BorderThickness="0" FontSize="12" FontFamily="Consolas, Menlo, monospace"/>
+                        <SelectableTextBlock x:Name="PreviewContent" TextWrapping="Wrap"
+                                             Background="Transparent" FontSize="12" FontFamily="Menlo, Monaco, Consolas, monospace"/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
@@ -75,11 +76,12 @@
             <!-- Footer: Shortcut hints -->
             <Border Grid.Row="2" Background="{DynamicResource SystemChromeLowColor}" CornerRadius="0,0,11,11" Padding="14,8">
                 <Grid ColumnDefinitions="*,Auto">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
-                        <TextBlock Text="↵ Paste" FontSize="11" Opacity="0.7"/>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="14">
+                        <TextBlock Text="↵ Paste (Merge if multi-select)" FontSize="11" Opacity="0.7"/>
                         <TextBlock Text="⇧↵ Plain Text" FontSize="11" Opacity="0.7"/>
-                        <TextBlock Text="⌘1-9 Quick Paste" FontSize="11" Opacity="0.7"/>
+                        <TextBlock Text="⌘1-9 Quick" FontSize="11" Opacity="0.7"/>
                         <TextBlock Text="⌘K Transforms" FontSize="11" Opacity="0.7"/>
+                        <TextBlock Text="⌘S Stack" FontSize="11" Opacity="0.7"/>
                         <TextBlock Text="⌘P Pin" FontSize="11" Opacity="0.7"/>
                         <TextBlock Text="⎋ Close" FontSize="11" Opacity="0.7"/>
                     </StackPanel>
