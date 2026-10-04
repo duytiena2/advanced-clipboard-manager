@@ -154,9 +154,23 @@ internal sealed class TrayIcon : IDisposable
         _icon.Text = text.Length <= 127 ? text : text[..126] + "…"; // NotifyIcon.Text limit
     }
 
-    /// <summary>Draws a simple clipboard glyph so the app needs no binary .ico asset.</summary>
+    /// <summary>Draws or extracts the clipboard icon for the system tray.</summary>
     private static (Icon, IntPtr) DrawIcon()
     {
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(exe) && System.IO.File.Exists(exe))
+            {
+                var assoc = Icon.ExtractAssociatedIcon(exe);
+                if (assoc is not null)
+                {
+                    return (assoc, IntPtr.Zero);
+                }
+            }
+        }
+        catch { }
+
         using var bmp = new Bitmap(32, 32);
         using (var g = Graphics.FromImage(bmp))
         {
@@ -194,6 +208,9 @@ internal sealed class TrayIcon : IDisposable
         _icon.Visible = false;
         _icon.Dispose();
         _appIcon.Dispose();
-        NativeMethods.DestroyIcon(_hIcon);
+        if (_hIcon != IntPtr.Zero)
+        {
+            NativeMethods.DestroyIcon(_hIcon);
+        }
     }
 }

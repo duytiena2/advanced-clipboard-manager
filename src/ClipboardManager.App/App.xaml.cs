@@ -33,17 +33,37 @@ public partial class App : Application
     private string? _pendingSecretHash;
     private DateTimeOffset? _pendingSecretExpiry;
 
+    private EventWaitHandle? _showWindowEvent;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
+        const string ShowEventName = @"Local\AdvancedClipboardManager.ShowWindowEvent";
         _mutex = new Mutex(initiallyOwned: true, @"Local\AdvancedClipboardManager.SingleInstance", out bool isFirst);
         if (!isFirst)
         {
-            MessageBox.Show("Advanced Clipboard Manager is already running. Look for its icon in the system tray.",
-                "Clipboard Manager", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                using var evt = EventWaitHandle.OpenExisting(ShowEventName);
+                evt.Set();
+            }
+            catch { }
             Shutdown();
             return;
+        }
+
+        try
+        {
+            _showWindowEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
+            ThreadPool.RegisterWaitForSingleObject(_showWindowEvent, (_, _) =>
+            {
+                Dispatcher.BeginInvoke(() => _palette?.ShowPalette());
+            }, null, -1, false);
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
         }
 
         _dataFolder = PackageInfo.DataFolder;
@@ -143,7 +163,6 @@ public partial class App : Application
         }
         else if (!StartupRegistration.LaunchedAtStartup(e.Args))
         {
-            _tray.ShowBalloon("Clipboard Manager is running", $"Press {settings.QuickPasteHotkey} to open Quick Paste.");
             _palette.ShowPalette();
         }
 
@@ -400,6 +419,7 @@ public partial class App : Application
         _svc?.Dispose();
         try { _mutex?.ReleaseMutex(); } catch (ApplicationException) { }
         _mutex?.Dispose();
+        _showWindowEvent?.Dispose();
         base.OnExit(e);
     }
 }

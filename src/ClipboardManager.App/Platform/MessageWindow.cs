@@ -18,7 +18,6 @@ internal sealed class MessageWindow : IDisposable
             Width = 0,
             Height = 0,
             WindowStyle = 0,
-            ParentWindow = NativeMethods.HWND_MESSAGE,
         };
         _source = new HwndSource(p);
         _source.AddHook(WndProc);
