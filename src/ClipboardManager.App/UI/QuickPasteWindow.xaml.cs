@@ -256,6 +256,7 @@ public partial class QuickPasteWindow : Window
         if (HelpCloseButton is not null) HelpCloseButton.Click += (_, _) => HideHelpOverlay();
         if (HelpClearSearchButton is not null) HelpClearSearchButton.Click += (_, _) => { HelpSearchBox.Text = ""; HelpSearchBox.Focus(); };
         if (HelpSearchBox is not null) HelpSearchBox.TextChanged += (_, _) => FilterHelpShortcuts(HelpSearchBox.Text);
+        if (DismissOnboardingButton is not null) DismissOnboardingButton.Click += DismissOnboarding_Click;
         UpdateSearchChipsState();
         ItemsList.SelectionChanged += (_, _) => UpdateContextualToolbar();
         Loaded += (_, _) => ApplyTransparency();
@@ -303,8 +304,70 @@ public partial class QuickPasteWindow : Window
         if (HelpButton is not null) HelpButton.ToolTip = LocalizationService.Get("QuickPaste_HelpTooltip");
         if (StopPasteStackButton is not null) StopPasteStackButton.Content = LocalizationService.Get("QuickPaste_StopStack");
         if (ClearAllRecentButton is not null) ClearAllRecentButton.Content = LocalizationService.Get("QuickPaste_ClearRecent");
-        if (HeaderHotkeyText is not null) HeaderHotkeyText.Text = _svc.Settings.QuickPasteHotkey;
-        if (HeaderHotkeyContainer is not null) HeaderHotkeyContainer.ToolTip = LocalizationService.Get("Header_Hotkey_Tooltip", _svc.Settings.QuickPasteHotkey);
+
+        UpdateOnboardingBanner();
+    }
+
+    private void UpdateOnboardingBanner()
+    {
+        if (OnboardingBanner is null) return;
+        if (_svc.Settings.OnboardingDismissed)
+        {
+            OnboardingBanner.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        OnboardingBanner.Visibility = Visibility.Visible;
+        if (OnboardingBadgeText is not null)
+            OnboardingBadgeText.Text = LocalizationService.Get("Onboarding_Badge");
+        if (OnboardingPrefixText is not null)
+            OnboardingPrefixText.Text = LocalizationService.Get("Onboarding_TipPrefix");
+        if (OnboardingSuffixText is not null)
+            OnboardingSuffixText.Text = LocalizationService.Get("Onboarding_TipSuffix");
+        if (DismissLabelText is not null)
+            DismissLabelText.Text = LocalizationService.Get("Onboarding_Dismiss");
+        if (DismissOnboardingButton is not null)
+            DismissOnboardingButton.ToolTip = LocalizationService.Get("Onboarding_DismissTooltip");
+
+        if (OnboardingKeycapsContainer is not null)
+        {
+            OnboardingKeycapsContainer.Children.Clear();
+            var parts = (_svc.Settings.QuickPasteHotkey ?? "Ctrl+Shift+V").Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (i > 0)
+                {
+                    OnboardingKeycapsContainer.Children.Add(new TextBlock
+                    {
+                        Text = "+",
+                        FontSize = 11,
+                        FontWeight = FontWeights.Bold,
+                        Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#64748B")),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 4, 0)
+                    });
+                }
+
+                var border = new Border
+                {
+                    Style = (Style)FindResource("OnboardingKeycap"),
+                    Margin = new Thickness(0, 0, 4, 0)
+                };
+                border.Child = new TextBlock
+                {
+                    Text = parts[i],
+                    Style = (Style)FindResource("OnboardingKeycapText")
+                };
+                OnboardingKeycapsContainer.Children.Add(border);
+            }
+        }
+    }
+
+    private void DismissOnboarding_Click(object sender, RoutedEventArgs e)
+    {
+        OnboardingBanner.Visibility = Visibility.Collapsed;
+        _svc.Settings.OnboardingDismissed = true;
+        try { _svc.Settings.Save(System.IO.Path.Combine(PackageInfo.DataFolder, "settings.json")); } catch { }
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -410,6 +473,7 @@ public partial class QuickPasteWindow : Window
             }
         }
         if (SearchSuggestionsPopup is not null) SearchSuggestionsPopup.IsOpen = false;
+        UpdateOnboardingBanner();
         Reload();
         _hiding = false;
         Show();
@@ -737,7 +801,7 @@ public partial class QuickPasteWindow : Window
 
         CountText.Text = string.IsNullOrWhiteSpace(effectiveQuery) ? "" : $"{_items.Count} result{(_items.Count == 1 ? "" : "s")}";
         StatusText.Text = _svc.Settings.CaptureEnabled
-            ? string.Format(LocalizationService.Get("Footer_Items_Hint"), _svc.Count(), _svc.Settings.QuickPasteHotkey)
+            ? LocalizationService.Get("QuickPaste_ItemsCount", _svc.Count())
             : LocalizationService.Get("Tray_PauseCapture");
         if (_items.Count == 0)
         {
@@ -1269,7 +1333,7 @@ public partial class QuickPasteWindow : Window
             if (SensitiveToolbar is not null) SensitiveToolbar.Visibility = Visibility.Collapsed;
             if (NormalToolbar is not null) NormalToolbar.Visibility = Visibility.Visible;
             StatusText.Text = _svc.Settings.CaptureEnabled
-                ? string.Format(LocalizationService.Get("Footer_Items_Hint"), _svc.Count(), _svc.Settings.QuickPasteHotkey)
+                ? LocalizationService.Get("QuickPaste_ItemsCount", _svc.Count())
                 : LocalizationService.Get("Tray_PauseCapture");
         }
     }

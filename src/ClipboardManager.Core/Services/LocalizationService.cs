@@ -203,8 +203,11 @@ public static class LocalizationService
             ["Welcome_Message"] = "App is running in the background! Press {0} anywhere to open, or click this tray icon.",
             ["CloseTip_Title"] = "Advanced Clipboard Manager",
             ["CloseTip_Message"] = "Clipboard Manager is minimized to tray. Press {0} anytime to bring it back.",
-            ["Header_Hotkey_Tooltip"] = "Press {0} anywhere to open Quick Paste",
-            ["Footer_Items_Hint"] = "{0} items · {1} anywhere",
+            ["Onboarding_Badge"] = "QUICK TIP",
+            ["Onboarding_TipPrefix"] = "Press",
+            ["Onboarding_TipSuffix"] = "anywhere to open clipboard history.",
+            ["Onboarding_Dismiss"] = "Got it",
+            ["Onboarding_DismissTooltip"] = "Dismiss this tip",
 
             // Dialogs
             ["Dialog_ClearHistoryTitle"] = "Clear history",
@@ -329,8 +332,11 @@ public static class LocalizationService
             ["Welcome_Message"] = "Ứng dụng đang chạy nền! Bấm {0} ở bất kỳ đâu để mở, hoặc nhấp vào biểu tượng dưới khay hệ thống.",
             ["CloseTip_Title"] = "Advanced Clipboard Manager",
             ["CloseTip_Message"] = "Ứng dụng vẫn đang chạy ở khay hệ thống. Bấm {0} để mở lại bất cứ lúc nào.",
-            ["Header_Hotkey_Tooltip"] = "Bấm {0} ở bất kỳ đâu để mở Quick Paste",
-            ["Footer_Items_Hint"] = "{0} mục · {1} ở mọi nơi",
+            ["Onboarding_Badge"] = "MẸO NHANH",
+            ["Onboarding_TipPrefix"] = "Bấm",
+            ["Onboarding_TipSuffix"] = "ở bất kỳ đâu để mở nhanh lịch sử clipboard.",
+            ["Onboarding_Dismiss"] = "Đã hiểu",
+            ["Onboarding_DismissTooltip"] = "Đóng mẹo này",
 
             // Dialogs
             ["Dialog_ClearHistoryTitle"] = "Xóa lịch sử",

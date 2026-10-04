@@ -41,6 +41,9 @@ public sealed class AppSettings
     /// <summary>Whether the hint about minimizing to tray on close has been shown.</summary>
     public bool CloseTipShown { get; set; } = false;
 
+    /// <summary>Whether the in-app onboarding banner has been dismissed by clicking [X].</summary>
+    public bool OnboardingDismissed { get; set; } = false;
+
     /// <summary>Recent searches displayed in the search drop-down (max 10, newest first).</summary>
     public List<string> RecentSearches { get; set; } = new();
 
