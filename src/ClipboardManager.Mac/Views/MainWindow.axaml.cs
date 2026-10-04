@@ -28,6 +28,8 @@ public partial class MainWindow : Window
     private readonly object _ocrGate = new();
     private Task _ocrQueue = Task.CompletedTask;
     private readonly DispatcherTimer _cleanupTimer;
+    private readonly string _settingsPath;
+    private SettingsWindow? _settingsWindow;
 
     private string? _pendingSecretHash;
     private DateTimeOffset? _pendingSecretExpiry;
@@ -43,9 +45,11 @@ public partial class MainWindow : Window
             "Library", "Application Support", "ClipboardManager");
         Directory.CreateDirectory(dataFolder);
 
-        var settingsPath = Path.Combine(dataFolder, "settings.json");
-        var settings = AppSettings.Load(settingsPath);
-        if (!File.Exists(settingsPath)) settings.Save(settingsPath);
+        _settingsPath = Path.Combine(dataFolder, "settings.json");
+        var settings = AppSettings.Load(_settingsPath);
+        if (!File.Exists(_settingsPath)) settings.Save(_settingsPath);
+
+        LocalizationService.SetLanguage(settings.Language);
 
         var protector = new MacDataProtector(dataFolder);
         _svc = new ClipboardService(dataFolder, settings, protector: protector);
@@ -87,6 +91,27 @@ public partial class MainWindow : Window
 
         RefreshList();
         StartOcr(_svc.ImagesWithoutOcr(200));
+
+        Task.Run(async () => await MacUpdateChecker.CheckForUpdateAsync());
+    }
+
+    public void ShowSettings()
+    {
+        if (_svc is null) return;
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+
+        _settingsWindow = new SettingsWindow(_svc, _settingsPath, () =>
+        {
+            _hotkeys.Register(_svc.Settings.QuickPasteHotkey, () => Dispatcher.UIThread.Post(ToggleWindow));
+            RefreshList();
+        });
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
     }
 
     public void ToggleWindow()
@@ -339,6 +364,11 @@ public partial class MainWindow : Window
                 _pasteStack.Start(items);
                 Hide();
             }
+            e.Handled = true;
+        }
+        else if (hasCmd && (e.Key == Key.OemComma || e.Key == Key.OemPeriod))
+        {
+            ShowSettings();
             e.Handled = true;
         }
         else if (hasCmd && e.Key == Key.P)

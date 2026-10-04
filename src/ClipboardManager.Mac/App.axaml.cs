@@ -53,6 +53,23 @@ public partial class App : Application
                 }
             };
 
+            var settingsItem = new NativeMenuItem("Settings…");
+            settingsItem.Click += (_, _) => _mainWindow.ShowSettings();
+
+            var updateItem = new NativeMenuItem("Check for Updates…");
+            updateItem.Click += async (_, _) =>
+            {
+                var update = await MacUpdateChecker.CheckForUpdateAsync();
+                if (update is not null)
+                {
+                    MacUpdateChecker.OpenReleaseUrl(update.DownloadUrl ?? update.ReleaseUrl);
+                }
+                else
+                {
+                    MacUpdateChecker.OpenReleaseUrl("https://github.com/duytiena2/advanced-clipboard-manager/releases");
+                }
+            };
+
             var clearItem = new NativeMenuItem("Clear History (Keep Pinned)");
             clearItem.Click += (_, _) => _mainWindow.ClearHistory();
 
@@ -79,6 +96,9 @@ public partial class App : Application
             menu.Items.Add(openItem);
             menu.Items.Add(stackItem);
             menu.Items.Add(startupItem);
+            menu.Items.Add(new NativeMenuItemSeparator());
+            menu.Items.Add(settingsItem);
+            menu.Items.Add(updateItem);
             menu.Items.Add(clearItem);
             menu.Items.Add(folderItem);
             menu.Items.Add(new NativeMenuItemSeparator());

@@ -1,0 +1,118 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ClipboardManager.Mac.Views.SettingsWindow"
+        Title="Settings — Advanced Clipboard Manager"
+        Width="640" Height="500"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        Background="{DynamicResource SystemAltHighColor}">
+
+    <Grid RowDefinitions="*,Auto" Margin="16">
+        <TabControl Grid.Row="0">
+            <!-- General Tab -->
+            <TabItem Header="General">
+                <ScrollViewer Padding="10">
+                    <StackPanel Spacing="16">
+                        <!-- Language -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Interface Language" FontWeight="SemiBold" FontSize="13"/>
+                            <ComboBox x:Name="LanguageCombo" HorizontalAlignment="Stretch"/>
+                            <TextBlock Text="Choose the display language for the application." FontSize="11" Opacity="0.6"/>
+                        </StackPanel>
+
+                        <!-- Shortcut -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Quick Paste Shortcut" FontWeight="SemiBold" FontSize="13"/>
+                            <TextBox x:Name="HotkeyBox" Watermark="e.g. Cmd+Shift+V"/>
+                            <TextBlock Text="System-wide global shortcut to open the clipboard palette." FontSize="11" Opacity="0.6"/>
+                        </StackPanel>
+
+                        <!-- Options -->
+                        <StackPanel Spacing="10">
+                            <CheckBox x:Name="CaptureBox" Content="Enable automatic clipboard capture"/>
+                            <CheckBox x:Name="StartupBox" Content="Launch at system login"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Security & Privacy Tab -->
+            <TabItem Header="Security &amp; Privacy">
+                <ScrollViewer Padding="10">
+                    <StackPanel Spacing="16">
+                        <CheckBox x:Name="EncryptBox" Content="Encrypt database &amp; images (AES-256)"/>
+                        <TextBlock Text="Data is stored securely on disk and cannot be read without your user account key." FontSize="11" Opacity="0.6" Margin="28,-10,0,0"/>
+
+                        <CheckBox x:Name="DetectSensitiveBox" Content="Detect and mask sensitive secrets (API keys, passwords, tokens)"/>
+                        <CheckBox x:Name="OcrBox" Content="Enable offline OCR text extraction from images (Apple Vision)"/>
+
+                        <Separator Margin="0,4"/>
+
+                        <TextBlock Text="Excluded Applications (Never recorded)" FontWeight="SemiBold" FontSize="13"/>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                            <TextBox x:Name="NewExcludedBox" Grid.Column="0" Watermark="e.g. 1Password, Bitwarden"/>
+                            <Button x:Name="AddExcludedButton" Grid.Column="1" Content="Add" Margin="8,0,0,0"/>
+                        </Grid>
+                        <ListBox x:Name="ExcludedList" Height="100"/>
+                        <Button x:Name="RemoveExcludedButton" Content="Remove Selected" HorizontalAlignment="Right"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Retention Tab -->
+            <TabItem Header="Retention">
+                <ScrollViewer Padding="10">
+                    <StackPanel Spacing="14">
+                        <TextBlock Text="History Retention Period (in minutes, 0 = never expires)" FontWeight="SemiBold" FontSize="13"/>
+                        
+                        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,6">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Plain Text:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="RetText" Grid.Row="0" Grid.Column="1" Margin="0,3"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Code &amp; SQL:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="RetCode" Grid.Row="1" Grid.Column="1" Margin="0,3"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Images:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="RetImage" Grid.Row="2" Grid.Column="1" Margin="0,3"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="URLs:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="RetUrl" Grid.Row="3" Grid.Column="1" Margin="0,3"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Sensitive Secrets:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="RetSensitive" Grid.Row="4" Grid.Column="1" Margin="0,3"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Advanced Tab -->
+            <TabItem Header="Advanced">
+                <ScrollViewer Padding="10">
+                    <StackPanel Spacing="14">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Maximum History Items" FontWeight="SemiBold" FontSize="13"/>
+                            <TextBox x:Name="MaxItemsBox" Watermark="e.g. 5000"/>
+                            <TextBlock Text="Oldest unpinned items are automatically evicted when limit is reached." FontSize="11" Opacity="0.6"/>
+                        </StackPanel>
+
+                        <Separator Margin="0,6"/>
+
+                        <StackPanel Spacing="10">
+                            <CheckBox x:Name="NeverStorePasswordsBox" Content="Never store passwords in history"/>
+                            <CheckBox x:Name="NeverStorePrivateKeysBox" Content="Never store SSH / private keys in history"/>
+                            <CheckBox x:Name="BlurSensitiveBox" Content="Blur sensitive entries in history preview"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Bottom Action Buttons -->
+        <Border Grid.Row="1" BorderBrush="{DynamicResource SystemBaseLowColor}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                <Button x:Name="CancelButton" Content="Cancel" Width="90"/>
+                <Button x:Name="SaveButton" Content="Save Changes" Width="120" Classes="accent"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
