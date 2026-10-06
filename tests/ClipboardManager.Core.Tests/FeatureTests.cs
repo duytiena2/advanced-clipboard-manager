@@ -593,9 +593,9 @@ public sealed class FeatureTests : IDisposable
     }
 
     [Test]
-    public void Schema_v5_database_resets_empty_ocr_text_for_rescanning()
+    public void Schema_v6_database_resets_all_images_for_rescanning()
     {
-        var folder = Path.Combine(_dir, "v5_upgrade");
+        var folder = Path.Combine(_dir, "v6_upgrade");
         Directory.CreateDirectory(folder);
         using (var db = new Storage.Sqlite.SqliteDb(Path.Combine(folder, "clipboard.db")))
         {
@@ -606,13 +606,48 @@ public sealed class FeatureTests : IDisposable
                 workspace TEXT NOT NULL DEFAULT 'Default', source_application TEXT NULL, detection_confidence REAL NOT NULL DEFAULT 0, metadata_json TEXT NULL,
                 html_content TEXT NULL, rtf_content TEXT NULL, ocr_text TEXT NULL);");
             db.Execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
-            db.Execute("INSERT INTO settings (key, value) VALUES ('schema_version', '4');");
-            db.Execute("INSERT INTO clipboard_items (content_type, title, binary_path, content_hash, created_at, last_copied_at, ocr_text) VALUES ('Image', 'qr_image', 'images/test.png', 'h1', 1, 1, '');");
+            db.Execute("INSERT INTO settings (key, value) VALUES ('schema_version', '5');");
+            db.Execute("INSERT INTO clipboard_items (content_type, title, binary_path, content_hash, created_at, last_copied_at, ocr_text) VALUES ('Image', 'image_with_old_ocr', 'images/test.png', 'h1', 1, 1, 'Old OCR text');");
         }
 
         var svc = NewService(folder: folder, fts: false);
         var images = svc.ImagesWithoutOcr(10);
         Assert.Equal(1, images.Count);
         Assert.Null(images[0].OcrText);
+    }
+
+    [Test]
+    public void Parse_qr_and_ocr_text_separates_correctly()
+    {
+        var (qr1, ocr1) = ClipboardService.ParseQrAndOcrText("https://qrfy.com/");
+        Assert.Equal("https://qrfy.com/", qr1);
+        Assert.Null(ocr1);
+
+        var (qr2, ocr2) = ClipboardService.ParseQrAndOcrText("https://qrfy.com/\r\n\r\nSome text in image\r\nLine 2");
+        Assert.Equal("https://qrfy.com/", qr2);
+        Assert.Equal("Some text in image\r\nLine 2", ocr2);
+
+        var (qr3, ocr3) = ClipboardService.ParseQrAndOcrText("Just regular text in image\r\nNo QR");
+        Assert.Null(qr3);
+        Assert.Equal("Just regular text in image\r\nNo QR", ocr3);
+
+        var (qr4, ocr4) = ClipboardService.ParseQrAndOcrText(null);
+        Assert.Null(qr4);
+        Assert.Null(ocr4);
+    }
+
+    [Test]
+    public void LoadPayload_prioritizes_qr_for_plain_text()
+    {
+        var svc = NewService();
+        var item = new ClipboardItem
+        {
+            Id = 1,
+            Kind = ContentKind.Image,
+            OcrText = "https://qrfy.com/\r\n\r\nSurrounding text buttons"
+        };
+        var payload = svc.LoadPayload(item, plainText: true);
+        Assert.NotNull(payload);
+        Assert.Equal("https://qrfy.com/", payload!.Text);
     }
 }

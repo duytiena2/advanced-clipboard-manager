@@ -18,7 +18,7 @@ namespace ClipboardManager.Core.Storage;
 /// </summary>
 public sealed class ClipboardRepository : IDisposable
 {
-    private const int SchemaVersion = 5;
+    private const int SchemaVersion = 6;
     private const string EncryptedPrefix = "enc1:";
     private readonly SqliteDb _db;
     private readonly IDataProtector? _protector;
@@ -90,10 +90,10 @@ public sealed class ClipboardRepository : IDisposable
         }
         // v4 indexes with FoldForSearch (đ → d) and image OCR text, so older on-disk indexes are rebuilt once.
         int.TryParse(GetSetting("schema_version"), out var storedVersion);
-        if (storedVersion < 5)
+        if (storedVersion < 6)
         {
-            // Reset empty OCR text on images so barcode/QR code detection gets a chance to scan existing images.
-            _db.Execute("UPDATE clipboard_items SET ocr_text = NULL WHERE content_type = 'Image' AND ocr_text = '';");
+            // Reset OCR text on all existing images so barcode/QR code detection gets a chance to scan all existing images.
+            _db.Execute("UPDATE clipboard_items SET ocr_text = NULL WHERE content_type = 'Image';");
         }
         CreateSearchIndex(rebuild: _encrypted || storedVersion < 4);
 

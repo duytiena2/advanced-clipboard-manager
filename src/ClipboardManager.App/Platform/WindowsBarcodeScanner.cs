@@ -13,7 +13,7 @@ namespace ClipboardManager.App.Platform;
 /// <summary>
 /// Scans 1D and 2D barcodes (QR codes, Data Matrix, Code 128, etc.) from images using ZXing.Net.
 /// </summary>
-internal sealed class WindowsBarcodeScanner : IBarcodeScanner
+public sealed class WindowsBarcodeScanner : IBarcodeScanner
 {
     private static readonly BarcodeFormat[] SupportedFormats =
     [

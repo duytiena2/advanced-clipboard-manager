@@ -991,6 +991,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <Border Grid.Row="0" Background="#05000000" Margin="14" CornerRadius="8" BorderBrush="{StaticResource Line}"
@@ -999,8 +1000,32 @@
                                        RenderOptions.BitmapScalingMode="HighQuality" />
                             </Border>
 
-                            <!-- OCR Recognized Text: Hiển thị trực tiếp khi có text nhận diện được -->
-                            <Border x:Name="OcrTextPanel" Grid.Row="1" Background="#F9FAFB" BorderBrush="{StaticResource Line}"
+                            <!-- QR Code Panel: Hiển thị trực tiếp khi có mã QR / Barcode giải mã được -->
+                            <Border x:Name="QrCodePanel" Grid.Row="1" Background="#FAF5FF" BorderBrush="{StaticResource Line}"
+                                    BorderThickness="0,1,0,0" Padding="14,8" Visibility="Collapsed">
+                                <StackPanel>
+                                    <DockPanel Margin="0,0,0,6">
+                                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Background="#EDE9FE" CornerRadius="4" Padding="5,1" Margin="0,0,8,0">
+                                                <TextBlock x:Name="QrPanelBadgeText" Text="QR CODE" FontSize="10" FontWeight="Bold" Foreground="#7C3AED" />
+                                            </Border>
+                                            <TextBlock Text="Decoded QR / Barcode (⇧Enter pastes):" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button x:Name="OpenQrUrlButton" Content="Open URL" Style="{StaticResource HeaderActionButton}" FontSize="11" Padding="8,2" Margin="0,0,6,0" Visibility="Collapsed" />
+                                            <Button x:Name="CopyQrButton" Content="Copy QR" Style="{StaticResource HeaderActionButton}" FontSize="11" Padding="8,2" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <Border Background="#FFFFFF" BorderBrush="#E9D5FF" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                        <TextBox x:Name="QrTextBox" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                                 MaxHeight="70" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                                 FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#581C87" FontWeight="Medium" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- OCR Recognized Text: Hiển thị khi có text nhận diện được hoặc đang scan -->
+                            <Border x:Name="OcrTextPanel" Grid.Row="2" Background="#F9FAFB" BorderBrush="{StaticResource Line}"
                                     BorderThickness="0,1,0,0" Padding="14,8" Visibility="Collapsed">
                                 <StackPanel>
                                     <DockPanel Margin="0,0,0,6">
@@ -1008,13 +1033,13 @@
                                             <Border x:Name="OcrPanelBadgeBorder" Background="#180E6B68" CornerRadius="4" Padding="5,1" Margin="0,0,8,0">
                                                 <TextBlock x:Name="OcrPanelBadgeText" Text="OCR TEXT" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Accent}" />
                                             </Border>
-                                            <TextBlock x:Name="OcrPanelSubtitle" Text="Recognized text (⇧Enter pastes):" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="OcrPanelSubtitle" Text="Recognized text in image:" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
                                         </StackPanel>
-                                        <Button x:Name="CopyOcrButton" DockPanel.Dock="Right" Content="Copy OCR" Style="{StaticResource HeaderActionButton}" FontSize="11" Padding="8,2" />
+                                        <Button x:Name="CopyOcrButton" DockPanel.Dock="Right" Content="Copy Text" Style="{StaticResource HeaderActionButton}" FontSize="11" Padding="8,2" />
                                     </DockPanel>
                                     <Border Background="#FFFFFF" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,8">
                                         <TextBox x:Name="OcrTextBox" IsReadOnly="True" BorderThickness="0" Background="Transparent"
-                                                 MaxHeight="100" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                                 MaxHeight="90" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                                                  FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#15171C" />
                                     </Border>
                                 </StackPanel>

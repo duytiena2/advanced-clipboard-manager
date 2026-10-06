@@ -13,7 +13,7 @@ namespace ClipboardManager.App.Platform;
 /// Windows' built-in OCR (Windows.Media.Ocr): offline, uses the OCR languages installed for the user's display languages
 /// (Settings › Time &amp; language › Language; e.g. add Vietnamese to recognize Vietnamese text).
 /// </summary>
-internal sealed class WindowsOcrEngine : IOcrEngine
+public sealed class WindowsOcrEngine : IOcrEngine
 {
     private readonly OcrEngine? _engine;
 

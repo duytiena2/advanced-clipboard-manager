@@ -7,7 +7,7 @@
     <LangVersion>12</LangVersion>
     <AssemblyName>ClipboardManager</AssemblyName>
     <RootNamespace>ClipboardManager.Mac</RootNamespace>
-    <Version>0.3.4</Version>
+    <Version>0.3.5</Version>
     <Authors>duytiena2</Authors>
     <Company>duytiena2</Company>
   </PropertyGroup>

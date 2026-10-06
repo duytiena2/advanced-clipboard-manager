@@ -183,6 +183,31 @@ public partial class QuickPasteWindow : Window
             OcrTextPanel.Visibility = OcrTextPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             ToggleOcrButton.Content = OcrTextPanel.Visibility == Visibility.Visible ? "Hide OCR text" : "View OCR text";
         };
+        CopyQrButton.Click += (_, _) =>
+        {
+            if (!string.IsNullOrEmpty(QrTextBox.Text))
+            {
+                try
+                {
+                    _writer.Write(new ClipboardPayload { Text = QrTextBox.Text });
+                    StatusText.Text = "Copied QR code";
+                }
+                catch (COMException) { StatusText.Text = "Clipboard is busy — try again"; }
+            }
+        };
+        OpenQrUrlButton.Click += (_, _) =>
+        {
+            var url = QrTextBox.Text?.Trim();
+            if (!string.IsNullOrEmpty(url) && (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+                    if (!KeepOpen) HidePalette();
+                }
+                catch { }
+            }
+        };
         CopyOcrButton.Click += (_, _) =>
         {
             if (!string.IsNullOrEmpty(OcrTextBox.Text))
@@ -190,7 +215,7 @@ public partial class QuickPasteWindow : Window
                 try
                 {
                     _writer.Write(new ClipboardPayload { Text = OcrTextBox.Text });
-                    StatusText.Text = "Copied OCR text";
+                    StatusText.Text = "Copied recognized text";
                 }
                 catch (COMException) { StatusText.Text = "Clipboard is busy — try again"; }
             }
@@ -936,31 +961,52 @@ public partial class QuickPasteWindow : Window
             PreviewImage.Source = vm.Image;
             PreviewImage.ToolTip = vm.Item.OcrText is { Length: > 0 } ocr ? "Text / QR in image (Ctrl+Shift+Enter pastes it):\n" + ocr : null;
 
-            if (vm.HasOcr)
+            var (qrCode, otherOcr) = ClipboardService.ParseQrAndOcrText(vm.Item.OcrText);
+
+            if (qrCode is not null || otherOcr is not null)
             {
                 _scanningItems.Remove(vm.Item.Id);
                 HeaderOcrBadge.Visibility = Visibility.Visible;
-                var text = vm.Item.OcrText ?? "";
-                bool isBarcode = text.Contains("http://", StringComparison.OrdinalIgnoreCase)
-                    || text.Contains("https://", StringComparison.OrdinalIgnoreCase)
-                    || text.StartsWith("WIFI:", StringComparison.OrdinalIgnoreCase)
-                    || text.StartsWith("BEGIN:VCARD", StringComparison.OrdinalIgnoreCase)
-                    || text.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)
-                    || text.StartsWith("tel:", StringComparison.OrdinalIgnoreCase);
 
-                HeaderOcrBadgeText.Text = isBarcode ? "QR / Text" : "OCR Text";
-                OcrPanelBadgeText.Text = isBarcode ? "QR CODE" : "OCR TEXT";
-                OcrPanelBadgeBorder.Background = isBarcode ? new SolidColorBrush(Color.FromRgb(0xED, 0xE9, 0xFE)) : new SolidColorBrush(Color.FromArgb(0x18, 0x0E, 0x6B, 0x68));
-                OcrPanelBadgeText.Foreground = isBarcode ? new SolidColorBrush(Color.FromRgb(0x7C, 0x3A, 0xED)) : (Brush)FindResource("Accent");
-                OcrPanelSubtitle.Text = isBarcode ? "Decoded QR / Barcode (⇧Enter pastes):" : "Recognized text (⇧Enter pastes):";
-                CopyOcrButton.Content = isBarcode ? "Copy QR" : "Copy OCR";
-                CopyOcrButton.IsEnabled = true;
-                OcrTextPanel.Visibility = Visibility.Visible;
-                OcrTextBox.Text = text;
+                if (qrCode is not null && otherOcr is not null)
+                    HeaderOcrBadgeText.Text = "QR + Text";
+                else if (qrCode is not null)
+                    HeaderOcrBadgeText.Text = "QR Code";
+                else
+                    HeaderOcrBadgeText.Text = "OCR Text";
+
+                if (qrCode is not null)
+                {
+                    QrCodePanel.Visibility = Visibility.Visible;
+                    QrTextBox.Text = qrCode;
+                    bool isUrl = qrCode.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || qrCode.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+                    OpenQrUrlButton.Visibility = isUrl ? Visibility.Visible : Visibility.Collapsed;
+                }
+                else
+                {
+                    QrCodePanel.Visibility = Visibility.Collapsed;
+                }
+
+                if (otherOcr is not null)
+                {
+                    OcrPanelBadgeText.Text = "OCR TEXT";
+                    OcrPanelBadgeBorder.Background = new SolidColorBrush(Color.FromArgb(0x18, 0x0E, 0x6B, 0x68));
+                    OcrPanelBadgeText.Foreground = (Brush)FindResource("Accent");
+                    OcrPanelSubtitle.Text = "Recognized text in image:";
+                    CopyOcrButton.Content = "Copy Text";
+                    CopyOcrButton.IsEnabled = true;
+                    OcrTextPanel.Visibility = Visibility.Visible;
+                    OcrTextBox.Text = otherOcr;
+                }
+                else
+                {
+                    OcrTextPanel.Visibility = Visibility.Collapsed;
+                }
             }
             else
             {
                 HeaderOcrBadge.Visibility = Visibility.Collapsed;
+                QrCodePanel.Visibility = Visibility.Collapsed;
                 bool isScanning = vm.Item.OcrText is null || _scanningItems.Contains(vm.Item.Id);
                 if (isScanning)
                 {

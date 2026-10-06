@@ -259,7 +259,16 @@ public sealed class ClipboardService : IDisposable
         }
         if (plainText)
         {
-            var text = item.Kind == ContentKind.Image ? item.OcrText : item.TextContent; // an image's plain text = its OCR text
+            string? text;
+            if (item.Kind == ContentKind.Image)
+            {
+                var (qr, ocr) = ParseQrAndOcrText(item.OcrText);
+                text = qr ?? ocr;
+            }
+            else
+            {
+                text = item.TextContent;
+            }
             return string.IsNullOrEmpty(text) ? null : new ClipboardPayload { Text = text, IsSensitive = item.IsSensitive };
         }
 
@@ -377,6 +386,52 @@ public sealed class ClipboardService : IDisposable
             return cleanOcr;
 
         return $"{barcodeBlock}{Environment.NewLine}{Environment.NewLine}{cleanOcr}";
+    }
+
+    /// <summary>
+    /// Separates any decoded barcode / QR code block from surrounding OCR text in an image's text.
+    /// Returns (QrCode, OtherText).
+    /// </summary>
+    public static (string? QrCode, string? OtherText) ParseQrAndOcrText(string? rawText)
+    {
+        if (string.IsNullOrWhiteSpace(rawText)) return (null, null);
+
+        var trimmed = rawText.Trim();
+        int splitIdx = trimmed.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+        int sepLen = 4;
+        if (splitIdx < 0)
+        {
+            splitIdx = trimmed.IndexOf("\n\n", StringComparison.Ordinal);
+            sepLen = 2;
+        }
+
+        string firstPart = splitIdx >= 0 ? trimmed[..splitIdx].Trim() : trimmed;
+        string? secondPart = splitIdx >= 0 ? trimmed[(splitIdx + sepLen)..].Trim() : null;
+
+        if (IsBarcodeOrQrString(firstPart))
+        {
+            return (firstPart, string.IsNullOrWhiteSpace(secondPart) ? null : secondPart);
+        }
+
+        if (IsBarcodeOrQrString(trimmed))
+        {
+            return (trimmed, null);
+        }
+
+        return (null, trimmed);
+    }
+
+    public static bool IsBarcodeOrQrString(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        var trimmed = s.Trim();
+        return trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("WIFI:", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("BEGIN:VCARD", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("tel:", StringComparison.OrdinalIgnoreCase)
+            || (long.TryParse(trimmed, out _) && trimmed.Length >= 8);
     }
 
     // ---- Snippets ----
