@@ -412,12 +412,40 @@ public partial class App : Application
 
         try
         {
-            Process.Start(new ProcessStartInfo
+            var installerProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = installerPath,
                 Arguments = "/SILENT",
                 UseShellExecute = true
             });
+
+            // Even if the installer script has 'skipifsilent', launch a detached watchdog
+            // that monitors the installer PID and ensures ClipboardManager restarts once finished.
+            var appExePath = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(appExePath) || !File.Exists(appExePath))
+            {
+                appExePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Programs", "Advanced Clipboard Manager", "ClipboardManager.exe");
+            }
+
+            if (installerProcess is not null && !string.IsNullOrEmpty(appExePath))
+            {
+                var watcherCmd = $"/c \"timeout /t 2 /nobreak >nul & :loop & tasklist /fi \"PID eq {installerProcess.Id}\" 2>nul | find \"{installerProcess.Id}\" >nul && (timeout /t 1 /nobreak >nul & goto loop) & timeout /t 1 /nobreak >nul & start \"\" \"{appExePath}\"\"";
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = watcherCmd,
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    });
+                }
+                catch (Exception wEx)
+                {
+                    Log(wEx);
+                }
+            }
 
             Dispatcher.Invoke(Shutdown);
         }
