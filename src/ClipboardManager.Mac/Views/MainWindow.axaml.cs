@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly MacPasteSimulator _paste;
     private readonly MacHotkeyService _hotkeys;
     private readonly IOcrEngine _ocrEngine;
+    private readonly IBarcodeScanner _barcodeScanner;
     private readonly MacPasteStackController _pasteStack;
     private readonly object _ocrGate = new();
     private Task _ocrQueue = Task.CompletedTask;
@@ -57,6 +58,7 @@ public partial class MainWindow : Window
         _writer = new MacClipboardWriter();
         _paste = new MacPasteSimulator();
         _ocrEngine = new MacOcrEngine();
+        _barcodeScanner = new MacBarcodeScanner();
         _pasteStack = new MacPasteStackController(_svc, _writer);
 
         _monitor = new MacClipboardMonitor();
@@ -156,16 +158,17 @@ public partial class MainWindow : Window
 
     private void StartOcr(IReadOnlyList<ClipboardItem> images)
     {
-        if (_svc is null || !_svc.Settings.OcrEnabled || images.Count == 0 || !_ocrEngine.IsAvailable) return;
+        if (_svc is null || !_svc.Settings.OcrEnabled || images.Count == 0 || (!_ocrEngine.IsAvailable && !_barcodeScanner.IsAvailable)) return;
         var svc = _svc;
         var engine = _ocrEngine;
+        var scanner = _barcodeScanner;
         lock (_ocrGate)
         {
             _ocrQueue = _ocrQueue.ContinueWith(async _ =>
             {
                 try
                 {
-                    int found = await svc.RunOcrAsync(engine, images);
+                    int found = await svc.RunOcrAsync(engine, images, scanner);
                     if (found > 0)
                     {
                         Dispatcher.UIThread.Post(() =>
@@ -177,7 +180,7 @@ public partial class MainWindow : Window
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[MacOcr] Error recognizing text: {ex.Message}");
+                    Console.WriteLine($"[MacOcr] Error recognizing text / QR: {ex.Message}");
                 }
             }, TaskScheduler.Default).Unwrap();
         }
@@ -210,18 +213,19 @@ public partial class MainWindow : Window
                 sb.AppendLine();
                 if (!string.IsNullOrWhiteSpace(item.OcrText))
                 {
-                    sb.AppendLine("--- Recognized Text (OCR) ---");
+                    bool hasQr = item.OcrText.Contains("http://", StringComparison.OrdinalIgnoreCase) || item.OcrText.Contains("https://", StringComparison.OrdinalIgnoreCase);
+                    sb.AppendLine(hasQr ? "--- Recognized Text / QR Code ---" : "--- Recognized Text (OCR) ---");
                     sb.AppendLine(item.OcrText);
                 }
                 else if (item.OcrText == "")
                 {
-                    sb.AppendLine("(No text detected in this image)");
+                    sb.AppendLine("(No text or QR code detected in this image)");
                 }
                 else
                 {
-                    sb.AppendLine(_ocrEngine.IsAvailable
-                        ? "(Extracting text in background...)"
-                        : "(OCR unavailable)");
+                    sb.AppendLine((_ocrEngine.IsAvailable || _barcodeScanner.IsAvailable)
+                        ? "(Extracting text / QR in background...)"
+                        : "(OCR / QR scanner unavailable)");
                 }
                 PreviewContent.Inlines = new InlineCollection { new Run(sb.ToString()) };
             }
