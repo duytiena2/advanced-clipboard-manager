@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace ClipboardManager.App.Native;
 
@@ -22,6 +23,7 @@ internal static class NativeMethods
     public const ushort VK_MENU = 0x12;
     public const ushort VK_LWIN = 0x5B;
     public const ushort VK_RWIN = 0x5C;
+    public const ushort VK_TAB = 0x09;
     public const ushort VK_V = 0x56;
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -56,6 +58,9 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool BringWindowToTop(IntPtr hWnd);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

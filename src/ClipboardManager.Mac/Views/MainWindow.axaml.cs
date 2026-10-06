@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Threading;
+using ClipboardManager.Core.Classification;
 using ClipboardManager.Core.Models;
 using ClipboardManager.Core.Platform;
 using ClipboardManager.Core.Services;
@@ -125,6 +126,7 @@ public partial class MainWindow : Window
         }
         else
         {
+            _paste.CaptureTarget();
             Show();
             Activate();
             SearchBox.Focus();
@@ -258,6 +260,14 @@ public partial class MainWindow : Window
         // 2. Single item paste
         if (ItemsList.SelectedItem is ClipboardItem item)
         {
+            var text = item.Kind == ContentKind.Image ? item.OcrText : item.TextContent;
+            if (!plainTextOnly && _paste.IsRemoteDesktopTarget && RemoteCredentials.TryParse(text, out var creds) && creds is not null)
+            {
+                Hide();
+                _paste.PasteRemotePair(_writer, creds.Id, creds.Password);
+                return;
+            }
+
             var payload = _svc?.LoadPayload(item, plainText: plainTextOnly);
             if (payload is not null && !payload.IsEmpty)
             {
@@ -315,9 +325,52 @@ public partial class MainWindow : Window
 
     private void ShowTransformsMenu()
     {
-        if (ItemsList.SelectedItem is not ClipboardItem item || string.IsNullOrEmpty(item.TextContent)) return;
+        if (ItemsList.SelectedItem is not ClipboardItem item) return;
+        var text = item.Kind == ContentKind.Image ? item.OcrText : item.TextContent;
+        if (string.IsNullOrEmpty(text)) return;
 
         var menu = new ContextMenu();
+
+        if (RemoteCredentials.TryParse(text, out var creds) && creds is not null)
+        {
+            var headerMi = new MenuItem
+            {
+                Header = $"🖥️ {creds.Provider} ({creds.Id} / {creds.Password})",
+                IsEnabled = false,
+            };
+            menu.Items.Add(headerMi);
+
+            var autoTabItem = new MenuItem { Header = $"⚡ Auto-Fill {creds.Provider} (ID → Tab → Pass)" };
+            autoTabItem.Click += (_, _) =>
+            {
+                Hide();
+                _paste.PasteRemotePair(_writer, creds.Id, creds.Password);
+            };
+            menu.Items.Add(autoTabItem);
+
+            var stackItem = new MenuItem { Header = "📋 Start Paste Stack (ID then Pass)" };
+            stackItem.Click += (_, _) => StartRemotePasteStack(creds);
+            menu.Items.Add(stackItem);
+
+            var copyIdItem = new MenuItem { Header = $"Copy ID ({creds.Id})" };
+            copyIdItem.Click += (_, _) =>
+            {
+                _writer.WriteText(creds.Id);
+                Hide();
+            };
+            menu.Items.Add(copyIdItem);
+
+            var copyPassItem = new MenuItem { Header = $"Copy Password ({creds.Password})" };
+            copyPassItem.Click += (_, _) =>
+            {
+                _writer.WriteText(creds.Password);
+                Hide();
+            };
+            menu.Items.Add(copyPassItem);
+
+            menu.Items.Add(new Separator());
+        }
+
         foreach (var t in TextTransforms.All)
         {
             var itemMenu = new MenuItem { Header = t.Name };
@@ -325,7 +378,7 @@ public partial class MainWindow : Window
             {
                 try
                 {
-                    var converted = t.Apply(item.TextContent);
+                    var converted = t.Apply(text);
                     _writer.WriteText(converted);
                     Hide();
                     _paste.PasteIntoPreviousWindow();
@@ -338,6 +391,27 @@ public partial class MainWindow : Window
             menu.Items.Add(itemMenu);
         }
         menu.Open(ItemsList);
+    }
+
+    private void StartRemotePasteStack(RemoteCredentials creds)
+    {
+        var idItem = new ClipboardItem
+        {
+            Kind = ContentKind.Text,
+            Subtype = "plain",
+            Title = $"{creds.Provider} ID: {creds.Id}",
+            TextContent = creds.Id,
+        };
+        var passItem = new ClipboardItem
+        {
+            Kind = ContentKind.Text,
+            Subtype = "password",
+            Title = $"{creds.Provider} Pass: {creds.Password}",
+            TextContent = creds.Password,
+            IsSensitive = true,
+        };
+        _pasteStack.Start(new[] { idItem, passItem });
+        Hide();
     }
 
     private void OnSearchKeyUp(object? sender, KeyEventArgs e)
@@ -364,10 +438,23 @@ public partial class MainWindow : Window
         else if (hasCmd && e.Key == Key.S)
         {
             var items = ItemsList.SelectedItems?.OfType<ClipboardItem>().ToList();
-            if (items is { Count: > 0 })
+            if (items is { Count: > 1 })
             {
                 _pasteStack.Start(items);
                 Hide();
+            }
+            else if (ItemsList.SelectedItem is ClipboardItem single)
+            {
+                var text = single.Kind == ContentKind.Image ? single.OcrText : single.TextContent;
+                if (RemoteCredentials.TryParse(text, out var creds) && creds is not null)
+                {
+                    StartRemotePasteStack(creds);
+                }
+                else
+                {
+                    _pasteStack.Start(new[] { single });
+                    Hide();
+                }
             }
             e.Handled = true;
         }

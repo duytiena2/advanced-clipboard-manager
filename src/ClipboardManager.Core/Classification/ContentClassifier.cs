@@ -70,6 +70,9 @@ public sealed class ContentClassifier
         var secret = SensitiveDataDetector.Detect(t);
         if (secret is not null) return new(ContentKind.Sensitive, secret, 0.9, IsSensitive: true);
 
+        if (RemoteCredentials.TryParse(t, out var creds) && creds is not null)
+            return new(ContentKind.Text, creds.Provider.ToLowerInvariant(), 0.95);
+
         bool singleLine = !t.Contains('\n');
 
         if (singleLine)
@@ -170,6 +173,9 @@ public sealed class ContentClassifier
     public static string MakeTitle(string? text, int max = 120)
     {
         if (string.IsNullOrWhiteSpace(text)) return "";
+        if (RemoteCredentials.TryParse(text, out var creds) && creds is not null)
+            return creds.ToFormattedTitle();
+
         var line = text.Trim().Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0) ?? "";
         line = Regex.Replace(line, @"\s+", " ");
         return line.Length <= max ? line : line[..(max - 1)] + "…";
@@ -227,6 +233,10 @@ public sealed class ContentClassifier
                 "markdown" => "Markdown",
                 "log" => "Log",
                 "ip" => "IP Address",
+                "ultraviewer" => "UltraViewer",
+                "teamviewer" => "TeamViewer",
+                "anydesk" => "AnyDesk",
+                "remote-desktop" => "Remote Desktop",
                 _ => "Plain Text",
             },
             ContentKind.Email => "Email",
@@ -284,6 +294,10 @@ public sealed class ContentClassifier
                 "markdown"     => "\uE8A5",  // Document
                 "log"          => "\uE9D9",  // ClipboardList / Activity
                 "ip"           => "\uE839",  // Globe / Network
+                "ultraviewer"  => "\uE7F4",  // Connected / Remote Screen
+                "teamviewer"   => "\uE7F4",  // Connected / Remote Screen
+                "anydesk"      => "\uE7F4",  // Connected / Remote Screen
+                "remote-desktop" => "\uE7F4",// Connected / Remote Screen
                 _              => "\uE8C4",  // Page with text lines (plain text)
             },
             ContentKind.Email      => "\uE715",  // Mail

@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using ClipboardManager.Core.Classification;
 
 namespace ClipboardManager.Core.Services;
 
@@ -35,6 +36,9 @@ public static class TextTransforms
         new("base64-decode", "Base64 decode", Base64Decode),
         new("url-encode", "URL encode", Uri.EscapeDataString),
         new("url-decode", "URL decode", s => WebUtility.UrlDecode(s)),
+        new("remote-id", "Extract Remote ID", ExtractRemoteId),
+        new("remote-pass", "Extract Remote Password", ExtractRemotePass),
+        new("remote-tab", "Remote Auto-Tab (ID + Tab + Pass)", ExtractRemoteTab),
     };
 
     public static TextTransform Get(string id) =>
@@ -110,6 +114,15 @@ public static class TextTransforms
             throw new TransformException("Decoded data is binary, not text");
         }
     }
+
+    private static string ExtractRemoteId(string s) =>
+        RemoteCredentials.TryParse(s, out var creds) && creds is not null ? creds.Id : throw new TransformException("No remote desktop credentials found");
+
+    private static string ExtractRemotePass(string s) =>
+        RemoteCredentials.TryParse(s, out var creds) && creds is not null ? creds.Password : throw new TransformException("No remote desktop credentials found");
+
+    private static string ExtractRemoteTab(string s) =>
+        RemoteCredentials.TryParse(s, out var creds) && creds is not null ? creds.ToTabSeparated() : throw new TransformException("No remote desktop credentials found");
 }
 
 /// <summary>

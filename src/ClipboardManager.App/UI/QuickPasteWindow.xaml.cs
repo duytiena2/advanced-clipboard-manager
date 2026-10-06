@@ -5,6 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -14,6 +16,7 @@ using System.Windows.Shell;
 using System.Windows.Threading;
 using ClipboardManager.App.Native;
 using ClipboardManager.App.Platform;
+using ClipboardManager.Core.Classification;
 using ClipboardManager.Core.Models;
 using ClipboardManager.Core.Platform;
 using ClipboardManager.Core.Search;
@@ -1479,12 +1482,31 @@ public partial class QuickPasteWindow : Window
 
     private void PasteSelected(bool plainText = false, ItemViewModel? target = null, TextTransform? transform = null)
     {
+        var vm = target ?? (_items.Where(i => i.IsMarked).ToList().Count == 1 ? _items.First(i => i.IsMarked) : ItemsList.SelectedItem as ItemViewModel);
+        if (vm is not null && transform is null && _paste.HasTarget && _paste.IsRemoteDesktopTarget)
+        {
+            var text = vm.Item.Kind == ContentKind.Image ? vm.Item.OcrText : vm.Item.TextContent;
+            if (RemoteCredentials.TryParse(text, out var creds) && creds is not null)
+            {
+                _ = PasteRemoteDesktopAsync(creds);
+                return;
+            }
+        }
+
         if (!WriteToClipboard(plainText, target, transform)) return;
         string effectiveQuery = SearchFilterChip.Combine(_activeChips, SearchBox.Text);
         if (!string.IsNullOrWhiteSpace(effectiveQuery)) _svc.AddRecentSearch(effectiveQuery);
         if (KeepOpen) ClearMarks(); else HidePalette();
         // Opened from the tray: there is no app to paste into, the item is just on the clipboard now.
         if (_paste.HasTarget) _paste.PasteIntoPreviousWindow();
+    }
+
+    private async Task PasteRemoteDesktopAsync(RemoteCredentials creds)
+    {
+        string effectiveQuery = SearchFilterChip.Combine(_activeChips, SearchBox.Text);
+        if (!string.IsNullOrWhiteSpace(effectiveQuery)) _svc.AddRecentSearch(effectiveQuery);
+        if (KeepOpen) ClearMarks(); else HidePalette();
+        await _paste.PasteRemotePairAsync(_writer, creds.Id, creds.Password);
     }
 
     private void CopySelected()
@@ -1674,12 +1696,43 @@ public partial class QuickPasteWindow : Window
         var marked = _items.Where(i => i.IsMarked).OrderBy(i => i.MarkOrder).Select(i => i.Item).ToList();
         if (marked.Count == 0)
         {
+            if (ItemsList.SelectedItem is ItemViewModel sel && sel.Item is { } item)
+            {
+                var text = item.Kind == ContentKind.Image ? item.OcrText : item.TextContent;
+                if (RemoteCredentials.TryParse(text, out var creds) && creds is not null)
+                {
+                    StartRemotePasteStack(creds);
+                    return;
+                }
+            }
+
             StatusText.Text = "Mark items with Ctrl+Space in the order to paste, then Ctrl+S";
             return;
         }
         if (PasteStackRequested is null) return;
         if (KeepOpen) ClearMarks(); else HidePalette();
         PasteStackRequested(marked);
+    }
+
+    private void StartRemotePasteStack(RemoteCredentials creds)
+    {
+        var idItem = new ClipboardItem
+        {
+            Kind = ContentKind.Text,
+            Subtype = "plain",
+            Title = $"{creds.Provider} ID: {creds.Id}",
+            TextContent = creds.Id,
+        };
+        var passItem = new ClipboardItem
+        {
+            Kind = ContentKind.Text,
+            Subtype = "password",
+            Title = $"{creds.Provider} Pass: {creds.Password}",
+            TextContent = creds.Password,
+            IsSensitive = true,
+        };
+        if (KeepOpen) ClearMarks(); else HidePalette();
+        PasteStackRequested?.Invoke(new[] { idItem, passItem });
     }
 
     /// <summary>Raised by Ctrl+S with the items to paste one by one.</summary>
@@ -2163,6 +2216,45 @@ public partial class QuickPasteWindow : Window
             PlacementTarget = ItemsList.ItemContainerGenerator.ContainerFromItem(vm) as UIElement ?? ItemsList,
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
         };
+
+        // 0. Remote Desktop Actions if detected
+        var textForRemote = vm.Item.Kind == ContentKind.Image ? vm.Item.OcrText : vm.Item.TextContent;
+        if (RemoteCredentials.TryParse(textForRemote, out var creds) && creds is not null)
+        {
+            var headerMi = new MenuItem
+            {
+                Header = $"🖥️ {creds.Provider} ({creds.Id} / {creds.Password})",
+                IsEnabled = false,
+                FontWeight = FontWeights.Bold
+            };
+            menu.Items.Add(headerMi);
+
+            var autoTabItem = new MenuItem { Header = $"⚡ Auto-Fill {creds.Provider} (ID → Tab → Pass)", FontWeight = FontWeights.SemiBold };
+            autoTabItem.Click += (_, _) => _ = PasteRemoteDesktopAsync(creds);
+            menu.Items.Add(autoTabItem);
+
+            var remoteStackItem = new MenuItem { Header = "📋 Start Paste Stack (ID then Pass)" };
+            remoteStackItem.Click += (_, _) => StartRemotePasteStack(creds);
+            menu.Items.Add(remoteStackItem);
+
+            var copyIdItem = new MenuItem { Header = $"Copy ID ({creds.Id})" };
+            copyIdItem.Click += (_, _) =>
+            {
+                _writer.Write(new ClipboardPayload { Text = creds.Id });
+                StatusText.Text = $"Copied {creds.Provider} ID: {creds.Id}";
+            };
+            menu.Items.Add(copyIdItem);
+
+            var copyPassItem = new MenuItem { Header = $"Copy Password ({creds.Password})" };
+            copyPassItem.Click += (_, _) =>
+            {
+                _writer.Write(new ClipboardPayload { Text = creds.Password });
+                StatusText.Text = $"Copied {creds.Provider} Password";
+            };
+            menu.Items.Add(copyPassItem);
+
+            menu.Items.Add(new Separator());
+        }
 
         // 1. Primary actions
         var pasteItem = new MenuItem { Header = "Paste", InputGestureText = "Enter" };

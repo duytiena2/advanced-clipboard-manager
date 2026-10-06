@@ -45,13 +45,34 @@ public sealed class WindowsOcrEngine : IOcrEngine
 
         var decoder = await BitmapDecoder.CreateAsync(stream);
         // OCR rejects images larger than MaxImageDimension: scale those down, keeping the aspect ratio.
+        // Small/medium screenshots (e.g. desktop dialogs, remote desktop fields) have small characters (~10-12px)
+        // that Windows.Media.Ocr rejects as noise unless upscaled (Fant interpolation).
         uint max = OcrEngine.MaxImageDimension;
-        var transform = new BitmapTransform();
-        if (decoder.PixelWidth > max || decoder.PixelHeight > max)
+        double scale = 1.0;
+        if (decoder.PixelHeight < 150 || decoder.PixelWidth < 350)
         {
-            double scale = Math.Min((double)max / decoder.PixelWidth, (double)max / decoder.PixelHeight);
-            transform.ScaledWidth = (uint)(decoder.PixelWidth * scale);
-            transform.ScaledHeight = (uint)(decoder.PixelHeight * scale);
+            scale = 3.0;
+        }
+        else if (decoder.PixelHeight < 700 || decoder.PixelWidth < 1000)
+        {
+            scale = 2.0;
+        }
+        else if (decoder.PixelWidth > max || decoder.PixelHeight > max)
+        {
+            scale = Math.Min((double)max / decoder.PixelWidth, (double)max / decoder.PixelHeight);
+        }
+
+        // Clamp to MaxImageDimension
+        if (decoder.PixelWidth * scale > max || decoder.PixelHeight * scale > max)
+        {
+            scale = Math.Min((double)max / decoder.PixelWidth, (double)max / decoder.PixelHeight);
+        }
+
+        var transform = new BitmapTransform();
+        if (Math.Abs(scale - 1.0) > 0.01)
+        {
+            transform.ScaledWidth = (uint)Math.Max(1, Math.Round(decoder.PixelWidth * scale));
+            transform.ScaledHeight = (uint)Math.Max(1, Math.Round(decoder.PixelHeight * scale));
             transform.InterpolationMode = BitmapInterpolationMode.Fant;
         }
         using var bitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
