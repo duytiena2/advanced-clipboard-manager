@@ -1005,10 +1005,10 @@
                                 <StackPanel>
                                     <DockPanel Margin="0,0,0,6">
                                         <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Border Background="#180E6B68" CornerRadius="4" Padding="5,1" Margin="0,0,8,0">
-                                                <TextBlock Text="OCR TEXT" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Accent}" />
+                                            <Border x:Name="OcrPanelBadgeBorder" Background="#180E6B68" CornerRadius="4" Padding="5,1" Margin="0,0,8,0">
+                                                <TextBlock x:Name="OcrPanelBadgeText" Text="OCR TEXT" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Accent}" />
                                             </Border>
-                                            <TextBlock Text="Recognized text (⇧Enter pastes):" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="OcrPanelSubtitle" Text="Recognized text (⇧Enter pastes):" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
                                         </StackPanel>
                                         <Button x:Name="CopyOcrButton" DockPanel.Dock="Right" Content="Copy OCR" Style="{StaticResource HeaderActionButton}" FontSize="11" Padding="8,2" />
                                     </DockPanel>

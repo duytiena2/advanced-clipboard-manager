@@ -66,7 +66,8 @@ public partial class MainWindow : Window
         {
             if (_svc is null) return;
             var (outcome, item) = _svc.Capture(content);
-            if (outcome == CaptureOutcome.Stored && item is { Kind: ContentKind.Image })
+            if ((outcome == CaptureOutcome.Stored || (outcome == CaptureOutcome.Duplicate && string.IsNullOrEmpty(item?.OcrText)))
+                && item is { Kind: ContentKind.Image })
             {
                 StartOcr(new[] { item });
             }

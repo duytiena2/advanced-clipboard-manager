@@ -219,7 +219,11 @@ public partial class App : Application
         try
         {
             var (outcome, item) = _svc.Capture(content);
-            if (outcome == CaptureOutcome.Stored && item is { Kind: ContentKind.Image }) StartOcr(new[] { item });
+            if ((outcome == CaptureOutcome.Stored || (outcome == CaptureOutcome.Duplicate && string.IsNullOrEmpty(item?.OcrText)))
+                && item is { Kind: ContentKind.Image })
+            {
+                StartOcr(new[] { item });
+            }
             if (item is { IsSensitive: true } && (outcome is CaptureOutcome.Stored or CaptureOutcome.Duplicate))
             {
                 _pendingSecretHash = item.ContentHash;
@@ -281,7 +285,7 @@ public partial class App : Application
     }
 
     /// <summary>Recognizes text and scans barcodes/QR codes in images in the background (one batch at a time) so they become searchable.</summary>
-    private void StartOcr(System.Collections.Generic.IReadOnlyList<ClipboardItem> images)
+    internal void StartOcr(System.Collections.Generic.IReadOnlyList<ClipboardItem> images)
     {
         if (_svc is null || !_svc.Settings.OcrEnabled || images.Count == 0) return;
         var svc = _svc;

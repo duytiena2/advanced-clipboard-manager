@@ -591,4 +591,28 @@ public sealed class FeatureTests : IDisposable
         svc.Capture(new CapturedContent { Text = "new", Html = Html });
         Assert.Equal(2, svc.Count());
     }
+
+    [Test]
+    public void Schema_v5_database_resets_empty_ocr_text_for_rescanning()
+    {
+        var folder = Path.Combine(_dir, "v5_upgrade");
+        Directory.CreateDirectory(folder);
+        using (var db = new Storage.Sqlite.SqliteDb(Path.Combine(folder, "clipboard.db")))
+        {
+            db.Execute(@"CREATE TABLE clipboard_items (id INTEGER PRIMARY KEY AUTOINCREMENT, content_type TEXT NOT NULL, subtype TEXT NOT NULL DEFAULT '',
+                title TEXT NOT NULL DEFAULT '', text_content TEXT NULL, binary_path TEXT NULL, content_hash TEXT NOT NULL, size_bytes INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL, last_copied_at INTEGER NOT NULL, accessed_at INTEGER NULL, expires_at INTEGER NULL,
+                is_pinned INTEGER NOT NULL DEFAULT 0, is_sensitive INTEGER NOT NULL DEFAULT 0, copy_count INTEGER NOT NULL DEFAULT 1,
+                workspace TEXT NOT NULL DEFAULT 'Default', source_application TEXT NULL, detection_confidence REAL NOT NULL DEFAULT 0, metadata_json TEXT NULL,
+                html_content TEXT NULL, rtf_content TEXT NULL, ocr_text TEXT NULL);");
+            db.Execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+            db.Execute("INSERT INTO settings (key, value) VALUES ('schema_version', '4');");
+            db.Execute("INSERT INTO clipboard_items (content_type, title, binary_path, content_hash, created_at, last_copied_at, ocr_text) VALUES ('Image', 'qr_image', 'images/test.png', 'h1', 1, 1, '');");
+        }
+
+        var svc = NewService(folder: folder, fts: false);
+        var images = svc.ImagesWithoutOcr(10);
+        Assert.Equal(1, images.Count);
+        Assert.Null(images[0].OcrText);
+    }
 }

@@ -60,6 +60,8 @@ public partial class QuickPasteWindow : Window
 
     private bool _hiding;
     private long _markSequence;
+    private readonly HashSet<long> _onDemandScanned = new();
+    private readonly HashSet<long> _scanningItems = new();
 
     internal QuickPasteWindow(ClipboardService svc, IClipboardWriter writer, WindowsPasteSimulator paste)
     {
@@ -821,6 +823,7 @@ public partial class QuickPasteWindow : Window
         {
             if (EmptyClipboardContainer is not null) EmptyClipboardContainer.Visibility = Visibility.Collapsed;
             if (EmptySearchContainer is not null) EmptySearchContainer.Visibility = Visibility.Collapsed;
+            UpdatePreview();
         }
     }
 
@@ -935,17 +938,54 @@ public partial class QuickPasteWindow : Window
 
             if (vm.HasOcr)
             {
+                _scanningItems.Remove(vm.Item.Id);
                 HeaderOcrBadge.Visibility = Visibility.Visible;
                 var text = vm.Item.OcrText ?? "";
-                bool hasLink = text.Contains("http://", StringComparison.OrdinalIgnoreCase) || text.Contains("https://", StringComparison.OrdinalIgnoreCase);
-                HeaderOcrBadgeText.Text = hasLink ? "QR / Text" : "OCR Text";
+                bool isBarcode = text.Contains("http://", StringComparison.OrdinalIgnoreCase)
+                    || text.Contains("https://", StringComparison.OrdinalIgnoreCase)
+                    || text.StartsWith("WIFI:", StringComparison.OrdinalIgnoreCase)
+                    || text.StartsWith("BEGIN:VCARD", StringComparison.OrdinalIgnoreCase)
+                    || text.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)
+                    || text.StartsWith("tel:", StringComparison.OrdinalIgnoreCase);
+
+                HeaderOcrBadgeText.Text = isBarcode ? "QR / Text" : "OCR Text";
+                OcrPanelBadgeText.Text = isBarcode ? "QR CODE" : "OCR TEXT";
+                OcrPanelBadgeBorder.Background = isBarcode ? new SolidColorBrush(Color.FromRgb(0xED, 0xE9, 0xFE)) : new SolidColorBrush(Color.FromArgb(0x18, 0x0E, 0x6B, 0x68));
+                OcrPanelBadgeText.Foreground = isBarcode ? new SolidColorBrush(Color.FromRgb(0x7C, 0x3A, 0xED)) : (Brush)FindResource("Accent");
+                OcrPanelSubtitle.Text = isBarcode ? "Decoded QR / Barcode (⇧Enter pastes):" : "Recognized text (⇧Enter pastes):";
+                CopyOcrButton.Content = isBarcode ? "Copy QR" : "Copy OCR";
+                CopyOcrButton.IsEnabled = true;
                 OcrTextPanel.Visibility = Visibility.Visible;
                 OcrTextBox.Text = text;
             }
             else
             {
                 HeaderOcrBadge.Visibility = Visibility.Collapsed;
-                OcrTextPanel.Visibility = Visibility.Collapsed;
+                bool isScanning = vm.Item.OcrText is null || _scanningItems.Contains(vm.Item.Id);
+                if (isScanning)
+                {
+                    OcrPanelBadgeText.Text = "SCANNING";
+                    OcrPanelBadgeBorder.Background = new SolidColorBrush(Color.FromRgb(0xFE, 0xF3, 0xC7));
+                    OcrPanelBadgeText.Foreground = new SolidColorBrush(Color.FromRgb(0xB4, 0x53, 0x09));
+                    OcrPanelSubtitle.Text = "Detecting text & QR codes...";
+                    OcrTextBox.Text = "Scanning image for text / QR code...";
+                    CopyOcrButton.IsEnabled = false;
+                    OcrTextPanel.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    OcrTextPanel.Visibility = Visibility.Collapsed;
+                }
+
+                if (string.IsNullOrEmpty(vm.Item.OcrText) && !_onDemandScanned.Contains(vm.Item.Id))
+                {
+                    _onDemandScanned.Add(vm.Item.Id);
+                    _scanningItems.Add(vm.Item.Id);
+                    if (Application.Current is App app)
+                    {
+                        app.StartOcr(new[] { vm.Item });
+                    }
+                }
             }
             return;
         }
