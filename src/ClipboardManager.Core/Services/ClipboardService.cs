@@ -320,18 +320,37 @@ public sealed class ClipboardService : IDisposable
     }
 
     /// <summary>Recognizes text in <paramref name="items"/> one by one (failures count as "no text" so they aren't retried forever).</summary>
-    public async Task<int> RunOcrAsync(IOcrEngine engine, IEnumerable<ClipboardItem> items, CancellationToken cancellationToken = default)
+    public Task<int> RunOcrAsync(IOcrEngine engine, IEnumerable<ClipboardItem> items, CancellationToken cancellationToken = default) =>
+        RunOcrAsync(engine, items, null, cancellationToken);
+
+    /// <summary>Recognizes text and/or scans barcodes/QR codes in <paramref name="items"/> one by one.</summary>
+    public async Task<int> RunOcrAsync(
+        IOcrEngine? engine,
+        IEnumerable<ClipboardItem> items,
+        IBarcodeScanner? barcodeScanner,
+        CancellationToken cancellationToken = default)
     {
         int found = 0;
         foreach (var item in items)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (item.Kind != ContentKind.Image) continue;
-            string text;
+            string text = "";
             try
             {
                 var png = ReadBinary(item);
-                text = png is null ? "" : await engine.RecognizeAsync(png, cancellationToken).ConfigureAwait(false);
+                if (png is { Length: > 0 })
+                {
+                    var barcodeTexts = barcodeScanner is { IsAvailable: true }
+                        ? await barcodeScanner.ScanAsync(png, cancellationToken).ConfigureAwait(false)
+                        : Array.Empty<string>();
+
+                    var ocrText = engine is { IsAvailable: true }
+                        ? await engine.RecognizeAsync(png, cancellationToken).ConfigureAwait(false)
+                        : "";
+
+                    text = CombineImageTexts(barcodeTexts, ocrText);
+                }
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or System.Runtime.InteropServices.COMException)
@@ -341,6 +360,23 @@ public sealed class ClipboardService : IDisposable
             if (AttachOcrText(item, text)) found++;
         }
         return found;
+    }
+
+    private static string CombineImageTexts(IReadOnlyList<string>? barcodes, string? ocrText)
+    {
+        var cleanBarcodes = barcodes?.Where(b => !string.IsNullOrWhiteSpace(b)).Select(b => b.Trim()).Distinct().ToList()
+            ?? new List<string>();
+        var cleanOcr = (ocrText ?? "").Trim();
+
+        if (cleanBarcodes.Count == 0) return cleanOcr;
+
+        var barcodeBlock = string.Join(Environment.NewLine, cleanBarcodes);
+        if (string.IsNullOrEmpty(cleanOcr)) return barcodeBlock;
+
+        if (cleanOcr.Contains(barcodeBlock, StringComparison.OrdinalIgnoreCase))
+            return cleanOcr;
+
+        return $"{barcodeBlock}{Environment.NewLine}{Environment.NewLine}{cleanOcr}";
     }
 
     // ---- Snippets ----

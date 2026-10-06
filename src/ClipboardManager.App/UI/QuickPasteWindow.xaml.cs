@@ -931,13 +931,16 @@ public partial class QuickPasteWindow : Window
             PreviewStatsText.Text = dimStr;
 
             PreviewImage.Source = vm.Image;
-            PreviewImage.ToolTip = vm.Item.OcrText is { Length: > 0 } ocr ? "Text in image (Ctrl+Shift+Enter pastes it):\n" + ocr : null;
+            PreviewImage.ToolTip = vm.Item.OcrText is { Length: > 0 } ocr ? "Text / QR in image (Ctrl+Shift+Enter pastes it):\n" + ocr : null;
 
             if (vm.HasOcr)
             {
                 HeaderOcrBadge.Visibility = Visibility.Visible;
+                var text = vm.Item.OcrText ?? "";
+                bool hasLink = text.Contains("http://", StringComparison.OrdinalIgnoreCase) || text.Contains("https://", StringComparison.OrdinalIgnoreCase);
+                HeaderOcrBadgeText.Text = hasLink ? "QR / Text" : "OCR Text";
                 OcrTextPanel.Visibility = Visibility.Visible;
-                OcrTextBox.Text = vm.Item.OcrText;
+                OcrTextBox.Text = text;
             }
             else
             {

@@ -442,6 +442,100 @@ public sealed class FeatureTests : IDisposable
         Assert.Equal(0, svc.ImagesWithoutOcr().Count);
     }
 
+    private sealed class FakeBarcodeScanner : IBarcodeScanner
+    {
+        public Func<byte[], IReadOnlyList<string>> Scan { get; init; } = _ => Array.Empty<string>();
+        public bool IsAvailable => true;
+        public Task<IReadOnlyList<string>> ScanAsync(byte[] imageBytes, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Scan(imageBytes));
+    }
+
+    [Test]
+    public void Barcode_scanner_and_ocr_combine_results_in_image()
+    {
+        var svc = NewService();
+        var (_, imgQrOnly) = svc.Capture(CapturedContent.FromImage(new byte[] { 10 }, 10, 10));
+        var (_, imgOcrOnly) = svc.Capture(CapturedContent.FromImage(new byte[] { 20 }, 10, 10));
+        var (_, imgBoth) = svc.Capture(CapturedContent.FromImage(new byte[] { 30 }, 10, 10));
+
+        var scanner = new FakeBarcodeScanner
+        {
+            Scan = bytes => bytes[0] switch
+            {
+                10 => new[] { "https://qrfy.com/scan" },
+                30 => new[] { "https://example.com/qr123" },
+                _ => Array.Empty<string>()
+            }
+        };
+
+        var ocr = new FakeOcr
+        {
+            Recognize = bytes => bytes[0] switch
+            {
+                20 => "Download your QR\nDownload QR v",
+                30 => "Scan this code below",
+                _ => ""
+            }
+        };
+
+        int found = svc.RunOcrAsync(ocr, svc.ImagesWithoutOcr(), scanner).GetAwaiter().GetResult();
+        Assert.Equal(3, found);
+
+        // QR only
+        var itemQr = svc.Get(imgQrOnly!.Id)!;
+        Assert.Equal("https://qrfy.com/scan", itemQr.OcrText);
+        Assert.Equal(1, svc.Search("qrfy").Count);
+
+        // OCR only
+        var itemOcr = svc.Get(imgOcrOnly!.Id)!;
+        Assert.Equal("Download your QR" + Environment.NewLine + "Download QR v", itemOcr.OcrText);
+        Assert.Equal(1, svc.Search("Download").Count);
+
+        // Both: QR code first, then OCR text
+        var itemBoth = svc.Get(imgBoth!.Id)!;
+        var expectedBoth = "https://example.com/qr123" + Environment.NewLine + Environment.NewLine + "Scan this code below";
+        Assert.Equal(expectedBoth, itemBoth.OcrText);
+        Assert.Equal(1, svc.Search("example.com").Count);
+        Assert.Equal(1, svc.Search("code below").Count);
+    }
+
+    [Test]
+    public void Barcode_with_secret_is_not_kept()
+    {
+        var svc = NewService();
+        var (_, img) = svc.Capture(CapturedContent.FromImage(new byte[] { 40 }, 10, 10));
+        var scanner = new FakeBarcodeScanner
+        {
+            Scan = _ => new[] { "sk_live_51HxAbCdEfGhIjKlMnOpQrStUv" }
+        };
+
+        svc.RunOcrAsync(null, new[] { img! }, scanner).GetAwaiter().GetResult();
+        Assert.Equal("", svc.Get(img!.Id)!.OcrText);
+        Assert.Equal(0, svc.Search("sk_live").Count);
+    }
+
+    [Test]
+    public void Zxing_qr_code_encode_and_decode()
+    {
+        var writer = new ZXing.BarcodeWriterPixelData
+        {
+            Format = ZXing.BarcodeFormat.QR_CODE,
+            Options = new ZXing.Common.EncodingOptions
+            {
+                Width = 100,
+                Height = 100,
+                Margin = 1
+            }
+        };
+        var pixelData = writer.Write("https://github.com/duytiena2");
+        var lum = new ZXing.RGBLuminanceSource(pixelData.Pixels, pixelData.Width, pixelData.Height, ZXing.RGBLuminanceSource.BitmapFormat.RGBA32);
+        var reader = new ZXing.BarcodeReaderGeneric();
+        var results = reader.DecodeMultiple(lum);
+        Assert.NotNull(results);
+        Assert.True(results!.Length > 0);
+        Assert.Equal("https://github.com/duytiena2", results[0].Text);
+    }
+
     [Test]
     public void Ocr_survives_encryption_toggle()
     {

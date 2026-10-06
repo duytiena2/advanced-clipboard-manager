@@ -280,7 +280,7 @@ public partial class App : Application
         StartOcr(_svc.ImagesWithoutOcr(200)); // in case OCR was just turned on
     }
 
-    /// <summary>Recognizes text in images in the background (one batch at a time) so they become searchable.</summary>
+    /// <summary>Recognizes text and scans barcodes/QR codes in images in the background (one batch at a time) so they become searchable.</summary>
     private void StartOcr(System.Collections.Generic.IReadOnlyList<ClipboardItem> images)
     {
         if (_svc is null || !_svc.Settings.OcrEnabled || images.Count == 0) return;
@@ -288,11 +288,13 @@ public partial class App : Application
         lock (_ocrGate) // called from capture threads and the UI thread
         {
             _ocr ??= new WindowsOcrEngine();
-            if (!_ocr.IsAvailable) return;
+            _barcodeScanner ??= new WindowsBarcodeScanner();
+            if (!_ocr.IsAvailable && !_barcodeScanner.IsAvailable) return;
             var engine = _ocr;
+            var scanner = _barcodeScanner;
             _ocrQueue = _ocrQueue.ContinueWith(async _ =>
             {
-                try { await svc.RunOcrAsync(engine, images); }
+                try { await svc.RunOcrAsync(engine, images, scanner); }
                 catch (Exception ex) { Log(ex); }
             }, TaskScheduler.Default).Unwrap();
         }
@@ -300,6 +302,7 @@ public partial class App : Application
 
     private readonly object _ocrGate = new();
     private WindowsOcrEngine? _ocr;
+    private WindowsBarcodeScanner? _barcodeScanner;
     private Task _ocrQueue = Task.CompletedTask;
 
     private void RunCleanup()

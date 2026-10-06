@@ -12,6 +12,10 @@
     <Company>duytiena2</Company>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
+  </ItemGroup>
+
   <!-- Intentionally zero NuGet dependencies: SQLite is accessed through P/Invoke
        (bundled sqlite3.dll, or Windows' built-in winsqlite3.dll, or libsqlite3 on Linux). -->
 
