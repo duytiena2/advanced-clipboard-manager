@@ -181,15 +181,6 @@ dotnet run --project src/ClipboardManager.Mac
 
 The macOS version runs in the menu bar with a Raycast/Spotlight-style floating palette.
 
-## Roadmap
-
-- [ ] Multi-device sync with end-to-end encryption (E2EE)
-- [ ] Linux support
-- [ ] Tags and categorization
-- [ ] Smart automation rules
-- [ ] Full history browser window
-
-
 ## License
 
 [MIT](LICENSE) © [duytiena2](https://github.com/duytiena2)

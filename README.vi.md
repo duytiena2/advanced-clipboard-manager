@@ -181,14 +181,6 @@ dotnet run --project src/ClipboardManager.Mac
 
 Phiên bản macOS chạy thường trực trên thanh Menu bar với cửa sổ tìm kiếm nổi dạng Raycast / Spotlight.
 
-## Lộ trình phát triển (Roadmap)
-
-- [ ] Đồng bộ đa thiết bị mã hóa đầu cuối (E2EE)
-- [ ] Hỗ trợ Linux
-- [ ] Gắn thẻ và phân loại dữ liệu (Tags)
-- [ ] Quy tắc tự động thông minh (Smart rules)
-- [ ] Cửa sổ xem lại và quản lý toàn bộ lịch sử chuyên sâu
-
 ## Giấy phép (License)
 
 [MIT](LICENSE) © [duytiena2](https://github.com/duytiena2)
