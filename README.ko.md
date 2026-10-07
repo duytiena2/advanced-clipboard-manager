@@ -4,8 +4,6 @@
 
 로컬 우선 (Local-first) 및 키보드 중심 (Keyboard-first)으로 설계된 Windows 10/11 및 macOS용 클립보드 관리 프로그램입니다. 클립보드 기록을 자동으로 저장하고 유형별로 분류하며, **Ctrl+Shift+V** (또는 macOS 메뉴 막대)로 원하는 항목을 즉시 검색하고 붙여넣을 수 있습니다.
 
-> 상태: **단계 1–3 완료, 단계 4 (macOS) 진행 중** (로드맵 참조).
-
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Advanced Clipboard Manager UI and Settings" width="850" />
 </p>

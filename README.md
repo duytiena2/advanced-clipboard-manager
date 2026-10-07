@@ -4,8 +4,6 @@
 
 A local-first, keyboard-first clipboard manager for Windows 10/11 and macOS. It keeps your clipboard history, sorts each copy by type, and finds anything again instantly with **Ctrl+Shift+V** (or menu bar on macOS).
 
-> Status: **Phases 1–3 complete, Phase 4 (macOS) in progress** (see Roadmap). Name is a working title.
-
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Advanced Clipboard Manager UI and Settings" width="850" />
 </p>
@@ -185,9 +183,11 @@ The macOS version runs in the menu bar with a Raycast/Spotlight-style floating p
 
 ## Roadmap
 
-- **Phase 2:** ~~settings UI~~, ~~snippets~~, ~~paste stack~~, ~~sidebar~~ (done); still to do: tags, history window, choosing the merge separator in the UI
-- **Phase 3:** ~~database encryption~~, ~~OCR~~ (done); still to do: smart rules, optional AI (opt-in, never for sensitive items)
-- **Phase 4:** ~~macOS support~~ (done); still to do: sync with end-to-end encryption, Linux
+- [ ] Multi-device sync with end-to-end encryption (E2EE)
+- [ ] Linux support
+- [ ] Tags and categorization
+- [ ] Smart automation rules
+- [ ] Full history browser window
 
 
 ## License

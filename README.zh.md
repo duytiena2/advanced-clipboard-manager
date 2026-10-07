@@ -4,8 +4,6 @@
 
 基于本地优先 (Local-first)、键盘优先 (Keyboard-first) 设计的 Windows 10/11 和 macOS 剪贴板管理工具。它能自动保存剪贴板历史记录，按类型智能分类，并通过 **Ctrl+Shift+V**（macOS 上支持菜单栏）瞬间查找任何内容。
 
-> 状态：**已完成 Phase 1–3，Phase 4 (macOS) 进行中**（详见路线图）。
-
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Advanced Clipboard Manager UI and Settings" width="850" />
 </p>

@@ -4,8 +4,6 @@
 
 Ein lokaler (**local-first**) und tastaturoptimierter (**keyboard-first**) Zwischenablage-Manager für Windows 10/11 und macOS. Speichert Ihren Kopierverlauf automatisch, kategorisiert Inhalte intelligent und findet alles blitzschnell mit **Ctrl+Shift+V** (oder Menüleiste auf macOS).
 
-> Status: **Phasen 1–3 abgeschlossen, Phase 4 (macOS) in Arbeit** (siehe Roadmap).
-
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Advanced Clipboard Manager UI and Settings" width="850" />
 </p>

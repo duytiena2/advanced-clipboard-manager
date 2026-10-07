@@ -4,8 +4,6 @@
 
 Un gestionnaire de presse-papiers axé sur le stockage local (**local-first**) et optimisé pour le clavier (**keyboard-first**) pour Windows 10/11 et macOS. Il conserve automatiquement votre historique, classe intelligemment chaque copie par type et retrouve instantanément n'importe quel élément avec **Ctrl+Shift+V** (ou via la barre des menus sur macOS).
 
-> Statut : **Phases 1–3 terminées, Phase 4 (macOS) en cours** (voir feuille de route).
-
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Advanced Clipboard Manager UI and Settings" width="850" />
 </p>

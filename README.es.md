@@ -4,8 +4,6 @@
 
 Un gestor de portapapeles diseñado con prioridad local (**local-first**) y optimizado para teclado (**keyboard-first**) para Windows 10/11 y macOS. Guarda automáticamente el historial, clasifica el contenido por tipo y te permite encontrar y pegar cualquier elemento al instante con **Ctrl+Shift+V** (o barra de menú en macOS).
 
-> Estado: **Fases 1–3 completadas, Fase 4 (macOS) en progreso** (ver Hoja de ruta).
-
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Advanced Clipboard Manager UI and Settings" width="850" />
 </p>

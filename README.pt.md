@@ -4,8 +4,6 @@
 
 Um gerenciador de área de transferência focado em armazenamento local (**local-first**) e otimizado para teclado (**keyboard-first**) para Windows 10/11 e macOS. Ele salva automaticamente seu histórico, classifica cada cópia por tipo e encontra qualquer item instantaneamente com **Ctrl+Shift+V** (ou barra de menus no macOS).
 
-> Status: **Fases 1–3 concluídas, Fase 4 (macOS) em andamento** (consulte o Roadmap).
-
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Advanced Clipboard Manager UI and Settings" width="850" />
 </p>

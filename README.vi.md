@@ -4,8 +4,6 @@
 
 Trình quản lý clipboard ưu tiên bảo mật cục bộ (**local-first**) và tối ưu thao tác nhanh qua bàn phím (**keyboard-first**) dành cho Windows 10/11 và macOS. Tự động lưu lịch sử sao chép, phân loại thông minh theo loại nội dung và tìm lại mọi thứ tức thì với **Ctrl+Shift+V** (hoặc menu bar trên macOS).
 
-> Trạng thái: **Đã hoàn thành Phase 1–3, Phase 4 (macOS) đang triển khai** (xem Lộ trình phát triển). Tên gọi là tiêu đề dự kiến.
-
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Giao diện Advanced Clipboard Manager và Cài đặt" width="850" />
 </p>
@@ -185,9 +183,11 @@ Phiên bản macOS chạy thường trực trên thanh Menu bar với cửa sổ
 
 ## Lộ trình phát triển (Roadmap)
 
-- **Phase 2:** ~~giao diện settings~~, ~~snippets~~, ~~paste stack~~, ~~sidebar~~ (đã xong); các mục tiếp theo: gắn thẻ (tags), cửa sổ xem lại toàn bộ lịch sử, tùy chọn ký tự phân cách khi gộp dòng trên UI.
-- **Phase 3:** ~~mã hóa cơ sở dữ liệu~~, ~~OCR hình ảnh~~ (đã xong); các mục tiếp theo: quy tắc thông minh (smart rules), AI tùy chọn (opt-in, tuyệt đối không dùng cho dữ liệu nhạy cảm).
-- **Phase 4:** ~~hỗ trợ macOS~~ (đã xong); các mục tiếp theo: đồng bộ đa thiết bị mã hóa đầu cuối (E2EE), hỗ trợ Linux.
+- [ ] Đồng bộ đa thiết bị mã hóa đầu cuối (E2EE)
+- [ ] Hỗ trợ Linux
+- [ ] Gắn thẻ và phân loại dữ liệu (Tags)
+- [ ] Quy tắc tự động thông minh (Smart rules)
+- [ ] Cửa sổ xem lại và quản lý toàn bộ lịch sử chuyên sâu
 
 ## Giấy phép (License)
 

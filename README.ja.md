@@ -4,8 +4,6 @@
 
 ローカルファースト (Local-first)、キーボード優先 (Keyboard-first) で設計された Windows 10/11 および macOS 向けの高性能クリップボード管理ツールです。コピー履歴を自動保存し、種類ごとに自動分類。**Ctrl+Shift+V**（macOS ではメニューバー対応）で瞬時に履歴を検索・貼り付けできます。
 
-> ステータス：**フェーズ 1〜3 完了、フェーズ 4 (macOS) 進行中**（ロードマップ参照）。
-
 <p align="center">
   <img src="docs/assets/screenshot.png" alt="Advanced Clipboard Manager UI and Settings" width="850" />
 </p>
