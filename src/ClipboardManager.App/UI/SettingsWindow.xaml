@@ -135,7 +135,8 @@
         <!-- Modern TextBox Style -->
         <Style TargetType="TextBox">
             <Setter Property="MinHeight" Value="32" />
-            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Background" Value="#FFFFFF" />
             <Setter Property="BorderBrush" Value="#CBD5E1" />
             <Setter Property="BorderThickness" Value="1" />
@@ -149,7 +150,8 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="6" Padding="{TemplateBinding Padding}">
-                            <ScrollViewer x:Name="PART_ContentHost" />
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -167,6 +169,11 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <Trigger Property="AcceptsReturn" Value="True">
+                    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <!-- Modern Slim ScrollBar Style -->
@@ -582,7 +589,8 @@
 
                                 <DockPanel Margin="26,0,0,0">
                                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
-                                        <TextBox x:Name="MaxItemsBox" Width="75" Height="32" TextAlignment="Center"
+                                        <TextBox x:Name="MaxItemsBox" Width="80" Height="34" TextAlignment="Center"
+                                                 VerticalContentAlignment="Center" Padding="4,2"
                                                  FontFamily="Cascadia Mono, Consolas, Segoe UI" FontWeight="Medium" FontSize="12.5"
                                                  AutomationProperties.Name="Maximum items" />
                                         <TextBlock Text="items" Foreground="{StaticResource Muted}" FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0" />
@@ -669,8 +677,9 @@
                                 </DockPanel>
 
                                 <Border Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="38,8,0,0">
-                                    <TextBox x:Name="ExcludedBox" Height="86" AcceptsReturn="True" TextWrapping="NoWrap"
-                                             VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent"
+                                    <TextBox x:Name="ExcludedBox" Height="120" MinHeight="120" AcceptsReturn="True" TextWrapping="NoWrap"
+                                             VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent" Padding="0"
+                                             VerticalContentAlignment="Top"
                                              FontFamily="Cascadia Mono, Consolas, Segoe UI" FontSize="12.5" Foreground="#1E293B"
                                              AutomationProperties.Name="Excluded applications" />
                                 </Border>
