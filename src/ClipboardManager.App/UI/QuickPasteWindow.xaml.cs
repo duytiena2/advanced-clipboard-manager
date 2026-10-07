@@ -1089,9 +1089,29 @@ public partial class QuickPasteWindow : Window
         // 5. Plain text / Markdown / Snippet / other
         TextContainer.Visibility = Visibility.Visible;
         SetPreviewBadge(vm.TypeLabel.ToUpperInvariant(), "#F3F4F6", "#4B5563");
-        PreviewStatsText.Text = $"{vm.TextLength} characters · {vm.LineCount} lines";
+        if (vm.IsSnippet)
+        {
+            var payload = _svc.LoadPayload(vm.Item, plainText: true, SnippetContext());
+            var expanded = payload?.Text ?? vm.PreviewText;
+            PreviewText.Text = expanded;
+            var lineCount = string.IsNullOrEmpty(expanded) ? 0 : expanded.Split('\n').Length;
+            PreviewStatsText.Text = $"{expanded.Length} characters · {lineCount} lines";
+            if (TemplateEngine.HasVariables(vm.Item.TextContent ?? ""))
+            {
+                PreviewStatsText.ToolTip = $"Template: {vm.Item.TextContent}";
+            }
+            else
+            {
+                PreviewStatsText.ToolTip = null;
+            }
+        }
+        else
+        {
+            PreviewStatsText.Text = $"{vm.TextLength} characters · {vm.LineCount} lines";
+            PreviewStatsText.ToolTip = null;
+            PreviewText.Text = vm.PreviewText;
+        }
 
-        PreviewText.Text = vm.PreviewText;
         PreviewText.FontFamily = vm.PreviewFont;
         PreviewText.ScrollToHome();
     }
@@ -1176,6 +1196,11 @@ public partial class QuickPasteWindow : Window
     {
         if (ItemsList.SelectedItem is not ItemViewModel vm) return "";
         if (vm.IsImage) return vm.Item.OcrText ?? "";
+        if (vm.IsSnippet)
+        {
+            var payload = _svc.LoadPayload(vm.Item, plainText: true, SnippetContext());
+            return payload?.Text ?? vm.Item.TextContent ?? "";
+        }
         return vm.Item.TextContent ?? "";
     }
 
