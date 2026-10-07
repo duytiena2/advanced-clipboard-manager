@@ -45,7 +45,11 @@ internal sealed class TrayIcon : IDisposable
         (_appIcon, _hIcon) = DrawIcon();
 
         var menu = new WinForms.ContextMenuStrip();
-        _openItem = new WinForms.ToolStripMenuItem($"Quick Paste\t{hotkey}") { Font = new Font(WinForms.Control.DefaultFont, FontStyle.Bold) };
+        _openItem = new WinForms.ToolStripMenuItem("Quick Paste")
+        {
+            Font = new Font(WinForms.Control.DefaultFont, FontStyle.Bold),
+            ShortcutKeyDisplayString = hotkey
+        };
         _openItem.Click += (_, _) => OpenRequested?.Invoke();
         _stopStackItem = new WinForms.ToolStripMenuItem("Stop paste stack") { Visible = false };
         _stopStackItem.Click += (_, _) => StopPasteStackRequested?.Invoke();
@@ -89,7 +93,8 @@ internal sealed class TrayIcon : IDisposable
 
     public void ApplyLocalization()
     {
-        _openItem.Text = $"{LocalizationService.Get("Tray_QuickPaste")}\t{_hotkey}";
+        _openItem.Text = LocalizationService.Get("Tray_QuickPaste");
+        _openItem.ShortcutKeyDisplayString = _hotkey;
         _stopStackItem.Text = LocalizationService.Get("Tray_StopPasteStack");
         _pauseItem.Text = LocalizationService.Get("Tray_PauseCapture");
         _clearItem.Text = LocalizationService.Get("Tray_ClearHistory");
@@ -108,7 +113,8 @@ internal sealed class TrayIcon : IDisposable
     public void SetHotkey(string hotkey)
     {
         _hotkey = hotkey;
-        _openItem.Text = $"{LocalizationService.Get("Tray_QuickPaste")}\t{_hotkey}";
+        _openItem.ShortcutKeyDisplayString = _hotkey;
+        UpdateText();
     }
 
     /// <summary>Reflects the real startup state without raising <see cref="StartupToggled"/> again.</summary>
