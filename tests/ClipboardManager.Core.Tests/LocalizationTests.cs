@@ -70,6 +70,8 @@ public sealed class LocalizationTests
         Assert.Equal("Ngôn ngữ giao diện", LocalizationService.Get("Settings_Language"));
         Assert.Equal("Dán nhanh", LocalizationService.Get("QuickPaste_Title"));
         Assert.Equal("10 mục", LocalizationService.Get("QuickPaste_ItemsCount", 10));
+        Assert.Equal("Bấm để chèn biến tự động:", LocalizationService.Get("Snippet_InsertVarLabel"));
+        Assert.Equal("Chèn biến {date}", LocalizationService.Get("Snippet_InsertVarTooltip", "{date}"));
 
         LocalizationService.SetLanguage("en");
     }

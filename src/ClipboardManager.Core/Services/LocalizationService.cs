@@ -219,7 +219,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "Name",
             ["Snippet_Text"] = "Text (expandable with {date}, {time}, {clip})",
             ["Snippet_Save"] = "Save",
-            ["Snippet_Cancel"] = "Cancel"
+            ["Snippet_Cancel"] = "Cancel",
+            ["Snippet_InsertVarLabel"] = "Click to insert variable:",
+            ["Snippet_InsertVarMenu"] = "Insert variable",
+            ["Snippet_InsertVarTooltip"] = "Insert variable {0}",
+            ["Snippet_BracesHint"] = "{{ }} for literal braces",
+            ["Snippet_Preview"] = "Preview:",
+            ["Snippet_SampleClipboard"] = "clipboard text",
+            ["Snippet_Example"] = "Example"
         },
 
         ["vi"] = new()
@@ -348,7 +355,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "Tên gợi nhớ",
             ["Snippet_Text"] = "Nội dung (hỗ trợ biến {date}, {time}, {clip})",
             ["Snippet_Save"] = "Lưu lại",
-            ["Snippet_Cancel"] = "Hủy bỏ"
+            ["Snippet_Cancel"] = "Hủy bỏ",
+            ["Snippet_InsertVarLabel"] = "Bấm để chèn biến tự động:",
+            ["Snippet_InsertVarMenu"] = "Chèn biến",
+            ["Snippet_InsertVarTooltip"] = "Chèn biến {0}",
+            ["Snippet_BracesHint"] = "{{ }} để giữ dấu ngoặc nhọn",
+            ["Snippet_Preview"] = "Xem trước:",
+            ["Snippet_SampleClipboard"] = "văn bản clipboard",
+            ["Snippet_Example"] = "Ví dụ"
         },
 
         ["zh"] = new()
@@ -466,7 +480,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "名称",
             ["Snippet_Text"] = "内容（支持 {date}、{time}、{clip} 等变量）",
             ["Snippet_Save"] = "保存",
-            ["Snippet_Cancel"] = "取消"
+            ["Snippet_Cancel"] = "取消",
+            ["Snippet_InsertVarLabel"] = "点击快速插入变量：",
+            ["Snippet_InsertVarMenu"] = "插入变量",
+            ["Snippet_InsertVarTooltip"] = "插入变量 {0}",
+            ["Snippet_BracesHint"] = "{{ }} 表示原义大括号",
+            ["Snippet_Preview"] = "预览：",
+            ["Snippet_SampleClipboard"] = "剪贴板文本",
+            ["Snippet_Example"] = "示例"
         },
 
         ["ja"] = new()
@@ -579,7 +600,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "名前",
             ["Snippet_Text"] = "内容 ({date}, {time}, {clip} などの変数が利用可能)",
             ["Snippet_Save"] = "保存",
-            ["Snippet_Cancel"] = "キャンセル"
+            ["Snippet_Cancel"] = "キャンセル",
+            ["Snippet_InsertVarLabel"] = "クリックして変数を挿入：",
+            ["Snippet_InsertVarMenu"] = "変数を挿入",
+            ["Snippet_InsertVarTooltip"] = "変数 {0} を挿入",
+            ["Snippet_BracesHint"] = "{{ }} で中括弧をそのまま表示",
+            ["Snippet_Preview"] = "プレビュー：",
+            ["Snippet_SampleClipboard"] = "クリップボードのテキスト",
+            ["Snippet_Example"] = "例"
         },
 
         ["ko"] = new()
@@ -692,7 +720,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "이름",
             ["Snippet_Text"] = "내용 ({date}, {time}, {clip} 등 지원)",
             ["Snippet_Save"] = "저장",
-            ["Snippet_Cancel"] = "취소"
+            ["Snippet_Cancel"] = "취소",
+            ["Snippet_InsertVarLabel"] = "클릭하여 변수 자동 삽입:",
+            ["Snippet_InsertVarMenu"] = "변수 삽입",
+            ["Snippet_InsertVarTooltip"] = "변수 {0} 삽입",
+            ["Snippet_BracesHint"] = "{{ }} 는 중괄호 유지",
+            ["Snippet_Preview"] = "미리보기:",
+            ["Snippet_SampleClipboard"] = "클립보드 텍스트",
+            ["Snippet_Example"] = "예시"
         },
 
         ["es"] = new()
@@ -805,7 +840,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "Nombre",
             ["Snippet_Text"] = "Texto (admite {date}, {time}, {clip})",
             ["Snippet_Save"] = "Guardar",
-            ["Snippet_Cancel"] = "Cancelar"
+            ["Snippet_Cancel"] = "Cancelar",
+            ["Snippet_InsertVarLabel"] = "Haga clic para insertar variable:",
+            ["Snippet_InsertVarMenu"] = "Insertar variable",
+            ["Snippet_InsertVarTooltip"] = "Insertar variable {0}",
+            ["Snippet_BracesHint"] = "{{ }} para llaves literales",
+            ["Snippet_Preview"] = "Vista previa:",
+            ["Snippet_SampleClipboard"] = "texto del portapapeles",
+            ["Snippet_Example"] = "Ejemplo"
         },
 
         ["fr"] = new()
@@ -918,7 +960,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "Nom",
             ["Snippet_Text"] = "Texte (prend en charge {date}, {time}, {clip})",
             ["Snippet_Save"] = "Enregistrer",
-            ["Snippet_Cancel"] = "Annuler"
+            ["Snippet_Cancel"] = "Annuler",
+            ["Snippet_InsertVarLabel"] = "Cliquer pour insérer une variable :",
+            ["Snippet_InsertVarMenu"] = "Insérer une variable",
+            ["Snippet_InsertVarTooltip"] = "Insérer la variable {0}",
+            ["Snippet_BracesHint"] = "{{ }} pour accolades littérales",
+            ["Snippet_Preview"] = "Aperçu :",
+            ["Snippet_SampleClipboard"] = "texte du presse-papiers",
+            ["Snippet_Example"] = "Exemple"
         },
 
         ["de"] = new()
@@ -1031,7 +1080,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "Name",
             ["Snippet_Text"] = "Text (unterstützt {date}, {time}, {clip})",
             ["Snippet_Save"] = "Speichern",
-            ["Snippet_Cancel"] = "Abbrechen"
+            ["Snippet_Cancel"] = "Abbrechen",
+            ["Snippet_InsertVarLabel"] = "Klicken, um Variable einzufügen:",
+            ["Snippet_InsertVarMenu"] = "Variable einfügen",
+            ["Snippet_InsertVarTooltip"] = "Variable {0} einfügen",
+            ["Snippet_BracesHint"] = "{{ }} für geschweifte Klammern",
+            ["Snippet_Preview"] = "Vorschau:",
+            ["Snippet_SampleClipboard"] = "Zwischenablage-Text",
+            ["Snippet_Example"] = "Beispiel"
         },
 
         ["ru"] = new()
@@ -1146,7 +1202,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "Имя",
             ["Snippet_Text"] = "Текст (поддерживает {date}, {time}, {clip})",
             ["Snippet_Save"] = "Сохранить",
-            ["Snippet_Cancel"] = "Отмена"
+            ["Snippet_Cancel"] = "Отмена",
+            ["Snippet_InsertVarLabel"] = "Нажмите, чтобы вставить переменную:",
+            ["Snippet_InsertVarMenu"] = "Вставить переменную",
+            ["Snippet_InsertVarTooltip"] = "Вставить переменную {0}",
+            ["Snippet_BracesHint"] = "{{ }} для фигурных скобок",
+            ["Snippet_Preview"] = "Предпросмотр:",
+            ["Snippet_SampleClipboard"] = "текст из буфера",
+            ["Snippet_Example"] = "Пример"
         },
 
         ["pt"] = new()
@@ -1261,7 +1324,14 @@ public static class LocalizationService
             ["Snippet_Name"] = "Nome",
             ["Snippet_Text"] = "Texto (suporta {date}, {time}, {clip})",
             ["Snippet_Save"] = "Salvar",
-            ["Snippet_Cancel"] = "Cancelar"
+            ["Snippet_Cancel"] = "Cancelar",
+            ["Snippet_InsertVarLabel"] = "Clique para inserir variável:",
+            ["Snippet_InsertVarMenu"] = "Inserir variável",
+            ["Snippet_InsertVarTooltip"] = "Inserir variável {0}",
+            ["Snippet_BracesHint"] = "{{ }} para chaves literais",
+            ["Snippet_Preview"] = "Pré-visualização:",
+            ["Snippet_SampleClipboard"] = "texto da área de transferência",
+            ["Snippet_Example"] = "Exemplo"
         }
     };
 }
