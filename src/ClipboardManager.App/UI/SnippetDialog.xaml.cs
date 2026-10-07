@@ -27,7 +27,6 @@ public partial class SnippetDialog : Window
         SaveButtonText.Text = LocalizationService.Get("Snippet_Save");
         CancelButton.Content = LocalizationService.Get("Snippet_Cancel");
         InsertVarLabel.Text = LocalizationService.Get("Snippet_InsertVarLabel");
-        InsertVarMenuText.Text = LocalizationService.Get("Snippet_InsertVarMenu");
         BracesHint.Text = LocalizationService.Get("Snippet_BracesHint");
         PreviewLabel.Text = LocalizationService.Get("Snippet_Preview");
 
@@ -54,7 +53,6 @@ public partial class SnippetDialog : Window
     private void PopulateVariables()
     {
         VariablesPanel.Children.Clear();
-        var menu = new ContextMenu();
         var bodyMenu = new ContextMenu();
 
         var cut = new MenuItem { Command = ApplicationCommands.Cut };
@@ -82,16 +80,7 @@ public partial class SnippetDialog : Window
             chip.Click += (_, _) => InsertVariable(v);
             VariablesPanel.Children.Add(chip);
 
-            // 2. Dropdown menu item
-            var dropdownItem = new MenuItem
-            {
-                Header = $"{variable}   ({sample})",
-                FontFamily = new System.Windows.Media.FontFamily("Cascadia Mono, Consolas, Segoe UI")
-            };
-            dropdownItem.Click += (_, _) => InsertVariable(v);
-            menu.Items.Add(dropdownItem);
-
-            // 3. Right-click context menu item
+            // 2. Right-click context menu item
             var contextItem = new MenuItem
             {
                 Header = $"{variable}   ({sample})",
@@ -103,13 +92,6 @@ public partial class SnippetDialog : Window
 
         bodyMenu.Items.Add(insertSubMenu);
         BodyBox.ContextMenu = bodyMenu;
-
-        InsertVarMenuButton.Click += (_, _) =>
-        {
-            menu.PlacementTarget = InsertVarMenuButton;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-            menu.IsOpen = true;
-        };
     }
 
     private void InsertVariable(string varText)
