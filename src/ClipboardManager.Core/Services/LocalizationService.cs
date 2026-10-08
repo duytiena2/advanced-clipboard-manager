@@ -233,7 +233,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "Leave blank to restore the default title.",
             ["Rename_Save"] = "Save",
             ["Rename_Reset"] = "Reset Default",
-            ["Rename_Cancel"] = "Cancel"
+            ["Rename_Cancel"] = "Cancel",
+            ["Rename_Tooltip"] = "Set a custom title or alias for this item (F2)"
         },
 
         ["vi"] = new()
@@ -376,7 +377,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "Để trống nếu muốn khôi phục về tiêu đề mặc định.",
             ["Rename_Save"] = "Lưu lại",
             ["Rename_Reset"] = "Mặc định",
-            ["Rename_Cancel"] = "Hủy bỏ"
+            ["Rename_Cancel"] = "Hủy bỏ",
+            ["Rename_Tooltip"] = "Đặt tiêu đề hoặc tên gợi nhớ tùy chỉnh cho mục này (F2)"
         },
 
         ["zh"] = new()
@@ -508,7 +510,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "留空以恢复默认标题。",
             ["Rename_Save"] = "保存",
             ["Rename_Reset"] = "恢复默认",
-            ["Rename_Cancel"] = "取消"
+            ["Rename_Cancel"] = "取消",
+            ["Rename_Tooltip"] = "为此条目设置自定义标题或别名 (F2)"
         },
 
         ["ja"] = new()
@@ -635,7 +638,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "空白のままにすると既定のタイトルに戻ります。",
             ["Rename_Save"] = "保存",
             ["Rename_Reset"] = "既定に戻す",
-            ["Rename_Cancel"] = "キャンセル"
+            ["Rename_Cancel"] = "キャンセル",
+            ["Rename_Tooltip"] = "このアイテムのカスタム名またはエイリアスを設定 (F2)"
         },
 
         ["ko"] = new()
@@ -762,7 +766,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "기본 제목으로 복원하려면 비워 두세요.",
             ["Rename_Save"] = "저장",
             ["Rename_Reset"] = "기본값 복원",
-            ["Rename_Cancel"] = "취소"
+            ["Rename_Cancel"] = "취소",
+            ["Rename_Tooltip"] = "이 항목의 사용자 지정 이름 또는 별칭 설정 (F2)"
         },
 
         ["es"] = new()
@@ -889,7 +894,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "Deje en blanco para restaurar el título predeterminado.",
             ["Rename_Save"] = "Guardar",
             ["Rename_Reset"] = "Restablecer",
-            ["Rename_Cancel"] = "Cancelar"
+            ["Rename_Cancel"] = "Cancelar",
+            ["Rename_Tooltip"] = "Establecer un título o alias personalizado para este elemento (F2)"
         },
 
         ["fr"] = new()
@@ -1016,7 +1022,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "Laisser vide pour rétablir le titre par défaut.",
             ["Rename_Save"] = "Enregistrer",
             ["Rename_Reset"] = "Par défaut",
-            ["Rename_Cancel"] = "Annuler"
+            ["Rename_Cancel"] = "Annuler",
+            ["Rename_Tooltip"] = "Définir un titre ou un alias personnalisé pour cet élément (F2)"
         },
 
         ["de"] = new()
@@ -1143,7 +1150,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "Leer lassen, um den Standardtitel wiederherzustellen.",
             ["Rename_Save"] = "Speichern",
             ["Rename_Reset"] = "Standard",
-            ["Rename_Cancel"] = "Abbrechen"
+            ["Rename_Cancel"] = "Abbrechen",
+            ["Rename_Tooltip"] = "Benutzerdefinierten Titel oder Alias für dieses Element festlegen (F2)"
         },
 
         ["ru"] = new()
@@ -1272,7 +1280,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "Оставьте пустым, чтобы восстановить заголовок по умолчанию.",
             ["Rename_Save"] = "Сохранить",
             ["Rename_Reset"] = "По умолчанию",
-            ["Rename_Cancel"] = "Отмена"
+            ["Rename_Cancel"] = "Отмена",
+            ["Rename_Tooltip"] = "Задать собственное имя или псевдоним для этого элемента (F2)"
         },
 
         ["pt"] = new()
@@ -1401,7 +1410,8 @@ public static class LocalizationService
             ["Rename_Hint"] = "Deixe em branco para restaurar o título padrão.",
             ["Rename_Save"] = "Salvar",
             ["Rename_Reset"] = "Padrão",
-            ["Rename_Cancel"] = "Cancelar"
+            ["Rename_Cancel"] = "Cancelar",
+            ["Rename_Tooltip"] = "Definir um título ou alias personalizado para este item (F2)"
         }
     };
 }

@@ -802,6 +802,7 @@
 
                                     <!-- Primary Content (Title) -->
                                     <TextBlock x:Name="ItemTitleText" Text="{Binding Title}"
+                                               ToolTip="{Binding Title}"
                                                FontFamily="{Binding TitleFont}" FontSize="12.5" FontWeight="SemiBold"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                                                Foreground="#15171C" />

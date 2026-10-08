@@ -2286,15 +2286,15 @@ public partial class QuickPasteWindow : Window
         }
 
         // 1. Primary actions
-        var pasteItem = new MenuItem { Header = "Paste", InputGestureText = "Enter" };
+        var pasteItem = new MenuItem { Header = "Paste", InputGestureText = "Enter", ToolTip = "Paste item into active window (Enter)" };
         pasteItem.Click += (_, _) => PasteSelected();
         menu.Items.Add(pasteItem);
 
-        var plainItem = new MenuItem { Header = "Paste as plain text", InputGestureText = "Ctrl+Shift+Enter" };
+        var plainItem = new MenuItem { Header = "Paste as plain text", InputGestureText = "Ctrl+Shift+Enter", ToolTip = "Paste as raw unformatted text (Ctrl+Shift+Enter)" };
         plainItem.Click += (_, _) => PasteSelected(plainText: true);
         menu.Items.Add(plainItem);
 
-        var copyItem = new MenuItem { Header = "Copy", InputGestureText = "Ctrl+C" };
+        var copyItem = new MenuItem { Header = "Copy", InputGestureText = "Ctrl+C", ToolTip = "Copy back to clipboard (Ctrl+C)" };
         copyItem.Click += (_, _) => CopySelected();
         menu.Items.Add(copyItem);
 
@@ -2321,6 +2321,7 @@ public partial class QuickPasteWindow : Window
         {
             Header = vm.Item.IsPinned ? "Unpin item" : "Pin item",
             InputGestureText = "Ctrl+P",
+            ToolTip = vm.Item.IsPinned ? "Unpin this item (Ctrl+P)" : "Pin this item so it never expires (Ctrl+P)",
         };
         pinItem.Click += (_, _) => TogglePinSelected();
         menu.Items.Add(pinItem);
@@ -2330,6 +2331,7 @@ public partial class QuickPasteWindow : Window
         {
             Header = LocalizationService.Get("Menu_Rename"),
             InputGestureText = "F2",
+            ToolTip = LocalizationService.Get("Rename_Tooltip"),
         };
         renameItem.Click += (_, _) => RenameSelected();
         menu.Items.Add(renameItem);
@@ -2337,12 +2339,12 @@ public partial class QuickPasteWindow : Window
         // 5. Snippet and Stack
         if (!vm.IsImage && !vm.IsSensitive)
         {
-            var snippetItem = new MenuItem { Header = "Save as snippet", InputGestureText = "Ctrl+N" };
+            var snippetItem = new MenuItem { Header = "Save as snippet", InputGestureText = "Ctrl+N", ToolTip = "Save as reusable snippet (Ctrl+N)" };
             snippetItem.Click += (_, _) => EditSnippet(createNew: true);
             menu.Items.Add(snippetItem);
         }
 
-        var stackItem = new MenuItem { Header = "Start paste stack", InputGestureText = "Ctrl+S" };
+        var stackItem = new MenuItem { Header = "Start paste stack", InputGestureText = "Ctrl+S", ToolTip = "Start sequential Paste Stack (Ctrl+S)" };
         stackItem.Click += (_, _) =>
         {
             if (!vm.IsMarked)
@@ -2358,7 +2360,7 @@ public partial class QuickPasteWindow : Window
         menu.Items.Add(new Separator());
 
         // 6. Delete
-        var delItem = new MenuItem { Header = "Delete", InputGestureText = "Del" };
+        var delItem = new MenuItem { Header = "Delete", InputGestureText = "Del", ToolTip = "Delete item from history (Del)" };
         delItem.Click += (_, _) => DeleteSelected();
         menu.Items.Add(delItem);
 
