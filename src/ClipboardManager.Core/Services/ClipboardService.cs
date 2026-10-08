@@ -101,7 +101,7 @@ public sealed class ClipboardService : IDisposable
         ContentKind.Files => _repo.Hash(Encoding.UTF8.GetBytes("files:" + item.TextContent)),
         // Own namespace, so copying the same text never merges into the snippet.
         ContentKind.Snippet => _repo.Hash(Encoding.UTF8.GetBytes("snippet:" + item.Title + "\0" + item.TextContent)),
-        _ => _repo.Hash(Encoding.UTF8.GetBytes(item.TextContent ?? "")),
+        _ => _repo.Hash(Encoding.UTF8.GetBytes(ContentClassifier.NormalizeText(item.TextContent ?? "", item.Kind))),
     };
 
     /// <returns>The relative path of the stored file (encrypted when the database is).</returns>
@@ -111,9 +111,17 @@ public sealed class ClipboardService : IDisposable
         var fullPath = Path.Combine(ImagesFolder, fileName);
         if (!File.Exists(fullPath))
         {
-            var tmp = fullPath + ".tmp";
+            var tmp = fullPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
             File.WriteAllBytes(tmp, _repo.IsEncrypted ? _repo.ProtectBytes(png) : png);
-            File.Move(tmp, fullPath, overwrite: true);
+            try
+            {
+                File.Move(tmp, fullPath, overwrite: true);
+            }
+            catch
+            {
+                try { File.Delete(tmp); } catch { }
+                throw;
+            }
         }
         return Path.Combine("images", fileName);
     }
@@ -184,7 +192,7 @@ public sealed class ClipboardService : IDisposable
         }
         else
         {
-            var text = content.Text!;
+            var text = ContentClassifier.NormalizeText(content.Text!, result.Kind);
             item.TextContent = text;
             item.ContentHash = HashOf(item, null);
             item.SizeBytes = Encoding.UTF8.GetByteCount(text);

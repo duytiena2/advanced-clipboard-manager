@@ -617,6 +617,33 @@ public sealed class FeatureTests : IDisposable
     }
 
     [Test]
+    public void Schema_v7_database_merges_and_overwrites_duplicates()
+    {
+        var folder = Path.Combine(_dir, "v7_upgrade");
+        Directory.CreateDirectory(folder);
+        using (var db = new Storage.Sqlite.SqliteDb(Path.Combine(folder, "clipboard.db")))
+        {
+            db.Execute(@"CREATE TABLE clipboard_items (id INTEGER PRIMARY KEY AUTOINCREMENT, content_type TEXT NOT NULL, subtype TEXT NOT NULL DEFAULT '',
+                title TEXT NOT NULL DEFAULT '', text_content TEXT NULL, binary_path TEXT NULL, content_hash TEXT NOT NULL, size_bytes INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL, last_copied_at INTEGER NOT NULL, accessed_at INTEGER NULL, expires_at INTEGER NULL,
+                is_pinned INTEGER NOT NULL DEFAULT 0, is_sensitive INTEGER NOT NULL DEFAULT 0, copy_count INTEGER NOT NULL DEFAULT 1,
+                workspace TEXT NOT NULL DEFAULT 'Default', source_application TEXT NULL, detection_confidence REAL NOT NULL DEFAULT 0, metadata_json TEXT NULL,
+                html_content TEXT NULL, rtf_content TEXT NULL, ocr_text TEXT NULL);");
+            db.Execute("CREATE UNIQUE INDEX ux_items_hash_ws ON clipboard_items(content_hash, workspace);");
+            db.Execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+            db.Execute("INSERT INTO settings (key, value) VALUES ('schema_version', '6');");
+            db.Execute("INSERT INTO clipboard_items (content_type, title, text_content, content_hash, created_at, last_copied_at, copy_count) VALUES ('Email', 'cskh@realtyholdings.vn', ' cskh@realtyholdings.vn', 'h1', 100, 100, 1);");
+            db.Execute("INSERT INTO clipboard_items (content_type, title, text_content, content_hash, created_at, last_copied_at, copy_count) VALUES ('Email', 'cskh@realtyholdings.vn', 'cskh@realtyholdings.vn', 'h2', 200, 200, 1);");
+        }
+
+        var svc = NewService(folder: folder, fts: false);
+        var items = svc.Search(null);
+        Assert.Equal(1, items.Count);
+        Assert.Equal("cskh@realtyholdings.vn", items[0].TextContent);
+        Assert.Equal(2, items[0].CopyCount);
+    }
+
+    [Test]
     public void Parse_qr_and_ocr_text_separates_correctly()
     {
         var (qr1, ocr1) = ClipboardService.ParseQrAndOcrText("https://qrfy.com/");

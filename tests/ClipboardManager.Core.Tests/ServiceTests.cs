@@ -77,6 +77,30 @@ public sealed class ServiceTests : IDisposable
     }
 
     [Test]
+    public void Duplicate_with_whitespace_overwrites_existing_and_bumps()
+    {
+        var item1 = Copy(" cskh@realtyholdings.vn");
+        Assert.Equal("cskh@realtyholdings.vn", item1.TextContent);
+        Assert.Equal("cskh@realtyholdings.vn", item1.Title);
+        Assert.Equal(ContentKind.Email, item1.Kind);
+
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var (outcome, item2) = _svc.Capture(CapturedContent.FromText("cskh@realtyholdings.vn"));
+        Assert.Equal(CaptureOutcome.Duplicate, outcome);
+        Assert.Equal(2, item2!.CopyCount);
+        Assert.Equal(item1.Id, item2.Id);
+        Assert.Equal(1, _svc.Count());
+
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        var (outcome3, item3) = _svc.Capture(CapturedContent.FromText(" cskh@realtyholdings.vn "));
+        Assert.Equal(CaptureOutcome.Duplicate, outcome3);
+        Assert.Equal(3, item3!.CopyCount);
+        Assert.Equal(item1.Id, item3.Id);
+        Assert.Equal(1, _svc.Count());
+        Assert.Equal("cskh@realtyholdings.vn", _svc.Search(null)[0].TextContent);
+    }
+
+    [Test]
     public void Full_text_search_with_prefix()
     {
         Copy("docker compose up -d");

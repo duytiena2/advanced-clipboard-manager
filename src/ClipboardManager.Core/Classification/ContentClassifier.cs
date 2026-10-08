@@ -169,6 +169,32 @@ public sealed class ContentClassifier
         return hits >= Math.Max(1, lines.Count * 0.6);
     }
 
+    /// <summary>
+    /// Normalizes text to eliminate accidental duplicates caused by surrounding whitespace
+    /// or inconsistent line endings while preserving intentional formatting.
+    /// </summary>
+    public static string NormalizeText(string text, ContentKind kind)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+
+        // Structured entities (Email, URL, Phone, Number) should never have surrounding whitespace
+        if (kind is ContentKind.Email or ContentKind.Url or ContentKind.Phone or ContentKind.Number)
+            return text.Trim();
+
+        // Single-line text (no newlines): accidental surrounding whitespace is very common (web selection, drag-and-drop, Excel cells)
+        if (!text.Contains('\n') && !text.Contains('\r'))
+        {
+            // For code, preserve leading whitespace/indentation but trim trailing whitespace
+            if (kind == ContentKind.Code)
+                return text.TrimEnd();
+
+            return text.Trim();
+        }
+
+        // Multi-line text: normalize line endings and trim trailing whitespace/newlines
+        return text.Replace("\r\n", "\n").TrimEnd();
+    }
+
     /// <summary>Builds a short one-line title for list display.</summary>
     public static string MakeTitle(string? text, int max = 120)
     {

@@ -35,6 +35,17 @@ public sealed class ClassifierTests
     [Test] public void Plain_text() => Expect("Hello, how are you?", ContentKind.Text, "plain");
     [Test] public void Vietnamese_text_is_plain() => Expect("Xin chào, hôm nay bạn thế nào?", ContentKind.Text, "plain");
 
+    [Test]
+    public void NormalizeText_cases()
+    {
+        Assert.Equal("cskh@realtyholdings.vn", ContentClassifier.NormalizeText(" cskh@realtyholdings.vn ", ContentKind.Email));
+        Assert.Equal("https://example.com", ContentClassifier.NormalizeText("  https://example.com  ", ContentKind.Url));
+        Assert.Equal("11311", ContentClassifier.NormalizeText(" 11311 ", ContentKind.Number));
+        Assert.Equal("hello world", ContentClassifier.NormalizeText("  hello world  ", ContentKind.Text));
+        Assert.Equal("    var x = 1;", ContentClassifier.NormalizeText("    var x = 1;  ", ContentKind.Code));
+        Assert.Equal("line1\nline2", ContentClassifier.NormalizeText("line1\r\nline2\r\n\r\n", ContentKind.Text));
+    }
+
     // Sensitive
     [Test] public void Stripe_key() => Expect("sk_live_51HxAbCdEfGhIjKlMnOpQrStUv", ContentKind.Sensitive, "api-key");
     [Test] public void Github_token() => Expect("ghp_" + new string('a', 20) + "B1c2D3e4F5g6H7i8J9k0", ContentKind.Sensitive, "token");

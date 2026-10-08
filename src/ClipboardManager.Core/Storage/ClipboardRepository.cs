@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using ClipboardManager.Core.Classification;
 using ClipboardManager.Core.Models;
 using ClipboardManager.Core.Platform;
 using ClipboardManager.Core.Search;
@@ -18,7 +19,7 @@ namespace ClipboardManager.Core.Storage;
 /// </summary>
 public sealed class ClipboardRepository : IDisposable
 {
-    private const int SchemaVersion = 6;
+    private const int SchemaVersion = 7;
     private const string EncryptedPrefix = "enc1:";
     private readonly SqliteDb _db;
     private readonly IDataProtector? _protector;
@@ -95,7 +96,11 @@ public sealed class ClipboardRepository : IDisposable
             // Reset OCR text on all existing images so barcode/QR code detection gets a chance to scan all existing images.
             _db.Execute("UPDATE clipboard_items SET ocr_text = NULL WHERE content_type = 'Image';");
         }
-        CreateSearchIndex(rebuild: _encrypted || storedVersion < 4);
+        if (storedVersion < 7)
+        {
+            DeduplicateAndNormalizeExisting();
+        }
+        CreateSearchIndex(rebuild: _encrypted || storedVersion < 4 || storedVersion < 7);
 
         SetSetting("schema_version", SchemaVersion.ToString());
     }
@@ -233,11 +238,106 @@ public sealed class ClipboardRepository : IDisposable
         });
     }
 
+    private void DeduplicateAndNormalizeExisting()
+    {
+        _db.InTransaction(() =>
+        {
+            var items = _db.Query($"SELECT {Columns} FROM clipboard_items;", Map);
+            if (items.Count == 0) return 0;
+
+            var rich = items.ToDictionary(i => i.Id, i => GetRichText(i.Id));
+            var groups = new Dictionary<(string Hash, string Workspace), List<ClipboardItem>>();
+
+            foreach (var item in items)
+            {
+                string newHash;
+                if (item.Kind == ContentKind.Snippet)
+                {
+                    newHash = Hash(Encoding.UTF8.GetBytes("snippet:" + item.Title + "\0" + (item.TextContent ?? "")));
+                }
+                else if (item.Kind == ContentKind.Image)
+                {
+                    newHash = item.ContentHash;
+                }
+                else if (item.Kind == ContentKind.Files)
+                {
+                    newHash = Hash(Encoding.UTF8.GetBytes("files:" + (item.TextContent ?? "")));
+                }
+                else
+                {
+                    var normalized = ContentClassifier.NormalizeText(item.TextContent ?? "", item.Kind);
+                    item.TextContent = normalized;
+                    item.SizeBytes = Encoding.UTF8.GetByteCount(normalized);
+                    item.Title = item.IsSensitive ? ContentClassifier.Mask(normalized) : ContentClassifier.MakeTitle(normalized);
+                    newHash = Hash(Encoding.UTF8.GetBytes(normalized));
+                }
+                item.ContentHash = newHash;
+
+                var key = (newHash, item.Workspace);
+                if (!groups.TryGetValue(key, out var list))
+                {
+                    list = new List<ClipboardItem>();
+                    groups[key] = list;
+                }
+                list.Add(item);
+            }
+
+            // Assign temporary hashes to avoid unique constraint violations on (content_hash, workspace)
+            foreach (var item in items)
+            {
+                _db.Execute("UPDATE clipboard_items SET content_hash = 'migrating_v7:' || id WHERE id = ?;", item.Id);
+            }
+
+            // Keep primary (pinned first, then newest last_copied_at), combine copy counts, delete secondary duplicates
+            foreach (var ((hash, workspace), groupItems) in groups)
+            {
+                var primary = groupItems.OrderByDescending(i => i.IsPinned)
+                                        .ThenByDescending(i => i.LastCopiedAt)
+                                        .First();
+
+                var totalCopies = groupItems.Sum(i => Math.Max(1, i.CopyCount));
+                primary.CopyCount = totalCopies;
+
+                foreach (var dup in groupItems.Where(i => i.Id != primary.Id))
+                {
+                    _db.Execute("DELETE FROM clipboard_items WHERE id = ?;", dup.Id);
+                    if (FullTextEnabled)
+                    {
+                        _db.Execute($"DELETE FROM {Fts} WHERE rowid = ?;", dup.Id);
+                    }
+                }
+
+                _db.Execute(@"UPDATE clipboard_items SET 
+                    title = ?, 
+                    text_content = ?, 
+                    content_hash = ?, 
+                    size_bytes = ?, 
+                    copy_count = ? 
+                    WHERE id = ?;",
+                    Protect(primary.Title),
+                    Protect(primary.TextContent),
+                    primary.ContentHash,
+                    primary.SizeBytes,
+                    primary.CopyCount,
+                    primary.Id);
+
+                if (FullTextEnabled)
+                {
+                    _db.Execute($"DELETE FROM {Fts} WHERE rowid = ?;", primary.Id);
+                    IndexForSearch(primary);
+                }
+            }
+
+            return 0;
+        });
+    }
+
     // ---- Items ----
 
     /// <summary>
-    /// Inserts a new item, or — if the same content already exists in the workspace — bumps its copy count
-    /// and recency instead of creating a duplicate. Returns the stored item and whether it was new.
+    /// Inserts a new item, or — if the same content already exists in the workspace — bumps its copy count,
+    /// recency, and overwrites its content and formatting instead of creating a duplicate.
+    /// Returns the stored item and whether it was new.
     /// </summary>
     /// <param name="rich">Formatting copied with the text. On a re-copy it replaces the stored one (the latest copy wins).</param>
     public (ClipboardItem Item, bool IsNew) AddOrTouch(ClipboardItem item, RichText? rich = null)
@@ -252,13 +352,60 @@ public sealed class ClipboardRepository : IDisposable
             {
                 // Keep the existing (possibly user-adjusted) expiry if pinned; otherwise extend to the new one.
                 var newExpiry = existing.IsPinned ? existing.ExpiresAt : item.ExpiresAt;
-                _db.Execute("UPDATE clipboard_items SET copy_count = copy_count + 1, last_copied_at = ?, expires_at = ?, source_application = COALESCE(?, source_application), html_content = ?, rtf_content = ? WHERE id = ?;",
-                    item.LastCopiedAt, (object?)newExpiry, item.SourceApplication, Protect(html), Protect(rtf), existing.Id);
+
+                // Overwrite (ghi đè) existing item with the latest content, metadata, formatting and timestamp
+                _db.Execute(@"UPDATE clipboard_items SET 
+                    copy_count = copy_count + 1, 
+                    last_copied_at = ?, 
+                    expires_at = ?, 
+                    source_application = COALESCE(?, source_application), 
+                    title = ?, 
+                    text_content = ?, 
+                    binary_path = COALESCE(?, binary_path), 
+                    size_bytes = ?, 
+                    content_type = ?, 
+                    subtype = ?, 
+                    detection_confidence = ?, 
+                    metadata_json = ?, 
+                    html_content = ?, 
+                    rtf_content = ? 
+                    WHERE id = ?;",
+                    item.LastCopiedAt, 
+                    (object?)newExpiry, 
+                    item.SourceApplication, 
+                    Protect(item.Title), 
+                    Protect(item.TextContent), 
+                    item.BinaryPath, 
+                    item.SizeBytes, 
+                    item.Kind, 
+                    item.Subtype, 
+                    item.Confidence, 
+                    Protect(item.MetadataJson), 
+                    Protect(html), 
+                    Protect(rtf), 
+                    existing.Id);
+
                 existing.CopyCount += 1;
                 existing.LastCopiedAt = item.LastCopiedAt;
                 existing.ExpiresAt = newExpiry;
+                existing.Title = item.Title;
+                existing.TextContent = item.TextContent;
+                if (item.BinaryPath is not null) existing.BinaryPath = item.BinaryPath;
+                existing.SizeBytes = item.SizeBytes;
+                existing.Kind = item.Kind;
+                existing.Subtype = item.Subtype;
+                existing.Confidence = item.Confidence;
+                existing.MetadataJson = item.MetadataJson;
                 existing.HasRichText = html is not null || rtf is not null;
                 if (item.SourceApplication is not null) existing.SourceApplication = item.SourceApplication;
+                if (item.IsSensitive) existing.IsSensitive = true;
+
+                if (FullTextEnabled)
+                {
+                    _db.Execute($"DELETE FROM {Fts} WHERE rowid = ?;", existing.Id);
+                    IndexForSearch(existing);
+                }
+
                 return (existing, false);
             }
 
