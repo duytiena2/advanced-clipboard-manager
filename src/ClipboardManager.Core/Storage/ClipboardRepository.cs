@@ -353,6 +353,11 @@ public sealed class ClipboardRepository : IDisposable
                 // Keep the existing (possibly user-adjusted) expiry if pinned; otherwise extend to the new one.
                 var newExpiry = existing.IsPinned ? existing.ExpiresAt : item.ExpiresAt;
 
+                // Preserve custom title if user has renamed this item
+                var titleToKeep = (!string.IsNullOrWhiteSpace(existing.Title) && existing.Title != item.Title)
+                    ? existing.Title
+                    : item.Title;
+
                 // Overwrite (ghi đè) existing item with the latest content, metadata, formatting and timestamp
                 _db.Execute(@"UPDATE clipboard_items SET 
                     copy_count = copy_count + 1, 
@@ -373,7 +378,7 @@ public sealed class ClipboardRepository : IDisposable
                     item.LastCopiedAt, 
                     (object?)newExpiry, 
                     item.SourceApplication, 
-                    Protect(item.Title), 
+                    Protect(titleToKeep), 
                     Protect(item.TextContent), 
                     item.BinaryPath, 
                     item.SizeBytes, 
@@ -388,7 +393,7 @@ public sealed class ClipboardRepository : IDisposable
                 existing.CopyCount += 1;
                 existing.LastCopiedAt = item.LastCopiedAt;
                 existing.ExpiresAt = newExpiry;
-                existing.Title = item.Title;
+                existing.Title = titleToKeep;
                 existing.TextContent = item.TextContent;
                 if (item.BinaryPath is not null) existing.BinaryPath = item.BinaryPath;
                 existing.SizeBytes = item.SizeBytes;
@@ -539,6 +544,22 @@ public sealed class ClipboardRepository : IDisposable
             if (FullTextEnabled)
             {
                 _db.Execute($"DELETE FROM {Fts} WHERE rowid = ?;", item.Id);
+                IndexForSearch(item);
+            }
+            return 0;
+        });
+    }
+
+    /// <summary>Updates an item's title (custom rename) and re-indexes it for full-text search.</summary>
+    public void RenameItem(long id, string newTitle)
+    {
+        _db.InTransaction(() =>
+        {
+            if (_db.Execute("UPDATE clipboard_items SET title = ? WHERE id = ?;", Protect(newTitle), id) == 0) return 0;
+            var item = Get(id);
+            if (item is not null && FullTextEnabled)
+            {
+                _db.Execute($"DELETE FROM {Fts} WHERE rowid = ?;", id);
                 IndexForSearch(item);
             }
             return 0;

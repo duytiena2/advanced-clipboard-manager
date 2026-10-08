@@ -305,6 +305,46 @@ public sealed class ServiceTests : IDisposable
         Assert.True(r.Count > 0);
         Assert.True(sw.ElapsedMilliseconds < 500, $"search took {sw.ElapsedMilliseconds} ms");
     }
+
+    [Test]
+    public void Rename_sets_custom_title_updates_search_and_preserves_on_recopy()
+    {
+        var text = "https://realtyholdings.vn/cskh";
+        var item = Copy(text);
+        Assert.Equal(text, item.Title);
+
+        // Rename with custom title
+        _svc.Rename(item, "Cổng CSKH Realty");
+        Assert.Equal("Cổng CSKH Realty", item.Title);
+
+        // Full-text search finds by new title
+        var found = _svc.Search("Cổng CSKH Realty");
+        Assert.True(found.Any(x => x.Id == item.Id));
+
+        // Re-copying same text preserves custom title and increments copy count
+        _clock.Advance(TimeSpan.FromSeconds(10));
+        var (outcome, updated) = _svc.Capture(CapturedContent.FromText(text));
+        Assert.Equal(CaptureOutcome.Duplicate, outcome);
+        Assert.Equal("Cổng CSKH Realty", updated!.Title);
+        Assert.Equal(2, updated.CopyCount);
+
+        // Restoring default title by renaming with empty string
+        _svc.Rename(updated, "");
+        Assert.Equal(text, updated.Title);
+    }
+
+    [Test]
+    public void Rename_snippet_updates_title()
+    {
+        var snip = _svc.SaveSnippet("My Old Snippet", "Hello world template");
+        Assert.Equal("My Old Snippet", snip.Title);
+
+        _svc.Rename(snip, "My New Snippet");
+        Assert.Equal("My New Snippet", snip.Title);
+
+        var found = _svc.Search("My New Snippet");
+        Assert.True(found.Any(x => x.Id == snip.Id));
+    }
 }
 
 public sealed class QueryParserTests

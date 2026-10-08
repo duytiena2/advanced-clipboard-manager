@@ -504,7 +504,7 @@ public partial class QuickPasteWindow : Window
         }
         if (SearchSuggestionsPopup is not null) SearchSuggestionsPopup.IsOpen = false;
         UpdateOnboardingBanner();
-        Reload();
+        Reload(keepSelection: keepTarget);
         _hiding = false;
         Show();
         Topmost = false;
@@ -1328,6 +1328,10 @@ public partial class QuickPasteWindow : Window
                 break;
             case Key.F1:
                 ShowKeyHelp();
+                e.Handled = true;
+                break;
+            case Key.F2:
+                RenameSelected();
                 e.Handled = true;
                 break;
             case Key.S when mods == ModifierKeys.Control:
@@ -2321,6 +2325,15 @@ public partial class QuickPasteWindow : Window
         pinItem.Click += (_, _) => TogglePinSelected();
         menu.Items.Add(pinItem);
 
+        // 4. Rename
+        var renameItem = new MenuItem
+        {
+            Header = LocalizationService.Get("Menu_Rename"),
+            InputGestureText = "F2",
+        };
+        renameItem.Click += (_, _) => RenameSelected();
+        menu.Items.Add(renameItem);
+
         // 5. Snippet and Stack
         if (!vm.IsImage && !vm.IsSensitive)
         {
@@ -2367,6 +2380,16 @@ public partial class QuickPasteWindow : Window
     {
         if (ItemsList.SelectedItem is not ItemViewModel vm) return;
         _svc.TogglePin(vm.Item); // raises HistoryChanged → Reload(keepSelection)
+    }
+
+    private void RenameSelected()
+    {
+        if (ItemsList.SelectedItem is not ItemViewModel vm) return;
+        var dialog = new RenameDialog(_svc, vm.Item);
+        bool wasVisible = IsVisible;
+        HidePalette();
+        bool saved = dialog.ShowDialog() == true;
+        if (saved || wasVisible) ShowPalette(keepTarget: true);
     }
 
     private void DeleteSelected()

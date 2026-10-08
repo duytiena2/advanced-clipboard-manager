@@ -1232,6 +1232,8 @@
                             <TextBlock Text="Pin" Style="{StaticResource HintLabel}" />
                             <Border Style="{StaticResource Keycap}"><TextBlock Text="Ctrl+Space" Style="{StaticResource KeycapText}" /></Border>
                             <TextBlock Text="Select" Style="{StaticResource HintLabel}" />
+                            <Border Style="{StaticResource Keycap}"><TextBlock Text="F2" Style="{StaticResource KeycapText}" /></Border>
+                            <TextBlock Text="Rename" Style="{StaticResource HintLabel}" />
                             <Border Style="{StaticResource Keycap}"><TextBlock Text="F1" Style="{StaticResource KeycapText}" /></Border>
                             <TextBlock Text="Shortcuts" Style="{StaticResource HintLabel}" />
                         </StackPanel>
@@ -1462,6 +1464,12 @@
                                         <DockPanel>
                                             <Border DockPanel.Dock="Right" Style="{StaticResource ModalKeycap}"><TextBlock Text="Del" Style="{StaticResource ModalKeycapText}" /></Border>
                                             <TextBlock Text="Delete item from history" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource ShortcutRow}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Style="{StaticResource ModalKeycap}"><TextBlock Text="F2" Style="{StaticResource ModalKeycapText}" /></Border>
+                                            <TextBlock Text="Rename item (custom title/alias)" FontSize="12.5" Foreground="#1E293B" VerticalAlignment="Center" />
                                         </DockPanel>
                                     </Border>
                                 </StackPanel>

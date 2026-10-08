@@ -491,6 +491,48 @@ public sealed class ClipboardService : IDisposable
     public static (string Name, string Body) SnippetDraftFrom(ClipboardItem item) =>
         (item.Kind == ContentKind.Snippet ? item.Title : ContentClassifier.MakeTitle(item.TextContent, 40), item.TextContent ?? "");
 
+    /// <summary>Renames an item with a custom title or alias. Passing null or empty restores the default title.</summary>
+    public void Rename(ClipboardItem item, string? newTitle)
+    {
+        string title;
+        if (string.IsNullOrWhiteSpace(newTitle))
+        {
+            if (item.Kind == ContentKind.Snippet)
+            {
+                throw new ArgumentException("A snippet needs a name.", nameof(newTitle));
+            }
+            if (item.Kind == ContentKind.Files && !string.IsNullOrWhiteSpace(item.TextContent))
+            {
+                var files = item.TextContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                title = files.Length == 1 ? Path.GetFileName(files[0]) : $"{files.Length} files — {Path.GetFileName(files[0])}, …";
+            }
+            else if (item.Kind == ContentKind.Image)
+            {
+                title = item.Title;
+            }
+            else
+            {
+                title = item.IsSensitive
+                    ? ContentClassifier.Mask(item.TextContent ?? "")
+                    : ContentClassifier.MakeTitle(item.TextContent ?? "");
+            }
+        }
+        else
+        {
+            title = newTitle.Trim();
+        }
+
+        if (item.Kind == ContentKind.Snippet)
+        {
+            SaveSnippet(title, item.TextContent ?? "", item);
+            return;
+        }
+
+        item.Title = title;
+        _repo.RenameItem(item.Id, title);
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void Delete(ClipboardItem item)
     {
         DeleteBinary(_repo.Delete(item.Id));

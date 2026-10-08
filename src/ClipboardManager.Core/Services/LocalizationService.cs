@@ -226,7 +226,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} for literal braces",
             ["Snippet_Preview"] = "Preview:",
             ["Snippet_SampleClipboard"] = "clipboard text",
-            ["Snippet_Example"] = "Example"
+            ["Snippet_Example"] = "Example",
+            ["Menu_Rename"] = "Rename",
+            ["Rename_Title"] = "Rename Item",
+            ["Rename_Prompt"] = "Enter a custom name or alias for this item:",
+            ["Rename_Hint"] = "Leave blank to restore the default title.",
+            ["Rename_Save"] = "Save",
+            ["Rename_Reset"] = "Reset Default",
+            ["Rename_Cancel"] = "Cancel"
         },
 
         ["vi"] = new()
@@ -362,7 +369,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} để giữ dấu ngoặc nhọn",
             ["Snippet_Preview"] = "Xem trước:",
             ["Snippet_SampleClipboard"] = "văn bản clipboard",
-            ["Snippet_Example"] = "Ví dụ"
+            ["Snippet_Example"] = "Ví dụ",
+            ["Menu_Rename"] = "Đổi tên",
+            ["Rename_Title"] = "Đổi tên mục clipboard",
+            ["Rename_Prompt"] = "Nhập tên hoặc tiêu đề gợi nhớ cho mục này:",
+            ["Rename_Hint"] = "Để trống nếu muốn khôi phục về tiêu đề mặc định.",
+            ["Rename_Save"] = "Lưu lại",
+            ["Rename_Reset"] = "Mặc định",
+            ["Rename_Cancel"] = "Hủy bỏ"
         },
 
         ["zh"] = new()
@@ -487,7 +501,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} 表示原义大括号",
             ["Snippet_Preview"] = "预览：",
             ["Snippet_SampleClipboard"] = "剪贴板文本",
-            ["Snippet_Example"] = "示例"
+            ["Snippet_Example"] = "示例",
+            ["Menu_Rename"] = "重命名",
+            ["Rename_Title"] = "重命名条目",
+            ["Rename_Prompt"] = "输入自定义名称或别名：",
+            ["Rename_Hint"] = "留空以恢复默认标题。",
+            ["Rename_Save"] = "保存",
+            ["Rename_Reset"] = "恢复默认",
+            ["Rename_Cancel"] = "取消"
         },
 
         ["ja"] = new()
@@ -607,7 +628,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} で中括弧をそのまま表示",
             ["Snippet_Preview"] = "プレビュー：",
             ["Snippet_SampleClipboard"] = "クリップボードのテキスト",
-            ["Snippet_Example"] = "例"
+            ["Snippet_Example"] = "例",
+            ["Menu_Rename"] = "名前を変更",
+            ["Rename_Title"] = "アイテムの名前を変更",
+            ["Rename_Prompt"] = "カスタム名またはエイリアスを入力:",
+            ["Rename_Hint"] = "空白のままにすると既定のタイトルに戻ります。",
+            ["Rename_Save"] = "保存",
+            ["Rename_Reset"] = "既定に戻す",
+            ["Rename_Cancel"] = "キャンセル"
         },
 
         ["ko"] = new()
@@ -727,7 +755,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} 는 중괄호 유지",
             ["Snippet_Preview"] = "미리보기:",
             ["Snippet_SampleClipboard"] = "클립보드 텍스트",
-            ["Snippet_Example"] = "예시"
+            ["Snippet_Example"] = "예시",
+            ["Menu_Rename"] = "이름 바꾸기",
+            ["Rename_Title"] = "항목 이름 바꾸기",
+            ["Rename_Prompt"] = "사용자 지정 이름 또는 별칭 입력:",
+            ["Rename_Hint"] = "기본 제목으로 복원하려면 비워 두세요.",
+            ["Rename_Save"] = "저장",
+            ["Rename_Reset"] = "기본값 복원",
+            ["Rename_Cancel"] = "취소"
         },
 
         ["es"] = new()
@@ -847,7 +882,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} para llaves literales",
             ["Snippet_Preview"] = "Vista previa:",
             ["Snippet_SampleClipboard"] = "texto del portapapeles",
-            ["Snippet_Example"] = "Ejemplo"
+            ["Snippet_Example"] = "Ejemplo",
+            ["Menu_Rename"] = "Cambiar nombre",
+            ["Rename_Title"] = "Cambiar nombre del elemento",
+            ["Rename_Prompt"] = "Ingrese un nombre o alias personalizado:",
+            ["Rename_Hint"] = "Deje en blanco para restaurar el título predeterminado.",
+            ["Rename_Save"] = "Guardar",
+            ["Rename_Reset"] = "Restablecer",
+            ["Rename_Cancel"] = "Cancelar"
         },
 
         ["fr"] = new()
@@ -967,7 +1009,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} pour accolades littérales",
             ["Snippet_Preview"] = "Aperçu :",
             ["Snippet_SampleClipboard"] = "texte du presse-papiers",
-            ["Snippet_Example"] = "Exemple"
+            ["Snippet_Example"] = "Exemple",
+            ["Menu_Rename"] = "Renommer",
+            ["Rename_Title"] = "Renommer l'élément",
+            ["Rename_Prompt"] = "Entrez un nom ou alias personnalisé :",
+            ["Rename_Hint"] = "Laisser vide pour rétablir le titre par défaut.",
+            ["Rename_Save"] = "Enregistrer",
+            ["Rename_Reset"] = "Par défaut",
+            ["Rename_Cancel"] = "Annuler"
         },
 
         ["de"] = new()
@@ -1087,7 +1136,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} für geschweifte Klammern",
             ["Snippet_Preview"] = "Vorschau:",
             ["Snippet_SampleClipboard"] = "Zwischenablage-Text",
-            ["Snippet_Example"] = "Beispiel"
+            ["Snippet_Example"] = "Beispiel",
+            ["Menu_Rename"] = "Umbenennen",
+            ["Rename_Title"] = "Element umbenennen",
+            ["Rename_Prompt"] = "Geben Sie einen Namen oder Alias ein:",
+            ["Rename_Hint"] = "Leer lassen, um den Standardtitel wiederherzustellen.",
+            ["Rename_Save"] = "Speichern",
+            ["Rename_Reset"] = "Standard",
+            ["Rename_Cancel"] = "Abbrechen"
         },
 
         ["ru"] = new()
@@ -1209,7 +1265,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} для фигурных скобок",
             ["Snippet_Preview"] = "Предпросмотр:",
             ["Snippet_SampleClipboard"] = "текст из буфера",
-            ["Snippet_Example"] = "Пример"
+            ["Snippet_Example"] = "Пример",
+            ["Menu_Rename"] = "Переименовать",
+            ["Rename_Title"] = "Переименовать элемент",
+            ["Rename_Prompt"] = "Введите имя или псевдоним:",
+            ["Rename_Hint"] = "Оставьте пустым, чтобы восстановить заголовок по умолчанию.",
+            ["Rename_Save"] = "Сохранить",
+            ["Rename_Reset"] = "По умолчанию",
+            ["Rename_Cancel"] = "Отмена"
         },
 
         ["pt"] = new()
@@ -1331,7 +1394,14 @@ public static class LocalizationService
             ["Snippet_BracesHint"] = "{{ }} para chaves literais",
             ["Snippet_Preview"] = "Pré-visualização:",
             ["Snippet_SampleClipboard"] = "texto da área de transferência",
-            ["Snippet_Example"] = "Exemplo"
+            ["Snippet_Example"] = "Exemplo",
+            ["Menu_Rename"] = "Renomear",
+            ["Rename_Title"] = "Renomear item",
+            ["Rename_Prompt"] = "Digite um nome ou alias personalizado:",
+            ["Rename_Hint"] = "Deixe em branco para restaurar o título padrão.",
+            ["Rename_Save"] = "Salvar",
+            ["Rename_Reset"] = "Padrão",
+            ["Rename_Cancel"] = "Cancelar"
         }
     };
 }
