@@ -234,7 +234,12 @@ public static class LocalizationService
             ["Rename_Save"] = "Save",
             ["Rename_Reset"] = "Reset Default",
             ["Rename_Cancel"] = "Cancel",
-            ["Rename_Tooltip"] = "Set a custom title or alias for this item (F2)"
+            ["Rename_Tooltip"] = "Set a custom title or alias for this item (F2)",
+            ["Url_CopyClean"] = "Copy clean link",
+            ["Url_CopyCleanTooltip"] = "Copy URL without tracking parameters",
+            ["Url_CopiedClean"] = "Copied clean link (tracking removed)",
+            ["Url_CopiedParamValue"] = "Copied value of '{0}' to clipboard",
+            ["Url_Parameters"] = "Parameters ({0})"
         },
 
         ["vi"] = new()
@@ -378,7 +383,12 @@ public static class LocalizationService
             ["Rename_Save"] = "Lưu lại",
             ["Rename_Reset"] = "Mặc định",
             ["Rename_Cancel"] = "Hủy bỏ",
-            ["Rename_Tooltip"] = "Đặt tiêu đề hoặc tên gợi nhớ tùy chỉnh cho mục này (F2)"
+            ["Rename_Tooltip"] = "Đặt tiêu đề hoặc tên gợi nhớ tùy chỉnh cho mục này (F2)",
+            ["Url_CopyClean"] = "Sao chép link sạch",
+            ["Url_CopyCleanTooltip"] = "Sao chép URL đã loại bỏ các tham số theo dõi (tracking)",
+            ["Url_CopiedClean"] = "Đã sao chép link sạch (loại bỏ theo dõi)",
+            ["Url_CopiedParamValue"] = "Đã sao chép giá trị của '{0}'",
+            ["Url_Parameters"] = "Tham số ({0})"
         },
 
         ["zh"] = new()

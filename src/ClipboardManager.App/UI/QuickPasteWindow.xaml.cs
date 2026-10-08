@@ -180,6 +180,7 @@ public partial class QuickPasteWindow : Window
         UrlLaunchButton.Click += (_, _) => LaunchCurrentUrl();
         OpenUrlButton.Click += (_, _) => LaunchCurrentUrl();
         UrlCopyButton.Click += (_, _) => CopyAllPreviewText();
+        UrlCleanCopyButton.Click += (_, _) => CopyCleanUrl();
 
         ToggleOcrButton.Click += (_, _) =>
         {
@@ -1052,19 +1053,36 @@ public partial class QuickPasteWindow : Window
             UrlHostText.Text = vm.UrlDomain;
             OpenUrlButton.Visibility = Visibility.Visible;
 
-            var cand = rawUrl.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? "https://" + rawUrl : rawUrl;
-            if (Uri.TryCreate(cand, UriKind.Absolute, out var uri))
+            var analysis = UrlHelper.AnalyzeUrl(rawUrl);
+            UrlSchemeVal.Text = analysis.Scheme;
+            UrlHostVal.Text = !string.IsNullOrEmpty(analysis.Host) ? analysis.Host : vm.UrlDomain;
+            UrlPathVal.Text = !string.IsNullOrEmpty(analysis.Path) ? analysis.Path : "/";
+
+            if (analysis.Parameters.Count > 0)
             {
-                UrlSchemeVal.Text = uri.Scheme;
-                UrlHostVal.Text = uri.Host;
-                UrlPathVal.Text = string.IsNullOrEmpty(uri.PathAndQuery) ? "/" : uri.PathAndQuery;
+                UrlParamsContainer.Visibility = Visibility.Visible;
+                UrlParamsHeader.Text = string.Format(LocalizationService.Get("Url_Parameters"), analysis.Parameters.Count);
+                UrlParamsList.ItemsSource = analysis.Parameters;
             }
             else
             {
-                UrlSchemeVal.Text = "—";
-                UrlHostVal.Text = vm.UrlDomain;
-                UrlPathVal.Text = rawUrl;
+                UrlParamsContainer.Visibility = Visibility.Collapsed;
+                UrlParamsList.ItemsSource = null;
             }
+
+            if (analysis.HasTrackingParameters || (analysis.Parameters.Count > 0 && analysis.CleanUrl != rawUrl))
+            {
+                UrlCleanCopyButton.Visibility = Visibility.Visible;
+                UrlCleanCopyButton.Content = LocalizationService.Get("Url_CopyClean");
+                UrlCleanCopyButton.ToolTip = LocalizationService.Get("Url_CopyCleanTooltip");
+                UrlCleanCopyButton.Tag = analysis.CleanUrl;
+            }
+            else
+            {
+                UrlCleanCopyButton.Visibility = Visibility.Collapsed;
+                UrlCleanCopyButton.Tag = null;
+            }
+
             return;
         }
 
@@ -1143,6 +1161,39 @@ public partial class QuickPasteWindow : Window
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(raw) { UseShellExecute = true });
             }
             catch { }
+        }
+    }
+
+    private void CopyCleanUrl()
+    {
+        if (UrlCleanCopyButton.Tag is string cleanUrl && !string.IsNullOrEmpty(cleanUrl))
+        {
+            try
+            {
+                _writer.Write(new ClipboardPayload { Text = cleanUrl, IsSensitive = false });
+                StatusText.Text = LocalizationService.Get("Url_CopiedClean");
+                if (!KeepOpen) HidePalette();
+            }
+            catch (COMException)
+            {
+                StatusText.Text = "Clipboard is busy — try again";
+            }
+        }
+    }
+
+    private void OnCopyUrlParamClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: UrlParameter param })
+        {
+            try
+            {
+                _writer.Write(new ClipboardPayload { Text = param.Value, IsSensitive = false });
+                StatusText.Text = string.Format(LocalizationService.Get("Url_CopiedParamValue"), param.Key);
+            }
+            catch (COMException)
+            {
+                StatusText.Text = "Clipboard is busy — try again";
+            }
         }
     }
 
