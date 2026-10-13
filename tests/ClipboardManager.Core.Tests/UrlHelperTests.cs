@@ -77,4 +77,28 @@ public class UrlHelperTests
 
         Assert.Equal("https://example.com/page#overview", clean);
     }
+
+    [Test]
+    public void IsTrackingParam_RecognizesExtendedTrackingParameters()
+    {
+        Assert.True(UrlHelper.IsTrackingParam("ttclid"));
+        Assert.True(UrlHelper.IsTrackingParam("twclid"));
+        Assert.True(UrlHelper.IsTrackingParam("dclid"));
+        Assert.True(UrlHelper.IsTrackingParam("_ga"));
+        Assert.True(UrlHelper.IsTrackingParam("_gl"));
+        Assert.True(UrlHelper.IsTrackingParam("mtm_campaign"));
+        Assert.True(UrlHelper.IsTrackingParam("rb_clickid"));
+        Assert.False(UrlHelper.IsTrackingParam("id"));
+        Assert.False(UrlHelper.IsTrackingParam("page"));
+    }
+
+    [Test]
+    public void TextTransforms_UrlClean_RemovesTrackingFromUrlAndInlineText()
+    {
+        var rawUrl = "https://shop.vn/product?id=99&ttclid=abc123&utm_campaign=sale";
+        Assert.Equal("https://shop.vn/product?id=99", TextTransforms.Apply("url-clean", rawUrl));
+
+        var inlineText = "Check this link: https://example.com/post?ref=home&fbclid=IwAR123&gclid=xyz for details!";
+        Assert.Equal("Check this link: https://example.com/post?ref=home for details!", TextTransforms.Apply("url-clean", inlineText));
+    }
 }

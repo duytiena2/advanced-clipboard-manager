@@ -521,7 +521,21 @@ public static class LocalizationService
             ["Rename_Save"] = "保存",
             ["Rename_Reset"] = "恢复默认",
             ["Rename_Cancel"] = "取消",
-            ["Rename_Tooltip"] = "为此条目设置自定义标题或别名 (F2)"
+            ["Rename_Tooltip"] = "为此条目设置自定义标题或别名 (F2)",
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "应用已在后台运行！在任意位置按 {0} 打开，或点击此系统托盘图标。",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "剪贴板管理器已最小化到系统托盘。随时按 {0} 重新打开。",
+            ["Onboarding_Badge"] = "快捷提示",
+            ["Onboarding_TipPrefix"] = "按下",
+            ["Onboarding_TipSuffix"] = "随时在任何位置打开剪贴板历史。",
+            ["Onboarding_Dismiss"] = "知道了",
+            ["Onboarding_DismissTooltip"] = "关闭此提示",
+            ["Url_CopyClean"] = "复制纯净链接",
+            ["Url_CopyCleanTooltip"] = "复制移除追踪参数后的 URL",
+            ["Url_CopiedClean"] = "已复制纯净链接（已移除追踪参数）",
+            ["Url_CopiedParamValue"] = "已复制 '{0}' 的值到剪贴板",
+            ["Url_Parameters"] = "参数 ({0})"
         },
 
         ["ja"] = new()
@@ -649,7 +663,21 @@ public static class LocalizationService
             ["Rename_Save"] = "保存",
             ["Rename_Reset"] = "既定に戻す",
             ["Rename_Cancel"] = "キャンセル",
-            ["Rename_Tooltip"] = "このアイテムのカスタム名またはエイリアスを設定 (F2)"
+            ["Rename_Tooltip"] = "このアイテムのカスタム名またはエイリアスを設定 (F2)",
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "バックグラウンドで実行中です。どこからでも {0} を押すか、トレイアイコンをクリックして開けます。",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "システムトレイに最小化されました。いつでも {0} で再表示できます。",
+            ["Onboarding_Badge"] = "ヒント",
+            ["Onboarding_TipPrefix"] = "どこからでも",
+            ["Onboarding_TipSuffix"] = "を押すと履歴をすばやく開けます。",
+            ["Onboarding_Dismiss"] = "OK",
+            ["Onboarding_DismissTooltip"] = "ヒントを閉じる",
+            ["Url_CopyClean"] = "クリーンURLをコピー",
+            ["Url_CopyCleanTooltip"] = "追跡パラメータを除いたURLをコピー",
+            ["Url_CopiedClean"] = "クリーンURLをコピーしました（追跡パラメータを除去）",
+            ["Url_CopiedParamValue"] = "'{0}' の値をコピーしました",
+            ["Url_Parameters"] = "パラメータ ({0})"
         },
 
         ["ko"] = new()
@@ -777,7 +805,21 @@ public static class LocalizationService
             ["Rename_Save"] = "저장",
             ["Rename_Reset"] = "기본값 복원",
             ["Rename_Cancel"] = "취소",
-            ["Rename_Tooltip"] = "이 항목의 사용자 지정 이름 또는 별칭 설정 (F2)"
+            ["Rename_Tooltip"] = "이 항목의 사용자 지정 이름 또는 별칭 설정 (F2)",
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "백그라운드에서 실행 중입니다! 어디서나 {0} 키를 누르거나 트레이 아이콘을 클릭하세요.",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "시스템 트레이로 최소화되었습니다. 언제든 {0} 키로 다시 열 수 있습니다.",
+            ["Onboarding_Badge"] = "빠른 팁",
+            ["Onboarding_TipPrefix"] = "어디서나",
+            ["Onboarding_TipSuffix"] = "키를 눌러 클립보드 기록을 여세요.",
+            ["Onboarding_Dismiss"] = "확인",
+            ["Onboarding_DismissTooltip"] = "이 팁 닫기",
+            ["Url_CopyClean"] = "깔끔한 링크 복사",
+            ["Url_CopyCleanTooltip"] = "추적 매개변수를 제거한 URL 복사",
+            ["Url_CopiedClean"] = "깔끔한 링크 복사됨 (추적 제거)",
+            ["Url_CopiedParamValue"] = "'{0}' 값이 클립보드에 복사되었습니다",
+            ["Url_Parameters"] = "매개변수 ({0})"
         },
 
         ["es"] = new()
@@ -905,7 +947,21 @@ public static class LocalizationService
             ["Rename_Save"] = "Guardar",
             ["Rename_Reset"] = "Restablecer",
             ["Rename_Cancel"] = "Cancelar",
-            ["Rename_Tooltip"] = "Establecer un título o alias personalizado para este elemento (F2)"
+            ["Rename_Tooltip"] = "Establecer un título o alias personalizado para este elemento (F2)",
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "¡La aplicación se ejecuta en segundo plano! Presiona {0} en cualquier lugar o haz clic en este icono.",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "Minimizado en la bandeja del sistema. Presiona {0} en cualquier momento para volver a abrir.",
+            ["Onboarding_Badge"] = "CONSEJO RÁPIDO",
+            ["Onboarding_TipPrefix"] = "Presiona",
+            ["Onboarding_TipSuffix"] = "en cualquier lugar para abrir el historial.",
+            ["Onboarding_Dismiss"] = "Entendido",
+            ["Onboarding_DismissTooltip"] = "Cerrar este consejo",
+            ["Url_CopyClean"] = "Copiar enlace limpio",
+            ["Url_CopyCleanTooltip"] = "Copiar URL sin parámetros de seguimiento",
+            ["Url_CopiedClean"] = "Enlace limpio copiado (seguimiento eliminado)",
+            ["Url_CopiedParamValue"] = "Valor de '{0}' copiado al portapapeles",
+            ["Url_Parameters"] = "Parámetros ({0})"
         },
 
         ["fr"] = new()
@@ -1033,7 +1089,21 @@ public static class LocalizationService
             ["Rename_Save"] = "Enregistrer",
             ["Rename_Reset"] = "Par défaut",
             ["Rename_Cancel"] = "Annuler",
-            ["Rename_Tooltip"] = "Définir un titre ou un alias personnalisé pour cet élément (F2)"
+            ["Rename_Tooltip"] = "Définir un titre ou un alias personnalisé pour cet élément (F2)",
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "L'application tourne en arrière-plan ! Appuyez sur {0} n'importe où ou cliquez sur cette icône.",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "Réduit dans la barre des tâches. Appuyez sur {0} à tout moment pour rouvrir.",
+            ["Onboarding_Badge"] = "ASTUCE RAPIDE",
+            ["Onboarding_TipPrefix"] = "Appuyez sur",
+            ["Onboarding_TipSuffix"] = "n'importe où pour ouvrir l'historique.",
+            ["Onboarding_Dismiss"] = "Compris",
+            ["Onboarding_DismissTooltip"] = "Fermer cette astuce",
+            ["Url_CopyClean"] = "Copier le lien propre",
+            ["Url_CopyCleanTooltip"] = "Copier l'URL sans les paramètres de suivi",
+            ["Url_CopiedClean"] = "Lien propre copié (suivi supprimé)",
+            ["Url_CopiedParamValue"] = "Valeur de '{0}' copiée dans le presse-papiers",
+            ["Url_Parameters"] = "Paramètres ({0})"
         },
 
         ["de"] = new()
@@ -1161,7 +1231,21 @@ public static class LocalizationService
             ["Rename_Save"] = "Speichern",
             ["Rename_Reset"] = "Standard",
             ["Rename_Cancel"] = "Abbrechen",
-            ["Rename_Tooltip"] = "Benutzerdefinierten Titel oder Alias für dieses Element festlegen (F2)"
+            ["Rename_Tooltip"] = "Benutzerdefinierten Titel oder Alias für dieses Element festlegen (F2)",
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "Die App läuft im Hintergrund! Drücken Sie überall {0} oder klicken Sie auf dieses Symbol.",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "In den Infobereich minimiert. Drücken Sie jederzeit {0}, um es wieder zu öffnen.",
+            ["Onboarding_Badge"] = "KURZTIPP",
+            ["Onboarding_TipPrefix"] = "Drücken Sie",
+            ["Onboarding_TipSuffix"] = "überall, um den Verlauf schnell zu öffnen.",
+            ["Onboarding_Dismiss"] = "Verstanden",
+            ["Onboarding_DismissTooltip"] = "Diesen Tipp schließen",
+            ["Url_CopyClean"] = "Sauberen Link kopieren",
+            ["Url_CopyCleanTooltip"] = "URL ohne Tracking-Parameter kopieren",
+            ["Url_CopiedClean"] = "Sauberer Link kopiert (Tracking entfernt)",
+            ["Url_CopiedParamValue"] = "Wert von '{0}' in die Zwischenablage kopiert",
+            ["Url_Parameters"] = "Parameter ({0})"
         },
 
         ["ru"] = new()
@@ -1291,7 +1375,21 @@ public static class LocalizationService
             ["Rename_Save"] = "Сохранить",
             ["Rename_Reset"] = "По умолчанию",
             ["Rename_Cancel"] = "Отмена",
-            ["Rename_Tooltip"] = "Задать собственное имя или псевдоним для этого элемента (F2)"
+            ["Rename_Tooltip"] = "Задать собственное имя или псевдоним для этого элемента (F2)",
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "Приложение работает в фоне! Нажмите {0} в любом месте или кликните по значку в трее.",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "Свернуто в системный трей. Нажмите {0} в любое время, чтобы открыть снова.",
+            ["Onboarding_Badge"] = "СОВЕТ",
+            ["Onboarding_TipPrefix"] = "Нажмите",
+            ["Onboarding_TipSuffix"] = "в любом месте, чтобы открыть историю.",
+            ["Onboarding_Dismiss"] = "Понятно",
+            ["Onboarding_DismissTooltip"] = "Закрыть подсказку",
+            ["Url_CopyClean"] = "Копировать чистую ссылку",
+            ["Url_CopyCleanTooltip"] = "Скопировать URL без параметров отслеживания",
+            ["Url_CopiedClean"] = "Чистая ссылка скопирована (трекинг удалён)",
+            ["Url_CopiedParamValue"] = "Значение '{0}' скопировано в буфер обмена",
+            ["Url_Parameters"] = "Параметры ({0})"
         },
 
         ["pt"] = new()
@@ -1421,7 +1519,21 @@ public static class LocalizationService
             ["Rename_Save"] = "Salvar",
             ["Rename_Reset"] = "Padrão",
             ["Rename_Cancel"] = "Cancelar",
-            ["Rename_Tooltip"] = "Definir um título ou alias personalizado para este item (F2)"
+            ["Rename_Tooltip"] = "Definir um título ou alias personalizado para este item (F2)",
+            ["Welcome_Title"] = "Advanced Clipboard Manager",
+            ["Welcome_Message"] = "O aplicativo está rodando em segundo plano! Pressione {0} em qualquer lugar ou clique neste ícone.",
+            ["CloseTip_Title"] = "Advanced Clipboard Manager",
+            ["CloseTip_Message"] = "Minimizado na bandeja do sistema. Pressione {0} a qualquer momento para reabrir.",
+            ["Onboarding_Badge"] = "DICA RÁPIDA",
+            ["Onboarding_TipPrefix"] = "Pressione",
+            ["Onboarding_TipSuffix"] = "em qualquer lugar para abrir o histórico.",
+            ["Onboarding_Dismiss"] = "Entendi",
+            ["Onboarding_DismissTooltip"] = "Fechar esta dica",
+            ["Url_CopyClean"] = "Copiar link limpo",
+            ["Url_CopyCleanTooltip"] = "Copiar URL sem parâmetros de rastreamento",
+            ["Url_CopiedClean"] = "Link limpo copiado (rastreamento removido)",
+            ["Url_CopiedParamValue"] = "Valor de '{0}' copiado para a área de transferência",
+            ["Url_Parameters"] = "Parâmetros ({0})"
         }
     };
 }

@@ -190,11 +190,23 @@ public sealed class ServiceTests : IDisposable
     [Test]
     public void Sensitive_items_are_masked_and_not_searchable_by_content()
     {
+        var normal = Copy("public note text");
+        _clock.Advance(TimeSpan.FromSeconds(5));
         var s = Copy("sk_live_51HxAbCdEfGhIjKlMnOpQrStUv");
         Assert.True(s.IsSensitive);
         Assert.False(s.Title.Contains("AbCdEf"), "title must be masked");
         Assert.Equal(0, _svc.Search("51HxAbCdEf").Count);
-        Assert.Equal(1, _svc.Search("sensitive:true").Count);
+
+        var onlySensitive = _svc.Search("sensitive:true");
+        Assert.Equal(1, onlySensitive.Count);
+        Assert.Equal(s.Id, onlySensitive[0].Id);
+
+        var onlyPublic = _svc.Search("sensitive:false");
+        Assert.Equal(1, onlyPublic.Count);
+        Assert.Equal(normal.Id, onlyPublic[0].Id);
+
+        // LatestHistoryText() must skip sensitive items even when the secret is the newest item
+        Assert.Equal("public note text", _svc.LatestHistoryText());
     }
 
     [Test]

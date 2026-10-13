@@ -108,7 +108,9 @@ public partial class App : Application
         };
         _tray.ClearRequested += () =>
         {
-            var answer = MessageBox.Show("Delete all clipboard history except pinned items?", "Clear history",
+            var answer = MessageBox.Show(
+                LocalizationService.Get("Dialog_ClearHistoryConfirm"),
+                LocalizationService.Get("Dialog_ClearHistoryTitle"),
                 MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
             if (answer == MessageBoxResult.OK) _svc.ClearHistory();
         };
@@ -163,12 +165,7 @@ public partial class App : Application
         _tray.ExitRequested += () => Shutdown();
 
         _hotkeys = new WindowsHotkeyService();
-        bool regOk = _hotkeys.Register(settings.QuickPasteHotkey, () =>
-        {
-            Log(new Exception($"HOTKEY FIRED! QuickPasteHotkey={settings.QuickPasteHotkey}"));
-            _palette.TogglePalette();
-        });
-        Log(new Exception($"HOTKEY REGISTER: '{settings.QuickPasteHotkey}' Result={regOk}"));
+        bool regOk = _hotkeys.Register(settings.QuickPasteHotkey, () => _palette.TogglePalette());
         if (!regOk)
         {
             _tray.ShowBalloon("Shortcut unavailable",

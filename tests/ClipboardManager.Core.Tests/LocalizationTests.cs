@@ -122,4 +122,40 @@ public sealed class LocalizationTests
 
         LocalizationService.SetLanguage("en");
     }
+
+    [Test]
+    public void Url_And_Onboarding_Keys_Localized_In_All_10_Languages()
+    {
+        string[] keysToCheck =
+        {
+            "Welcome_Title",
+            "Welcome_Message",
+            "CloseTip_Title",
+            "CloseTip_Message",
+            "Onboarding_Badge",
+            "Onboarding_TipPrefix",
+            "Onboarding_TipSuffix",
+            "Onboarding_Dismiss",
+            "Onboarding_DismissTooltip",
+            "Url_CopyClean",
+            "Url_CopyCleanTooltip",
+            "Url_CopiedClean",
+            "Url_CopiedParamValue",
+            "Url_Parameters",
+            "Menu_Rename",
+            "Rename_Title"
+        };
+
+        foreach (var lang in LocalizationService.SupportedLanguages)
+        {
+            LocalizationService.SetLanguage(lang.Code);
+            foreach (var key in keysToCheck)
+            {
+                var val = LocalizationService.Get(key);
+                Assert.True(!string.IsNullOrWhiteSpace(val) && val != key, $"Missing or untranslated key '{key}' in language '{lang.Code}'");
+            }
+        }
+
+        LocalizationService.SetLanguage("en");
+    }
 }

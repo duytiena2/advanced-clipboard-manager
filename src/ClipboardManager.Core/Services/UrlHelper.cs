@@ -29,7 +29,10 @@ public static class UrlHelper
         "gclid",
         "gbraid",
         "wbraid",
+        "dclid",
         "msclkid",
+        "ttclid",
+        "twclid",
         "mc_cid",
         "mc_eid",
         "igshid",
@@ -38,11 +41,21 @@ public static class UrlHelper
         "scm",
         "_hsenc",
         "_hsmi",
+        "_ga",
+        "_gl",
         "yclid",
+        "ymclid",
+        "rb_clickid",
+        "rdt_cid",
         "mkt_tok",
         "trk",
         "trackingid",
-        "vgo_ee"
+        "vgo_ee",
+        "vero_id",
+        "oly_enc_id",
+        "oly_anon_id",
+        "s_kwcid",
+        "zanpid"
     };
 
     public static bool IsTrackingParam(string key)
@@ -51,6 +64,7 @@ public static class UrlHelper
         var trimmed = key.Trim();
         if (trimmed.StartsWith("utm_", StringComparison.OrdinalIgnoreCase)) return true;
         if (trimmed.StartsWith("ref_", StringComparison.OrdinalIgnoreCase)) return true;
+        if (trimmed.StartsWith("mtm_", StringComparison.OrdinalIgnoreCase)) return true;
         return KnownTrackingParams.Contains(trimmed);
     }
 

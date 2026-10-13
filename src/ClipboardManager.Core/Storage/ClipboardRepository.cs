@@ -460,6 +460,7 @@ public sealed class ClipboardRepository : IDisposable
         if (query.Kind is not null) { where.Add("i.content_type = ?"); args.Add(query.Kind.Value.ToString()); }
         if (query.Subtype is not null) { where.Add("i.subtype = ?"); args.Add(query.Subtype); }
         if (query.Pinned is not null) { where.Add("i.is_pinned = ?"); args.Add(query.Pinned.Value); }
+        if (query.Sensitive is not null) { where.Add("i.is_sensitive = ?"); args.Add(query.Sensitive.Value); }
         if (query.Before is not null) { where.Add("i.last_copied_at < ?"); args.Add(query.Before.Value); }
         if (query.After is not null) { where.Add("i.last_copied_at >= ?"); args.Add(query.After.Value); }
 

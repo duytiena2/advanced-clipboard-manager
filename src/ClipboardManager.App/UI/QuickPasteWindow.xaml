@@ -567,7 +567,7 @@
                             <Border x:Name="RecentSearchesSection" Visibility="Collapsed" Margin="0,0,0,4">
                                 <StackPanel>
                                     <DockPanel Margin="14,4,14,4">
-                                        <TextBlock Text="RECENT SEARCHES" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock x:Name="RecentSearchesHeader" Text="RECENT SEARCHES" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="#8A909C" DockPanel.Dock="Left" />
                                         <Button x:Name="ClearAllRecentButton" Content="Clear" DockPanel.Dock="Right"
                                                 Foreground="#8A909C" FontSize="10.5" Background="Transparent"
@@ -622,13 +622,13 @@
                             </Border>
 
                             <!-- FILTERS DISCOVERY -->
-                            <TextBlock Text="FILTERS" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock x:Name="FiltersHeader" Text="FILTERS" FontSize="11" FontWeight="SemiBold"
                                        Foreground="#8A909C" Margin="14,4,14,6" />
 
                             <!-- Type -->
                             <Border Padding="14,4" Background="Transparent">
                                 <StackPanel>
-                                    <TextBlock Text="🏷️ Type" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
+                                    <TextBlock x:Name="FilterTypeHeader" Text="🏷️ Type" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
                                     <WrapPanel x:Name="TypeFilterPills" Orientation="Horizontal" />
                                 </StackPanel>
                             </Border>
@@ -638,7 +638,7 @@
                             <!-- Pinned -->
                             <Border Padding="14,4" Background="Transparent">
                                 <StackPanel>
-                                    <TextBlock Text="📌 Pinned" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
+                                    <TextBlock x:Name="FilterPinnedHeader" Text="📌 Pinned" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
                                     <WrapPanel x:Name="PinnedFilterPills" Orientation="Horizontal" />
                                 </StackPanel>
                             </Border>
@@ -646,7 +646,7 @@
                             <!-- Date -->
                             <Border Padding="14,4" Background="Transparent">
                                 <StackPanel>
-                                    <TextBlock Text="📅 Date" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
+                                    <TextBlock x:Name="FilterDateHeader" Text="📅 Date" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
                                     <WrapPanel x:Name="DateFilterPills" Orientation="Horizontal" />
                                 </StackPanel>
                             </Border>
@@ -654,7 +654,7 @@
                             <!-- Sensitive -->
                             <Border Padding="14,4,14,8" Background="Transparent">
                                 <StackPanel>
-                                    <TextBlock Text="🔒 Sensitive" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
+                                    <TextBlock x:Name="FilterSensitiveHeader" Text="🔒 Sensitive" FontWeight="SemiBold" FontSize="12" Foreground="#15171C" Margin="0,0,0,4" />
                                     <WrapPanel x:Name="SensitiveFilterPills" Orientation="Horizontal" />
                                 </StackPanel>
                             </Border>
@@ -815,6 +815,16 @@
                                                FontSize="10.5" Foreground="#8A909C"
                                                VerticalAlignment="Center" />
 
+                                    <!-- Copy count badge -->
+                                    <Border DockPanel.Dock="Left" x:Name="CopyCountIndicator"
+                                            Background="#0A000000" CornerRadius="3" Padding="4,0" Margin="6,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding HasCopyCount, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock x:Name="ItemCopyCountText" Text="{Binding CopyCountText}"
+                                                   FontSize="9.5" FontWeight="SemiBold" Foreground="#5A6170"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
+
                                     <!-- Pinned indicator -->
                                     <TextBlock DockPanel.Dock="Right" x:Name="PinIndicator" Text="&#xE840;"
                                                FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
@@ -923,8 +933,8 @@
                         <TextBlock x:Name="EmptyText" Visibility="Collapsed" />
                         <StackPanel x:Name="EmptyClipboardContainer" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" Visibility="Collapsed">
                             <TextBlock Text="📋" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" Opacity="0.8" />
-                            <TextBlock Text="Your clipboard is empty" FontSize="15" FontWeight="SemiBold" Foreground="#15171C" HorizontalAlignment="Center" Margin="0,0,0,4" />
-                            <TextBlock Text="Copy something and it will appear here." FontSize="12.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,0,0,12" />
+                            <TextBlock x:Name="EmptyClipboardTitle" Text="Your clipboard is empty" FontSize="15" FontWeight="SemiBold" Foreground="#15171C" HorizontalAlignment="Center" Margin="0,0,0,4" />
+                            <TextBlock x:Name="EmptyClipboardSubtitle" Text="Copy something and it will appear here." FontSize="12.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,0,0,12" />
                             <Border Style="{StaticResource Keycap}" HorizontalAlignment="Center" Padding="8,3">
                                 <TextBlock Text="Ctrl+Shift+V" Style="{StaticResource KeycapText}" />
                             </Border>
@@ -1141,6 +1151,11 @@
                                                                             </ControlTemplate>
                                                                         </Button.Template>
                                                                     </Button>
+                                                                    <Border DockPanel.Dock="Right" Background="#18D97706" CornerRadius="3" Padding="4,1" Margin="6,0,4,0"
+                                                                            VerticalAlignment="Center"
+                                                                            Visibility="{Binding IsTracking, Converter={StaticResource BoolToVis}}">
+                                                                        <TextBlock Text="TRACKING" FontSize="8.5" FontWeight="Bold" Foreground="#D97706" VerticalAlignment="Center" />
+                                                                    </Border>
                                                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                                         <TextBlock Text="{Binding Key}" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Accent}"
                                                                                    FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" />

@@ -230,7 +230,6 @@ public partial class QuickPasteWindow : Window
         PreviewKeyDown += OnPreviewKeyDown;
         Deactivated += (_, _) =>
         {
-            App.Log(new Exception($"Deactivated fired. KeepOpen={KeepOpen}, IsVisible={IsVisible}, _hiding={_hiding}"));
             if (SearchSuggestionsPopup is not null) SearchSuggestionsPopup.IsOpen = false;
             if (!KeepOpen) HidePalette();
         };
@@ -298,9 +297,7 @@ public partial class QuickPasteWindow : Window
             Width = TargetWidth;
             Height = TargetHeight;
             ApplyLayout();
-            KeepOpenButton.ToolTip = IsPinnedFloating
-                ? "Unpin window (Ctrl+T)"
-                : "Pin window / keep open (Ctrl+T)";
+            KeepOpenButton.ToolTip = LocalizationService.Get("QuickPaste_PinTooltip");
         }
         finally
         {
@@ -330,11 +327,26 @@ public partial class QuickPasteWindow : Window
         if (ChipPinned is not null) ChipPinned.Content = "📌 " + LocalizationService.Get("QuickPaste_Pinned");
         if (ChipSnippet is not null) ChipSnippet.Content = "🏷️ " + LocalizationService.Get("QuickPaste_Snippets");
 
+        if (RecentSearchesHeader is not null) RecentSearchesHeader.Text = LocalizationService.Get("QuickPaste_RecentSearches");
+        if (ClearAllRecentButton is not null) ClearAllRecentButton.Content = LocalizationService.Get("QuickPaste_ClearRecent");
+        if (FiltersHeader is not null) FiltersHeader.Text = LocalizationService.Get("QuickPaste_Filters");
+        if (FilterTypeHeader is not null) FilterTypeHeader.Text = LocalizationService.Get("QuickPaste_FilterType");
+        if (FilterPinnedHeader is not null) FilterPinnedHeader.Text = LocalizationService.Get("QuickPaste_FilterPinned");
+        if (FilterDateHeader is not null) FilterDateHeader.Text = LocalizationService.Get("QuickPaste_FilterDate");
+        if (FilterSensitiveHeader is not null) FilterSensitiveHeader.Text = LocalizationService.Get("QuickPaste_FilterSensitive");
+
+        if (EmptyClipboardTitle is not null) EmptyClipboardTitle.Text = LocalizationService.Get("QuickPaste_EmptyTitle");
+        if (EmptyClipboardSubtitle is not null) EmptyClipboardSubtitle.Text = LocalizationService.Get("QuickPaste_EmptySubtitle");
+        if (UrlCleanCopyButton is not null)
+        {
+            UrlCleanCopyButton.Content = LocalizationService.Get("Url_CopyClean");
+            UrlCleanCopyButton.ToolTip = LocalizationService.Get("Url_CopyCleanTooltip");
+        }
+
         KeepOpenButton.ToolTip = LocalizationService.Get("QuickPaste_PinTooltip");
         SettingsButton.ToolTip = LocalizationService.Get("QuickPaste_SettingsTooltip");
         if (HelpButton is not null) HelpButton.ToolTip = LocalizationService.Get("QuickPaste_HelpTooltip");
         if (StopPasteStackButton is not null) StopPasteStackButton.Content = LocalizationService.Get("QuickPaste_StopStack");
-        if (ClearAllRecentButton is not null) ClearAllRecentButton.Content = LocalizationService.Get("QuickPaste_ClearRecent");
 
         UpdateOnboardingBanner();
     }
@@ -450,7 +462,6 @@ public partial class QuickPasteWindow : Window
 
     public void TogglePalette()
     {
-        App.Log(new Exception($"TogglePalette: IsVisible={IsVisible}, IsActive={IsActive}, KeepOpen={KeepOpen}"));
         if (IsVisible && IsActive) HidePalette();
         else ShowPalette();
     }
@@ -458,7 +469,6 @@ public partial class QuickPasteWindow : Window
     /// <param name="keepTarget">Reopening after our own dialog: keep pasting into the app that was active before.</param>
     public void ShowPalette(bool keepTarget = false, string search = "")
     {
-        App.Log(new Exception($"ShowPalette: keepTarget={keepTarget}, search='{search}', Left={Left}, Top={Top}, Width={Width}, Height={Height}, IsVisible={IsVisible}"));
         if (!keepTarget) _paste.RememberForegroundWindow();
         _resizingFromCode = true;
         try
@@ -537,8 +547,8 @@ public partial class QuickPasteWindow : Window
             _resizingFromCode = false;
         }
 
-        KeepOpenButton.ToolTip = on ? "Unpin window (Ctrl+T)" : "Pin window / keep open (Ctrl+T)";
-        StatusText.Text = on ? "Pinned — Enter pastes into the app you used last" : $"{_svc.Count()} items";
+        KeepOpenButton.ToolTip = LocalizationService.Get("QuickPaste_PinTooltip");
+        StatusText.Text = on ? "Pinned — Enter pastes into the app you used last" : LocalizationService.Get("QuickPaste_ItemsCount", _svc.Count());
     }
 
     private void SaveSettings()
@@ -550,7 +560,6 @@ public partial class QuickPasteWindow : Window
 
     public void HidePalette()
     {
-        App.Log(new Exception($"HidePalette: _hiding={_hiding}, IsVisible={IsVisible}"));
         if (_hiding || !IsVisible) return;
         _hiding = true;
         if (SearchSuggestionsPopup is not null) SearchSuggestionsPopup.IsOpen = false;
@@ -606,7 +615,7 @@ public partial class QuickPasteWindow : Window
         UpdateContextualToolbar();
         if (ResizeGripIndicator is not null)
             ResizeGripIndicator.Visibility = Visibility.Visible;
-        Placeholder.Text = "Search clipboard…";
+        Placeholder.Text = LocalizationService.Get("QuickPaste_SearchPlaceholder");
         Header.ToolTip = Footer.ToolTip = "Drag to move";
     }
 
@@ -2348,6 +2357,35 @@ public partial class QuickPasteWindow : Window
         var copyItem = new MenuItem { Header = "Copy", InputGestureText = "Ctrl+C", ToolTip = "Copy back to clipboard (Ctrl+C)" };
         copyItem.Click += (_, _) => CopySelected();
         menu.Items.Add(copyItem);
+
+        if (vm.IsUrl && !string.IsNullOrWhiteSpace(vm.Item.TextContent))
+        {
+            var rawUrl = vm.Item.TextContent.Trim();
+            var analysis = UrlHelper.AnalyzeUrl(rawUrl);
+            if (analysis.HasTrackingParameters || (analysis.Parameters.Count > 0 && analysis.CleanUrl != rawUrl))
+            {
+                var cleanUrlItem = new MenuItem
+                {
+                    Header = LocalizationService.Get("Url_CopyClean"),
+                    ToolTip = LocalizationService.Get("Url_CopyCleanTooltip"),
+                };
+                var cleaned = analysis.CleanUrl;
+                cleanUrlItem.Click += (_, _) =>
+                {
+                    try
+                    {
+                        _writer.Write(new ClipboardPayload { Text = cleaned, IsSensitive = false });
+                        StatusText.Text = LocalizationService.Get("Url_CopiedClean");
+                        if (!KeepOpen) HidePalette();
+                    }
+                    catch (COMException)
+                    {
+                        StatusText.Text = "Clipboard is busy — try again";
+                    }
+                };
+                menu.Items.Add(cleanUrlItem);
+            }
+        }
 
         // 2. Transform Submenu (for text items)
         if (!vm.IsImage || _items.Any(i => i.IsMarked))

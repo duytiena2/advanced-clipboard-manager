@@ -36,6 +36,7 @@ public static class TextTransforms
         new("base64-decode", "Base64 decode", Base64Decode),
         new("url-encode", "URL encode", Uri.EscapeDataString),
         new("url-decode", "URL decode", s => WebUtility.UrlDecode(s)),
+        new("url-clean", "Clean URL (remove tracking)", CleanUrls),
         new("remote-id", "Extract Remote ID", ExtractRemoteId),
         new("remote-pass", "Extract Remote Password", ExtractRemotePass),
         new("remote-tab", "Remote Auto-Tab (ID + Tab + Pass)", ExtractRemoteTab),
@@ -113,6 +114,20 @@ public static class TextTransforms
         {
             throw new TransformException("Decoded data is binary, not text");
         }
+    }
+
+    private static readonly Regex InlineUrlRegex = new(@"https?://[^\s<>""']+|www\.[^\s<>""']+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static string CleanUrls(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return s;
+        var trimmed = s.Trim();
+        var analysis = UrlHelper.AnalyzeUrl(trimmed);
+        if (analysis.IsValid && !trimmed.Any(char.IsWhiteSpace))
+        {
+            return UrlHelper.GetCleanUrl(trimmed);
+        }
+        return InlineUrlRegex.Replace(s, m => UrlHelper.GetCleanUrl(m.Value));
     }
 
     private static string ExtractRemoteId(string s) =>

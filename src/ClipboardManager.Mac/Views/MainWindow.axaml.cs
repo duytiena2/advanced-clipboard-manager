@@ -232,6 +232,47 @@ public partial class MainWindow : Window
                 }
                 PreviewContent.Inlines = new InlineCollection { new Run(sb.ToString()) };
             }
+            else if (item.Kind == ContentKind.Url && !string.IsNullOrWhiteSpace(item.TextContent))
+            {
+                var rawUrl = item.TextContent.Trim();
+                var analysis = UrlHelper.AnalyzeUrl(rawUrl);
+                var sb = new StringBuilder();
+                sb.AppendLine(rawUrl);
+                sb.AppendLine();
+                sb.AppendLine($"Scheme: {analysis.Scheme}");
+                sb.AppendLine($"Host:   {analysis.Host}");
+                sb.AppendLine($"Path:   {analysis.Path}");
+                if (analysis.Parameters.Count > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine(string.Format(LocalizationService.Get("Url_Parameters"), analysis.Parameters.Count) + ":");
+                    foreach (var p in analysis.Parameters)
+                    {
+                        var tag = p.IsTracking ? " [TRACKING]" : "";
+                        sb.AppendLine($"  • {p.Key} = {p.Value}{tag}");
+                    }
+                }
+                if (analysis.HasTrackingParameters && analysis.CleanUrl != rawUrl)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine($"✨ {LocalizationService.Get("Url_CopyClean")}:");
+                    sb.AppendLine(analysis.CleanUrl);
+                }
+                PreviewContent.Inlines = new InlineCollection { new Run(sb.ToString()) };
+            }
+            else if (item.Kind == ContentKind.Snippet && _svc is not null)
+            {
+                var payload = _svc.LoadPayload(item, plainText: true);
+                var expanded = payload?.Text ?? item.TextContent ?? "";
+                var sb = new StringBuilder(expanded);
+                if (TemplateEngine.HasVariables(item.TextContent ?? ""))
+                {
+                    sb.AppendLine();
+                    sb.AppendLine();
+                    sb.AppendLine($"--- Template ---\n{item.TextContent}");
+                }
+                PreviewContent.Inlines = new InlineCollection { new Run(sb.ToString()) };
+            }
             else
             {
                 MacSyntaxHighlighter.Highlight(PreviewContent, item);
@@ -252,6 +293,10 @@ public partial class MainWindow : Window
         {
             var merged = MergeService.Merge(selectedList, MergeSeparator.NewLine);
             _writer.WriteText(merged);
+            if (_svc is not null)
+            {
+                foreach (var m in selectedList) _svc.MarkUsed(m);
+            }
             Hide();
             _paste.PasteIntoPreviousWindow();
             return;
@@ -263,6 +308,7 @@ public partial class MainWindow : Window
             var text = item.Kind == ContentKind.Image ? item.OcrText : item.TextContent;
             if (!plainTextOnly && _paste.IsRemoteDesktopTarget && RemoteCredentials.TryParse(text, out var creds) && creds is not null)
             {
+                _svc?.MarkUsed(item);
                 Hide();
                 _paste.PasteRemotePair(_writer, creds.Id, creds.Password);
                 return;
@@ -272,12 +318,14 @@ public partial class MainWindow : Window
             if (payload is not null && !payload.IsEmpty)
             {
                 _writer.Write(payload);
+                _svc?.MarkUsed(item);
                 Hide();
                 _paste.PasteIntoPreviousWindow();
             }
             else if (!string.IsNullOrEmpty(item.TextContent))
             {
                 _writer.WriteText(item.TextContent);
+                _svc?.MarkUsed(item);
                 Hide();
                 _paste.PasteIntoPreviousWindow();
             }
@@ -330,6 +378,23 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(text)) return;
 
         var menu = new ContextMenu();
+
+        if (item.Kind == ContentKind.Url)
+        {
+            var analysis = UrlHelper.AnalyzeUrl(text.Trim());
+            if (analysis.HasTrackingParameters || (analysis.Parameters.Count > 0 && analysis.CleanUrl != text.Trim()))
+            {
+                var cleanItem = new MenuItem { Header = "🧹 " + LocalizationService.Get("Url_CopyClean") };
+                var cleaned = analysis.CleanUrl;
+                cleanItem.Click += (_, _) =>
+                {
+                    _writer.WriteText(cleaned);
+                    Hide();
+                };
+                menu.Items.Add(cleanItem);
+                menu.Items.Add(new Separator());
+            }
+        }
 
         if (RemoteCredentials.TryParse(text, out var creds) && creds is not null)
         {
